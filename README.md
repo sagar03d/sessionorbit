@@ -1,6 +1,7 @@
-# Dodo Payments Next.js Boilerplate
+# Edusa
 
-A minimal Nextjs boilerplate for integrating [Dodo Payments](https://dodopayments.com/) into your [Next.js](https://nextjs.org/) application.
+Advanced Educational Platform integrating [Dodo Payments](https://dodopayments.com/) into [Next.js](https://nextjs.org/).
+
 
 ## Features
 
