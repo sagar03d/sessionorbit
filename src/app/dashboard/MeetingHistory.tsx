@@ -2,8 +2,9 @@
 
 import { useEffect, useState, useRef, useCallback } from "react"
 import { supabase } from "@/lib/supabase"
-import { ExternalLink, Calendar, Clock, Loader2 } from "lucide-react"
+import { ExternalLink, Calendar, Clock, Loader2, Filter, X } from "lucide-react"
 import Link from "next/link"
+import { Button } from "@/components/ui/button"
 
 interface Meeting {
     id: string
@@ -20,6 +21,8 @@ export default function MeetingHistory({ userId }: { userId: string }) {
     const [isLoading, setIsLoading] = useState(true)
     const [hasMore, setHasMore] = useState(true)
     const [page, setPage] = useState(0)
+    const [startDate, setStartDate] = useState<string>("")
+    const [endDate, setEndDate] = useState<string>("")
 
     // Observer for infinite scroll
     const observer = useRef<IntersectionObserver | null>(null)
@@ -36,58 +39,110 @@ export default function MeetingHistory({ userId }: { userId: string }) {
         if (node) observer.current.observe(node)
     }, [isLoading, hasMore])
 
-    useEffect(() => {
-        const fetchMeetings = async () => {
-            setIsLoading(true)
-            const from = page * ITEMS_PER_PAGE
-            const to = from + ITEMS_PER_PAGE - 1
+    const fetchMeetings = useCallback(async (isNewSearch: boolean = false) => {
+        setIsLoading(true)
+        const currentPage = isNewSearch ? 0 : page
+        const from = currentPage * ITEMS_PER_PAGE
+        const to = from + ITEMS_PER_PAGE - 1
 
-            const { data, error } = await supabase
-                .from('meetings')
-                .select('*')
-                .eq('host_id', userId)
-                .order('created_at', { ascending: false })
-                .range(from, to)
+        let query = supabase
+            .from('meetings')
+            .select('*', { count: 'exact' })
+            .eq('host_id', userId)
+            .order('created_at', { ascending: false })
+            .range(from, to)
 
-            if (!error && data) {
-                if (data.length < ITEMS_PER_PAGE) {
-                    setHasMore(false)
-                }
-                setMeetings(prev => page === 0 ? data : [...prev, ...data])
-            }
-            setIsLoading(false)
+        if (startDate) {
+            query = query.gte('created_at', new Date(startDate).toISOString())
+        }
+        if (endDate) {
+            const end = new Date(endDate)
+            end.setHours(23, 59, 59, 999)
+            query = query.lte('created_at', end.toISOString())
         }
 
-        fetchMeetings()
-    }, [userId, page])
+        const { data, error, count } = await query
 
-    // Reset when userId changes
+        if (!error && data) {
+            const currentTotal = isNewSearch ? data.length : meetings.length + data.length
+            setHasMore(count ? currentTotal < count : data.length === ITEMS_PER_PAGE)
+            setMeetings(prev => isNewSearch ? data : [...prev, ...data])
+        }
+        setIsLoading(false)
+    }, [userId, page, startDate, endDate, meetings.length])
+
+    // Handle filter/user resets
     useEffect(() => {
         setMeetings([])
-        setPage(0)
-        setHasMore(true)
-    }, [userId])
+        if (page !== 0) {
+            setPage(0)
+        } else {
+            fetchMeetings(true)
+        }
+    }, [userId, startDate, endDate])
 
-    if (isLoading && page === 0) {
-        return <div className="animate-pulse h-48 bg-neutral-900/50 rounded-xl" />
+    // Handle page changes (infinite scroll)
+    useEffect(() => {
+        if (page > 0) {
+            fetchMeetings(false)
+        } else if (meetings.length === 0) {
+            // Initial load case if page is 0
+            fetchMeetings(true)
+        }
+    }, [page])
+
+    const clearFilters = () => {
+        setStartDate("")
+        setEndDate("")
     }
 
-    if (meetings.length === 0 && !isLoading) {
+    if (meetings.length === 0 && !isLoading && !startDate && !endDate) {
         return (
             <div className="p-6 rounded-xl border border-neutral-800 bg-neutral-900/50 backdrop-blur-sm">
-                <h2 className="text-lg font-semibold mb-2 text-white">Meeting History</h2>
-                <p className="text-neutral-400">No meetings found.</p>
+                <h2 className="text-lg font-semibold mb-2 text-white text-center">Meeting History</h2>
+                <p className="text-neutral-400 text-center">No meetings found.</p>
             </div>
         )
     }
 
     return (
         <div className="p-6 rounded-xl border border-neutral-800 bg-neutral-900/50 backdrop-blur-sm col-span-1 md:col-span-2">
-            <h2 className="text-lg font-semibold mb-6 text-white flex items-center gap-2">
-                <Clock className="w-5 h-5 text-neutral-400" /> Meeting History
-            </h2>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                    <Clock className="w-5 h-5 text-neutral-400" /> Meeting History
+                </h2>
 
-            <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 thin-scrollbar">
+                <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex items-center gap-2 bg-neutral-900 border border-neutral-800 rounded-lg px-2 py-1">
+                        <Calendar className="w-3.5 h-3.5 text-neutral-500" />
+                        <input
+                            type="date"
+                            value={startDate}
+                            onChange={(e) => setStartDate(e.target.value)}
+                            className="bg-transparent text-xs text-neutral-300 outline-none p-1"
+                            placeholder="Start Date"
+                        />
+                        <span className="text-neutral-600">to</span>
+                        <input
+                            type="date"
+                            value={endDate}
+                            onChange={(e) => setEndDate(e.target.value)}
+                            className="bg-transparent text-xs text-neutral-300 outline-none p-1"
+                            placeholder="End Date"
+                        />
+                        {(startDate || endDate) && (
+                            <button
+                                onClick={clearFilters}
+                                className="p-1 hover:bg-neutral-800 rounded-full text-neutral-500 hover:text-white transition-colors"
+                            >
+                                <X className="w-3 h-3" />
+                            </button>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 thin-scrollbar">
                 {meetings.map((meeting, index) => {
                     const isLastElement = meetings.length === index + 1
 
@@ -129,8 +184,12 @@ export default function MeetingHistory({ userId }: { userId: string }) {
                     )
                 })}
 
-                {isLoading && page > 0 && (
-                    <div className="flex justify-center p-4">
+                {meetings.length === 0 && !isLoading && (
+                    <p className="text-center text-neutral-500 py-8">No meetings found for the selected range.</p>
+                )}
+
+                {isLoading && (
+                    <div className="flex justify-center p-8">
                         <Loader2 className="w-6 h-6 animate-spin text-neutral-500" />
                     </div>
                 )}

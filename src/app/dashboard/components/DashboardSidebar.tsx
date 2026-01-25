@@ -45,11 +45,13 @@ export default function DashboardSidebar() {
         <div className="flex h-full w-72 flex-col bg-black border-r border-neutral-800/50">
             {/* Logo / Brand */}
             <div className="p-8 pb-4">
-                <div className="flex items-center gap-2 mb-8">
-                    <div className="h-8 w-8 rounded-full bg-white flex items-center justify-center">
-                        <span className="text-black font-bold text-lg">S</span>
+                <div className="flex items-center gap-2 mb-8 group">
+                    <div className="relative w-8 h-8 flex items-center justify-center">
+                        <div className="absolute inset-0 border-2 border-indigo-500/30 rounded-full group-hover:border-indigo-500/50 transition-colors" />
+                        <div className="absolute inset-0 border-2 border-transparent border-t-indigo-500 rounded-full animate-spin [animation-duration:3s]" />
+                        <span className="font-bold text-white text-lg relative z-10">S</span>
                     </div>
-                    <span className="text-xl font-bold text-white tracking-tight">Session Orbit</span>
+                    <span className="text-xl font-bold text-white tracking-tight">SessionOrbit</span>
                 </div>
                 <div className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-4 px-2">
                     Menu

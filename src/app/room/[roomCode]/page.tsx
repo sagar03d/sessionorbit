@@ -595,20 +595,21 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
         )
     }
 
-    if (token === "") {
-        return (
-            <div className="flex h-screen items-center justify-center bg-black text-white">
-                <p>Failed to join room. Please try again.</p>
-            </div>
-        )
-    }
-
     if (!hasJoinedRoom) {
         return (
             <PreJoinScreen
                 userDisplayName={name}
                 onJoin={handlePreJoin}
+                isLoading={isJoining}
             />
+        )
+    }
+
+    if (token === "") {
+        return (
+            <div className="flex h-screen items-center justify-center bg-black text-white">
+                <p>Failed to join room. Please try again.</p>
+            </div>
         )
     }
 

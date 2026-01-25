@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Video, Calendar, Clock, ArrowRight } from "lucide-react"
 import { nanoid } from "nanoid"
 import MeetingHistory from "./MeetingHistory"
+import SubscriptionCard from "./components/SubscriptionCard"
 
 export default function DashboardPage() {
     const router = useRouter()
@@ -14,6 +15,7 @@ export default function DashboardPage() {
     const [user, setUser] = useState<any>(null)
     const [profile, setProfile] = useState<any>(null)
     const [isStartingClass, setIsStartingClass] = useState(false)
+    const [usage, setUsage] = useState(0)
 
     useEffect(() => {
         const checkUser = async () => {
@@ -23,13 +25,40 @@ export default function DashboardPage() {
             } else {
                 setUser(user)
                 // Fetch profile data
-                const { data: profile } = await supabase
+                const { data: profileData } = await supabase
                     .from('profiles')
                     .select('*')
                     .eq('id', user.id)
                     .single()
 
-                setProfile(profile)
+                // Fetch subscription data as primary source for plan info
+                const { data: subData } = await supabase
+                    .from('subscriptions')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .eq('status', 'active')
+                    .maybeSingle()
+
+                const activeProfile = {
+                    ...profileData,
+                    plan: subData?.plan_name || profileData?.plan || 'Free',
+                    plan_expiry: subData?.expiry_date || profileData?.plan_expiry
+                }
+
+                setProfile(activeProfile)
+
+                // Fetch usage (meetings count this month)
+                const startOfMonth = new Date()
+                startOfMonth.setDate(1)
+                startOfMonth.setHours(0, 0, 0, 0)
+
+                const { count } = await supabase
+                    .from('meetings')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('host_id', user.id)
+                    .gte('created_at', startOfMonth.toISOString())
+
+                setUsage(count || 0)
                 setIsLoading(false)
             }
         }
@@ -131,38 +160,47 @@ export default function DashboardPage() {
                     </div>
 
                     {/* Quick Stats / Info Card */}
-                    <div className="rounded-3xl border border-neutral-800 bg-neutral-900/30 p-8 flex flex-col justify-center space-y-6">
-                        <div className="space-y-4">
-                            <div className="flex items-center gap-4">
-                                <div className="p-3 rounded-2xl bg-blue-500/10 text-blue-400">
-                                    <Calendar className="w-6 h-6" />
+                    <div className="flex flex-col gap-8">
+                        <SubscriptionCard
+                            plan={profile?.plan || 'Free'}
+                            expiry={profile?.plan_expiry}
+                            usage={usage}
+                            maxUsage={profile?.plan === 'Pro' ? 30 : profile?.plan === 'Squad' ? 150 : 3}
+                        />
+
+                        <div className="rounded-3xl border border-neutral-800 bg-neutral-900/30 p-8 flex flex-col justify-center space-y-6">
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-4">
+                                    <div className="p-3 rounded-2xl bg-blue-500/10 text-blue-400">
+                                        <Calendar className="w-6 h-6" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-neutral-400">Next Scheduled</p>
+                                        <p className="font-medium text-white">No classes scheduled</p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <p className="text-sm text-neutral-400">Next Scheduled</p>
-                                    <p className="font-medium text-white">No classes scheduled</p>
+
+                                <div className="w-full h-px bg-neutral-800/50"></div>
+
+                                <div className="flex items-center gap-4">
+                                    <div className="p-3 rounded-2xl bg-purple-500/10 text-purple-400">
+                                        <Clock className="w-6 h-6" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-neutral-400">Average Duration</p>
+                                        <p className="font-medium text-white">45 minutes</p>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="w-full h-px bg-neutral-800/50"></div>
-
-                            <div className="flex items-center gap-4">
-                                <div className="p-3 rounded-2xl bg-purple-500/10 text-purple-400">
-                                    <Clock className="w-6 h-6" />
-                                </div>
-                                <div>
-                                    <p className="text-sm text-neutral-400">Average Duration</p>
-                                    <p className="font-medium text-white">45 minutes</p>
-                                </div>
-                            </div>
+                            <Button
+                                variant="outline"
+                                className="w-full rounded-xl border-neutral-700 hover:bg-neutral-800 hover:text-white group"
+                                onClick={() => router.push('/dashboard/calendar')}
+                            >
+                                View Calendar <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                            </Button>
                         </div>
-
-                        <Button
-                            variant="outline"
-                            className="w-full rounded-xl border-neutral-700 hover:bg-neutral-800 hover:text-white group"
-                            onClick={() => router.push('/dashboard/calendar')}
-                        >
-                            View Calendar <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                        </Button>
                     </div>
                 </div>
 
