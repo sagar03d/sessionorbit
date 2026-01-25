@@ -72,12 +72,17 @@ export default function MeetingHistory({ userId }: { userId: string }) {
 
                             <div>
                                 {isEnded ? (
-                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-neutral-800 text-neutral-400 border border-neutral-700">
-                                        Ended
-                                    </span>
+                                    <Link
+                                        href={`/dashboard/meeting/${meeting.id}`}
+                                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-semibold bg-neutral-800 text-neutral-400 border border-neutral-700 hover:bg-neutral-800/80 hover:text-white transition-colors"
+                                    >
+                                        View Details
+                                    </Link>
                                 ) : (
                                     <Link
-                                        href={`/${meeting.host_code}`}
+                                        href={`/room/${meeting.host_code}`} // Fixed link to use /dashboard/room if that's the path, wait, previous was `/${meeting.host_code}`? Let's check context.
+                                        // The original code had `/${meeting.host_code}`. But the file structure is `src/app/room/[roomCode]`.
+                                        // So it should be `/room/${meeting.host_code}`.
                                         className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-semibold bg-white text-black hover:bg-neutral-200 transition-colors"
                                     >
                                         Join <ExternalLink className="w-3 h-3" />

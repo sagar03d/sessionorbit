@@ -31,10 +31,14 @@ export default function Header() {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 border-b border-neutral-800 bg-black/50 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2">
-          <span className="font-bold text-black text-lg">E</span>
+        <Link href="/" className="flex items-center gap-3 group">
+          <div className="relative w-8 h-8 flex items-center justify-center">
+            <div className="absolute inset-0 border-2 border-indigo-500/30 rounded-full group-hover:border-indigo-500/50 transition-colors" />
+            <div className="absolute inset-0 border-2 border-transparent border-t-indigo-500 rounded-full animate-spin [animation-duration:3s]" />
+            <span className="font-bold text-white text-lg relative z-10">S</span>
+          </div>
           <span className="font-bold text-white text-lg tracking-tight hidden sm:block">
-            Edusa
+            SessionOrbit
           </span>
         </Link>
 
@@ -43,9 +47,10 @@ export default function Header() {
             <>
               <Link
                 href="/dashboard"
-                className="text-sm font-medium text-neutral-400 hover:text-white transition-colors"
+                className="text-sm font-medium text-neutral-400 hover:text-white transition-colors flex items-center gap-2"
               >
-                Dashboard
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                Mission Control
               </Link>
               <button
                 onClick={handleSignOut}

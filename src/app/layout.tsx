@@ -16,8 +16,8 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: "Edusa",
-  description: "Advanced Educational Platform",
+  title: "SessionOrbit",
+  description: "Advanced Educational Platform - Powered by SessionOrbit",
 };
 
 export default function RootLayout({

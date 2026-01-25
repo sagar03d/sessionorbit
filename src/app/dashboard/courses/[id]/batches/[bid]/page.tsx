@@ -96,7 +96,7 @@ export default function SchedulesPage({ params }: { params: Promise<{ id: string
         // Fetch Schedules
         const { data: scheduleData } = await supabase
             .from('class_schedules')
-            .select('*, meetings(*)')
+            .select('*')
             .eq('batch_id', batchId)
             .order('start_time', { ascending: true })
 
@@ -120,6 +120,50 @@ export default function SchedulesPage({ params }: { params: Promise<{ id: string
     useEffect(() => {
         fetchData()
     }, [batchId])
+
+    const handleStartClass = async (schedule: Schedule, e: React.MouseEvent) => {
+        e.stopPropagation()
+
+        // @ts-ignore
+        if (schedule.room_code) {
+            // @ts-ignore
+            window.open(`/room/${schedule.room_code}`, '_blank')
+            return
+        }
+
+        try {
+            const { data: { session } } = await supabase.auth.getSession()
+            if (!session) {
+                alert("Please login first")
+                return
+            }
+
+            const res = await fetch('/api/meetings/start', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`
+                },
+                body: JSON.stringify({
+                    scheduleId: schedule.id,
+                    batchId: batchId
+                })
+            })
+
+            if (!res.ok) throw new Error("Failed to start class")
+
+            const data = await res.json()
+            if (data.hostUrl) {
+                window.open(data.hostUrl, '_blank')
+            }
+
+            fetchData()
+
+        } catch (err) {
+            alert("Error starting class")
+            console.error(err)
+        }
+    }
 
     // -- Schedule Handlers --
     const handleCreate = async () => {
@@ -377,14 +421,15 @@ export default function SchedulesPage({ params }: { params: Promise<{ id: string
                                                 {/* Start Class (Visible if within 30 min of start) */}
                                                 {(() => {
                                                     const start = new Date(schedule.start_time).getTime()
+                                                    const end = new Date(schedule.end_time).getTime()
                                                     const now = new Date().getTime()
 
-                                                    // Relaxed live window for testing
-                                                    const isLive = true // diff < 30 * 60 * 1000 && diff > -2 * 60 * 60 * 1000
+                                                    // Show if now is between start-30m and end
+                                                    const isLive = now >= start - 30 * 60 * 1000 && now <= end + 15 * 60 * 1000 // Allow 15m buffer after end
 
                                                     if (isLive) {
                                                         // @ts-ignore
-                                                        const isActive = schedule.meetings && (Array.isArray(schedule.meetings) ? schedule.meetings.length > 0 : !!schedule.meetings)
+                                                        const isActive = !!schedule.room_code
 
                                                         return (
                                                             <Button

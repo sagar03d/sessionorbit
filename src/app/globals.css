@@ -139,4 +139,4 @@
   body {
     @apply bg-background text-foreground;
   }
-}
+}.rdp { --rdp-cell-size: 40px; --rdp-accent-color: #fff; --rdp-background-color: #262626; margin: 0; } .rdp-day_selected:not([disabled]) { font-weight: bold; background-color: var(--rdp-accent-color); color: var(--rdp-background-color); }

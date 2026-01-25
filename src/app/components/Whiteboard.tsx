@@ -23,17 +23,20 @@ export interface WhiteboardHandle {
     getStream: () => MediaStream | null;
 }
 
-interface WhiteboardProps {
+export interface WhiteboardProps {
     meetingId?: string
     boardId?: string // 'main' | 'worksheet' etc
     enableUpload?: boolean
+    initialData?: {
+        background?: string | null
+    }
 }
 
-const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({ meetingId, boardId = "main", enableUpload = false }, ref) => {
+const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({ meetingId, boardId = "main", enableUpload = false, initialData }, ref) => {
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const [currentStroke, setCurrentStroke] = useState<Point[] | null>(null)
     const [strokes, setStrokes] = useState<Stroke[]>([])
-    const [backgroundImage, setBackgroundImage] = useState<string | null>(null)
+    const [backgroundImage, setBackgroundImage] = useState<string | null>(initialData?.background || null)
     const [bgImageObj, setBgImageObj] = useState<HTMLImageElement | null>(null)
     const [color, setColor] = useState('#000000')
     const [width, setWidth] = useState(4)

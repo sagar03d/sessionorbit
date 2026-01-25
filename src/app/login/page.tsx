@@ -23,6 +23,9 @@ export default function LoginPage() {
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
     const [isLoading, setIsLoading] = useState(false)
+    const [isMagicLinkLoading, setIsMagicLinkLoading] = useState(false)
+    const [isGoogleLoading, setIsGoogleLoading] = useState(false)
+    const [magicLinkSent, setMagicLinkSent] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
@@ -39,6 +42,7 @@ export default function LoginPage() {
         e.preventDefault()
         setIsLoading(true)
         setError(null)
+        setMagicLinkSent(false)
 
         try {
             const { error } = await supabase.auth.signInWithPassword({
@@ -56,6 +60,52 @@ export default function LoginPage() {
             setError("An unexpected error occurred. Please try again.")
         } finally {
             setIsLoading(false)
+        }
+    }
+
+    const handleMagicLinkSignIn = async () => {
+        if (!email) {
+            setError("Please enter your email first.")
+            return
+        }
+        setIsMagicLinkLoading(true)
+        setError(null)
+        setMagicLinkSent(false)
+
+        try {
+            const { error } = await supabase.auth.signInWithOtp({
+                email,
+                options: {
+                    emailRedirectTo: `${window.location.origin}/auth/callback`,
+                },
+            })
+
+            if (error) {
+                setError(error.message)
+            } else {
+                setMagicLinkSent(true)
+            }
+        } catch (err) {
+            setError("An unexpected error occurred. Please try again.")
+        } finally {
+            setIsMagicLinkLoading(false)
+        }
+    }
+
+    const handleOAuthSignIn = async (provider: 'google') => {
+        setIsGoogleLoading(true)
+        setError(null)
+        try {
+            const { error } = await supabase.auth.signInWithOAuth({
+                provider,
+                options: {
+                    redirectTo: `${window.location.origin}/auth/callback`,
+                },
+            })
+            if (error) throw error
+        } catch (err) {
+            setError("An unexpected error occurred. Please try again.")
+            setIsGoogleLoading(false)
         }
     }
 
@@ -83,7 +133,7 @@ export default function LoginPage() {
                     >
                         <path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3" />
                     </svg>
-                    Edusa
+                    SessionOrbit
                 </div>
                 <div className="relative z-20 mt-auto">
                     <blockquote className="space-y-2">
@@ -118,6 +168,11 @@ export default function LoginPage() {
                                         <AlertDescription>{error}</AlertDescription>
                                     </Alert>
                                 )}
+                                {magicLinkSent && (
+                                    <Alert className="bg-green-900/50 border-green-900 text-green-200">
+                                        <AlertDescription>Magic link sent! Check your email to sign in.</AlertDescription>
+                                    </Alert>
+                                )}
                                 <div className="space-y-2">
                                     <Label htmlFor="email" className="text-neutral-300">Email</Label>
                                     <Input
@@ -127,7 +182,7 @@ export default function LoginPage() {
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
                                         required
-                                        disabled={isLoading}
+                                        disabled={isLoading || isMagicLinkLoading || isGoogleLoading}
                                         className="bg-neutral-800 border-neutral-700 text-white placeholder:text-neutral-500"
                                     />
                                 </div>
@@ -147,20 +202,59 @@ export default function LoginPage() {
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
                                         required
-                                        disabled={isLoading}
-                                        className="bg-neutral-800 border-neutral-700 text-white"
+                                        disabled={isLoading || isMagicLinkLoading || isGoogleLoading}
+                                        placeholder="••••••••"
+                                        className="bg-neutral-800 border-neutral-700 text-white placeholder:text-neutral-500"
                                     />
                                 </div>
                             </CardContent>
-                            <CardFooter className="flex flex-col gap-4">
+                            <CardFooter className="flex flex-col gap-4 pt-4">
                                 <Button
                                     type="submit"
                                     className="w-full bg-white text-black hover:bg-neutral-200"
                                     size="lg"
-                                    disabled={isLoading}
+                                    disabled={isLoading || isMagicLinkLoading || isGoogleLoading}
                                 >
                                     {isLoading ? "Signing In..." : "Sign In"}
                                 </Button>
+
+                                <div className="relative">
+                                    <div className="absolute inset-0 flex items-center">
+                                        <span className="w-full border-t border-neutral-700" />
+                                    </div>
+                                    <div className="relative flex justify-center text-xs uppercase">
+                                        <span className="bg-neutral-900 px-2 text-neutral-400">Or continue with</span>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <Button
+                                        variant="outline"
+                                        type="button"
+                                        disabled={isLoading || isMagicLinkLoading || isGoogleLoading}
+                                        onClick={() => handleOAuthSignIn('google')}
+                                        className="bg-neutral-800 border-neutral-700 text-white hover:bg-neutral-700 hover:text-white"
+                                    >
+                                        {isGoogleLoading ? (
+                                            <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
+                                        ) : (
+                                            <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
+                                                <path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"></path>
+                                            </svg>
+                                        )}
+                                        Google
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        type="button"
+                                        disabled={isLoading || isMagicLinkLoading || isGoogleLoading}
+                                        onClick={handleMagicLinkSignIn}
+                                        className="bg-neutral-800 border-neutral-700 text-white hover:bg-neutral-700 hover:text-white"
+                                    >
+                                        {isMagicLinkLoading ? "Sending..." : "Magic Link"}
+                                    </Button>
+                                </div>
+
                                 <div className="text-center text-sm text-neutral-400">
                                     Don&apos;t have an account?{" "}
                                     <Link

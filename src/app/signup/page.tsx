@@ -24,6 +24,7 @@ export default function SignupPage() {
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
     const [isLoading, setIsLoading] = useState(false)
+    const [isGoogleLoading, setIsGoogleLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState(false)
 
@@ -69,6 +70,23 @@ export default function SignupPage() {
         }
     }
 
+    const handleOAuthSignIn = async (provider: 'google') => {
+        setIsGoogleLoading(true)
+        setError(null)
+        try {
+            const { error } = await supabase.auth.signInWithOAuth({
+                provider,
+                options: {
+                    redirectTo: `${window.location.origin}/auth/callback`,
+                },
+            })
+            if (error) throw error
+        } catch (err) {
+            setError("An unexpected error occurred. Please try again.")
+            setIsGoogleLoading(false)
+        }
+    }
+
     return (
         <div className="relative h-screen flex-col items-center justify-center md:grid lg:max-w-none lg:grid-cols-2 lg:px-0 bg-black">
             <div className="relative hidden h-full flex-col bg-muted p-10 text-white dark:border-r lg:flex">
@@ -93,7 +111,7 @@ export default function SignupPage() {
                     >
                         <path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3" />
                     </svg>
-                    Edusa
+                    SessionOrbit
                 </div>
                 <div className="relative z-20 mt-auto">
                     <blockquote className="space-y-2">
@@ -142,7 +160,7 @@ export default function SignupPage() {
                                         value={fullName}
                                         onChange={(e) => setFullName(e.target.value)}
                                         required
-                                        disabled={isLoading || success}
+                                        disabled={isLoading || success || isGoogleLoading}
                                         className="bg-neutral-800 border-neutral-700 text-white placeholder:text-neutral-500"
                                     />
                                 </div>
@@ -155,7 +173,7 @@ export default function SignupPage() {
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
                                         required
-                                        disabled={isLoading || success}
+                                        disabled={isLoading || success || isGoogleLoading}
                                         className="bg-neutral-800 border-neutral-700 text-white placeholder:text-neutral-500"
                                     />
                                 </div>
@@ -167,20 +185,48 @@ export default function SignupPage() {
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
                                         required
-                                        disabled={isLoading || success}
-                                        className="bg-neutral-800 border-neutral-700 text-white"
+                                        disabled={isLoading || success || isGoogleLoading}
+                                        placeholder="••••••••"
+                                        className="bg-neutral-800 border-neutral-700 text-white placeholder:text-neutral-500"
                                     />
                                 </div>
                             </CardContent>
-                            <CardFooter className="flex flex-col gap-4">
+                            <CardFooter className="flex flex-col gap-4 pt-4">
                                 <Button
                                     type="submit"
                                     className="w-full bg-white text-black hover:bg-neutral-200"
                                     size="lg"
-                                    disabled={isLoading || success}
+                                    disabled={isLoading || success || isGoogleLoading}
                                 >
                                     {isLoading ? "Creating Account..." : "Sign Up"}
                                 </Button>
+
+                                <div className="relative">
+                                    <div className="absolute inset-0 flex items-center">
+                                        <span className="w-full border-t border-neutral-700" />
+                                    </div>
+                                    <div className="relative flex justify-center text-xs uppercase">
+                                        <span className="bg-neutral-900 px-2 text-neutral-400">Or continue with</span>
+                                    </div>
+                                </div>
+
+                                <Button
+                                    variant="outline"
+                                    type="button"
+                                    disabled={isLoading || success || isGoogleLoading}
+                                    onClick={() => handleOAuthSignIn('google')}
+                                    className="w-full bg-neutral-800 border-neutral-700 text-white hover:bg-neutral-700 hover:text-white"
+                                >
+                                    {isGoogleLoading ? (
+                                        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
+                                    ) : (
+                                        <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
+                                            <path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"></path>
+                                        </svg>
+                                    )}
+                                    Google
+                                </Button>
+
                                 <div className="text-center text-sm text-neutral-400">
                                     Already have an account?{" "}
                                     <Link

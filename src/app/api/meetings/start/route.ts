@@ -1,39 +1,74 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@supabase/supabase-js";
 import { nanoid } from "nanoid";
 
 export async function POST(req: NextRequest) {
     try {
-        const body = await req.json();
-        const { scheduleId, batchId } = body;
+        // 1. Auth check
+        const authHeader = req.headers.get('Authorization');
+        const token = authHeader?.replace('Bearer ', '');
 
-        if (!scheduleId || !batchId) {
-            return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+        if (!token) {
+            return NextResponse.json({ error: "Missing Authorization header" }, { status: 401 });
         }
 
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
+        // Create Authenticated Client
+        const supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            {
+                global: {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+            }
+        )
+
+        // Validate Token
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+        if (authError || !user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        // 1. Check if a meeting already exists for this schedule
-        const { data: existingMeeting } = await supabase
-            .from('meetings')
-            .select('*')
-            .eq('schedule_id', scheduleId)
-            .maybeSingle();
+        const body = await req.json();
+        const { scheduleId } = body;
 
-        if (existingMeeting) {
+        if (!scheduleId) {
+            return NextResponse.json({ error: "Missing scheduleId" }, { status: 400 });
+        }
+
+        // 2. Check existing schedule for room_code
+        // Note: We use the same authenticated client, so RLS must allow reading class_schedules
+        const { data: schedule, error: startError } = await supabase
+            .from('class_schedules')
+            .select('*')
+            .eq('id', scheduleId)
+            .single();
+
+        if (startError || !schedule) {
+            console.error("Schedule Fetch Error", startError);
+            return NextResponse.json({ error: "Schedule not found" }, { status: 404 });
+        }
+
+        if (schedule.room_code) {
+            // Already started
+            const { data: existingMeeting } = await supabase
+                .from('meetings')
+                .select('*')
+                .eq('host_code', schedule.room_code)
+                .single();
+
+            // Return existing
             return NextResponse.json({
                 meeting: existingMeeting,
-                hostUrl: `${process.env.NEXT_PUBLIC_APP_URL || ''}/room/${existingMeeting.host_code}`,
-                participantUrl: `${process.env.NEXT_PUBLIC_APP_URL || ''}/room/${existingMeeting.participant_code}`,
+                hostUrl: `${process.env.NEXT_PUBLIC_APP_URL || ''}/room/${schedule.room_code}`,
+                participantUrl: existingMeeting ? `${process.env.NEXT_PUBLIC_APP_URL || ''}/room/${existingMeeting.participant_code}` : null,
             });
         }
 
-        // 2. Create new meeting if valid schedule
-        // Verify schedule ownership/existence? (Skip for now, assuming caller is valid)
-
+        // 3. Create new meeting
         const hostCode = nanoid(10);
         const participantCode = nanoid(10);
         const moderatorCode = nanoid(10);
@@ -42,27 +77,32 @@ export async function POST(req: NextRequest) {
             .from('meetings')
             .insert([{
                 host_id: user.id,
-                schedule_id: scheduleId,
-                batch_id: batchId,
                 host_code: hostCode,
                 participant_code: participantCode,
                 moderator_code: moderatorCode,
-                name: `Class - ${scheduleId.slice(0, 6)}`, // Or fetch batch name to be nicer
-                status: 'active'
+                name: `Class - ${scheduleId.slice(0, 6)}`,
+                is_active: true
             }])
             .select()
             .single();
 
         if (error) {
             console.error("Error creating meeting:", error);
-            return NextResponse.json({ error: "Failed to create meeting" }, { status: 500 });
+            return NextResponse.json({ error: error.message }, { status: 500 });
         }
 
-        // 3. Update class_schedules with the meeting status/links? 
-        // User asked to "store all urls... against that schedule".
-        // We can update the schedule row if columns exist, or rely on the join.
-        // For now, let's rely on the join but also see if we can update the schedule status.
-        // (Assuming class_schedules doesn't have url columns yet, we just rely on meetings table)
+        // 4. Update schedule
+        const { error: updateError } = await supabase
+            .from('class_schedules')
+            .update({
+                room_code: hostCode,
+                status: 'ongoing'
+            })
+            .eq('id', scheduleId);
+
+        if (updateError) {
+            console.error("Error updating schedule:", updateError);
+        }
 
         return NextResponse.json({
             meeting: newMeeting,

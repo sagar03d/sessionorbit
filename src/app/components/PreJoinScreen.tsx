@@ -1,12 +1,18 @@
 "use client"
 
 import { useEffect, useState, useRef } from "react"
-import { Mic, MicOff, Video, VideoOff, Phone, Settings, AlertCircle, Loader2, Monitor } from "lucide-react"
+import { Mic, MicOff, Video, VideoOff, Phone, Settings, AlertCircle, Loader2, Monitor, ChevronDown, Check, GripHorizontal } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { createLocalVideoTrack, createLocalAudioTrack, LocalVideoTrack, LocalAudioTrack } from "livekit-client"
+import Vapi from "@vapi-ai/web"
+
+
+
 
 interface PreJoinScreenProps {
-    onJoin: (name: string, micEnabled: boolean, camEnabled: boolean) => void
+    onJoin: (name: string, micEnabled: boolean, camEnabled: boolean, audioDeviceId?: string, videoDeviceId?: string) => void
     userDisplayName?: string
     meetingName?: string
     isLoading?: boolean
@@ -17,11 +23,56 @@ export default function PreJoinScreen({ onJoin, userDisplayName, meetingName, is
     const [micEnabled, setMicEnabled] = useState(true)
     const [camEnabled, setCamEnabled] = useState(true)
 
+    // Device selection
+    const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([])
+    const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([])
+    const [selectedAudioDeviceId, setSelectedAudioDeviceId] = useState<string>("")
+    const [selectedVideoDeviceId, setSelectedVideoDeviceId] = useState<string>("")
+
+
+
+    // Vapi State
+    const [isInCall, setIsInCall] = useState(false)
+    const [callStatus, setCallStatus] = useState<'connecting' | 'connected' | 'disconnected'>('disconnected')
+    const [assistantIsSpeaking, setAssistantIsSpeaking] = useState(false)
+    const [volumeLevel, setVolumeLevel] = useState(0)
+    const [notification, setNotification] = useState<{ title: string, message: string } | null>(null)
+
+    // Draggable Logic
+    const [position, setPosition] = useState({ x: 20, y: 20 }) // Default bottom-right offset
+    const [isDragging, setIsDragging] = useState(false)
+    const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
+
+    const handleMouseDown = (e: React.MouseEvent) => {
+        setIsDragging(true)
+        setDragOffset({
+            x: e.clientX - position.x,
+            y: e.clientY - position.y
+        })
+    }
+
+    const handleMouseMove = (e: React.MouseEvent) => {
+        if (isDragging) {
+            setPosition({
+                x: e.clientX - dragOffset.x,
+                y: e.clientY - dragOffset.y
+            })
+        }
+    }
+
+    const handleMouseUp = () => {
+        setIsDragging(false)
+    }
+
+
     // Tracks for preview
     const [videoTrack, setVideoTrack] = useState<LocalVideoTrack | null>(null)
     const [audioTrack, setAudioTrack] = useState<LocalAudioTrack | null>(null)
     const [error, setError] = useState<string | null>(null)
     const videoRef = useRef<HTMLVideoElement>(null)
+
+    // Vapi Instance
+    const vapiRef = useRef<Vapi | null>(null);
 
     useEffect(() => {
         let mounted = true;
@@ -31,6 +82,7 @@ export default function PreJoinScreen({ onJoin, userDisplayName, meetingName, is
                 if (camEnabled) {
                     const vTrack = await createLocalVideoTrack({
                         resolution: { width: 1280, height: 720 },
+                        deviceId: selectedVideoDeviceId ? { exact: selectedVideoDeviceId } : undefined
                     });
                     if (mounted) {
                         setVideoTrack(vTrack);
@@ -57,7 +109,44 @@ export default function PreJoinScreen({ onJoin, userDisplayName, meetingName, is
         return () => {
             mounted = false;
         };
-    }, [camEnabled]);
+    }, [camEnabled, selectedVideoDeviceId]);
+
+    // Fetch devices
+    useEffect(() => {
+        const getDevices = async () => {
+            try {
+                // Ensure we have permissions first to get labels
+                // If cam is already enabled, we essentially have video permission from the other effect or future call
+                // But better to strictly request if needed or just enumerate.
+                // Enumerate first
+                const devices = await navigator.mediaDevices.enumerateDevices();
+
+                const audio = devices.filter(d => d.kind === 'audioinput');
+                const video = devices.filter(d => d.kind === 'videoinput');
+
+                setAudioDevices(audio);
+                setVideoDevices(video);
+
+                // Set defaults if not set
+                if (!selectedAudioDeviceId && audio.length > 0) {
+                    setSelectedAudioDeviceId(audio[0].deviceId);
+                }
+                if (!selectedVideoDeviceId && video.length > 0) {
+                    setSelectedVideoDeviceId(video[0].deviceId);
+                }
+            } catch (e) {
+                console.error("Error enumerating devices", e);
+            }
+        };
+
+        // We call getDevices initially, and also listening to devicechange could be good
+        getDevices();
+
+        navigator.mediaDevices.addEventListener('devicechange', getDevices);
+        return () => {
+            navigator.mediaDevices.removeEventListener('devicechange', getDevices);
+        }
+    }, [selectedAudioDeviceId, selectedVideoDeviceId]);
 
     // Handle mic separately to avoid restarting video when mic toggles
     useEffect(() => {
@@ -70,8 +159,64 @@ export default function PreJoinScreen({ onJoin, userDisplayName, meetingName, is
         return () => {
             videoTrack?.stop();
             audioTrack?.stop();
+            videoTrack?.stop();
+            audioTrack?.stop();
+            if (vapiRef.current) {
+                vapiRef.current.stop();
+            }
         }
     }, [videoTrack, audioTrack]);
+
+    useEffect(() => {
+        // Initialize Vapi
+        const publicKey = process.env.NEXT_PUBLIC_VAPI_PUBLIC_KEY;
+        if (!publicKey) {
+            console.error("Vapi Public Key is missing");
+            return;
+        }
+
+        const vapiInstance = new Vapi(publicKey);
+        vapiRef.current = vapiInstance;
+
+        // Vapi Event Listeners
+        vapiInstance.on('call-start', () => {
+            setCallStatus('connected');
+            setIsInCall(true);
+        });
+
+        vapiInstance.on('call-end', () => {
+            setCallStatus('disconnected');
+            setIsInCall(false);
+            setAssistantIsSpeaking(false);
+        });
+
+        vapiInstance.on('speech-start', () => {
+            setAssistantIsSpeaking(true);
+        });
+
+        vapiInstance.on('speech-end', () => {
+            setAssistantIsSpeaking(false);
+        });
+
+        vapiInstance.on('volume-level', (level) => {
+            setVolumeLevel(level);
+        });
+
+        vapiInstance.on('error', (e) => {
+            console.error("Vapi Error:", e);
+            setCallStatus('disconnected');
+            setIsInCall(false);
+            setNotification({
+                title: "Call Failed",
+                message: "Our agent is busy at the moment. Please try again later."
+            });
+            setTimeout(() => setNotification(null), 5000);
+        });
+
+        return () => {
+            vapiInstance.stop();
+        }
+    }, []);
 
 
     const handleJoin = (e: React.FormEvent) => {
@@ -80,16 +225,66 @@ export default function PreJoinScreen({ onJoin, userDisplayName, meetingName, is
             // Stop tracks so the main room can re-acquire them (or we could pass them, but easier to let Room handle it)
             videoTrack?.stop()
             audioTrack?.stop()
-            onJoin(name, micEnabled, camEnabled)
+            onJoin(name, micEnabled, camEnabled, selectedAudioDeviceId, selectedVideoDeviceId)
         }
     }
 
-    const handleAITroubleshoot = () => {
-        alert("Connecting to AI Technical Support... (Demo Feature)");
+    const handleAITroubleshoot = async () => {
+        if (!vapiRef.current) {
+            setNotification({
+                title: "Initialization Failed",
+                message: "AI support system could not be initialized. Please refresh."
+            });
+            return;
+        }
+
+        if (callStatus !== 'disconnected') return;
+
+        setCallStatus('connecting');
+        setIsInCall(true);
+        setNotification(null);
+
+        try {
+            if (process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID) {
+                // Ensure any previous call is stopped
+                vapiRef.current.stop();
+                await vapiRef.current.start(process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID);
+            } else {
+                console.error("Vapi Assistant ID not found in env");
+                setCallStatus('disconnected');
+                setIsInCall(false);
+                setNotification({
+                    title: "Configuration Error",
+                    message: "Assistant ID configuration is missing."
+                });
+            }
+        } catch (e) {
+            console.error("Failed to start call", e);
+            setCallStatus('disconnected');
+            setIsInCall(false);
+            setNotification({
+                title: "Connection Failed",
+                message: "Could not connect to the AI assistant."
+            });
+        }
+    }
+
+
+    const endAICall = () => {
+        vapiRef.current?.stop();
     }
 
     return (
-        <div className="min-h-screen bg-[#202124] flex items-center justify-center p-4 font-sans text-white">
+        <div className="min-h-screen bg-[#202124] flex items-center justify-center p-4 font-sans text-white relative">
+            {notification && (
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-md animate-in fade-in slide-in-from-top-4">
+                    <Alert variant="destructive" className="bg-red-900/50 border-red-500/50 text-white">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertTitle>{notification.title}</AlertTitle>
+                        <AlertDescription>{notification.message}</AlertDescription>
+                    </Alert>
+                </div>
+            )}
             <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
 
                 {/* Left Side: Video Preview */}
@@ -117,18 +312,65 @@ export default function PreJoinScreen({ onJoin, userDisplayName, meetingName, is
                         )}
 
                         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 z-10 transition-transform duration-300">
-                            <button
-                                onClick={() => setMicEnabled(!micEnabled)}
-                                className={`p-4 rounded-full transition-colors border ${micEnabled ? 'bg-[#3c4043] border-transparent hover:bg-[#4a4e51]' : 'bg-red-500 border-red-500 hover:bg-red-600'}`}
-                            >
-                                {micEnabled ? <Mic className="w-5 h-5 text-white" /> : <MicOff className="w-5 h-5 text-white" />}
-                            </button>
-                            <button
-                                onClick={() => setCamEnabled(!camEnabled)}
-                                className={`p-4 rounded-full transition-colors border ${camEnabled ? 'bg-[#3c4043] border-transparent hover:bg-[#4a4e51]' : 'bg-red-500 border-red-500 hover:bg-red-600'}`}
-                            >
-                                {camEnabled ? <Video className="w-5 h-5 text-white" /> : <VideoOff className="w-5 h-5 text-white" />}
-                            </button>
+                            {/* Mic Controls */}
+                            <div className="flex items-center gap-1 bg-[#3c4043] rounded-full p-1 border border-neutral-700">
+                                <button
+                                    onClick={() => setMicEnabled(!micEnabled)}
+                                    className={`p-3 rounded-full transition-colors ${micEnabled ? 'bg-transparent hover:bg-neutral-600' : 'bg-red-500 hover:bg-red-600'}`}
+                                >
+                                    {micEnabled ? <Mic className="w-5 h-5 text-white" /> : <MicOff className="w-5 h-5 text-white" />}
+                                </button>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <button className="p-1.5 rounded-full hover:bg-neutral-600 text-neutral-400 hover:text-white transition-colors">
+                                            <ChevronDown className="w-3 h-3" />
+                                        </button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-60 p-2 bg-[#202124] border-neutral-700 text-white" align="center">
+                                        <div className="text-xs font-semibold text-neutral-400 px-2 py-1 mb-1">Microphone</div>
+                                        {audioDevices.map(device => (
+                                            <button
+                                                key={device.deviceId}
+                                                onClick={() => setSelectedAudioDeviceId(device.deviceId)}
+                                                className="w-full text-left px-2 py-1.5 text-sm rounded hover:bg-neutral-700 flex items-center justify-between group"
+                                            >
+                                                <span className="truncate">{device.label || `Microphone ${device.deviceId.slice(0, 4)}...`}</span>
+                                                {selectedAudioDeviceId === device.deviceId && <Check className="w-4 h-4 text-blue-500" />}
+                                            </button>
+                                        ))}
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
+
+                            {/* Camera Controls */}
+                            <div className="flex items-center gap-1 bg-[#3c4043] rounded-full p-1 border border-neutral-700">
+                                <button
+                                    onClick={() => setCamEnabled(!camEnabled)}
+                                    className={`p-3 rounded-full transition-colors ${camEnabled ? 'bg-transparent hover:bg-neutral-600' : 'bg-red-500 hover:bg-red-600'}`}
+                                >
+                                    {camEnabled ? <Video className="w-5 h-5 text-white" /> : <VideoOff className="w-5 h-5 text-white" />}
+                                </button>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <button className="p-1.5 rounded-full hover:bg-neutral-600 text-neutral-400 hover:text-white transition-colors">
+                                            <ChevronDown className="w-3 h-3" />
+                                        </button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-60 p-2 bg-[#202124] border-neutral-700 text-white" align="center">
+                                        <div className="text-xs font-semibold text-neutral-400 px-2 py-1 mb-1">Camera</div>
+                                        {videoDevices.map(device => (
+                                            <button
+                                                key={device.deviceId}
+                                                onClick={() => setSelectedVideoDeviceId(device.deviceId)}
+                                                className="w-full text-left px-2 py-1.5 text-sm rounded hover:bg-neutral-700 flex items-center justify-between group"
+                                            >
+                                                <span className="truncate">{device.label || `Camera ${device.deviceId.slice(0, 4)}...`}</span>
+                                                {selectedVideoDeviceId === device.deviceId && <Check className="w-4 h-4 text-blue-500" />}
+                                            </button>
+                                        ))}
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
                         </div>
                     </div>
                     {/* Audio visualizer link or text could go here */}
@@ -186,6 +428,68 @@ export default function PreJoinScreen({ onJoin, userDisplayName, meetingName, is
                     </div>
                 </div>
             </div>
+            {/* Vapi Call Overlay */}
+            {/* Vapi Call Popup (Draggable) */}
+            {isInCall && (
+                <div
+                    className="fixed z-50 animate-in fade-in zoom-in duration-300 shadow-2xl rounded-2xl overflow-hidden bg-[#202124] border border-neutral-700 w-80"
+                    style={{
+                        right: `${position.x}px`,
+                        bottom: `${position.y}px`,
+                        cursor: isDragging ? 'grabbing' : 'default'
+                    }}
+                    onMouseMove={handleMouseMove}
+                    onMouseUp={handleMouseUp}
+                    onMouseLeave={handleMouseUp}
+                >
+                    {/* Drag Handle */}
+                    <div
+                        className="h-6 bg-neutral-800 w-full flex items-center justify-center cursor-grab hover:bg-neutral-700 transition-colors"
+                        onMouseDown={handleMouseDown}
+                    >
+                        <GripHorizontal className="w-8 h-4 text-neutral-500" />
+                    </div>
+
+                    <div className="p-6 flex flex-col items-center gap-6 relative">
+                        {/* Background Glow - Smaller */}
+                        <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-blue-500/10 rounded-full blur-[60px] transition-all duration-500 ${assistantIsSpeaking ? 'opacity-100' : 'opacity-30'}`} />
+
+                        <div className="relative z-10 flex flex-col items-center gap-3 text-center">
+                            {/* Smaller Avatar */}
+                            <div className={`w-20 h-20 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${assistantIsSpeaking ? 'border-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.4)]' : 'border-neutral-700'}`}>
+                                <div className={`w-[72px] h-[72px] rounded-full bg-neutral-800 flex items-center justify-center overflow-hidden relative`}>
+                                    {assistantIsSpeaking ? (
+                                        <div className="flex items-center gap-0.5">
+                                            {[...Array(4)].map((_, i) => (
+                                                <div key={i} className="w-1 bg-blue-400 rounded-full animate-[music-bar_0.8s_ease-in-out_infinite]" style={{ animationDelay: `${i * 0.1}s`, height: `${10 + Math.random() * 20}px` }} />
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <Monitor className="w-8 h-8 text-neutral-600" />
+                                    )}
+                                </div>
+                            </div>
+
+                            <div>
+                                <h3 className="text-lg font-semibold text-white">AI Support</h3>
+                                <p className="text-neutral-400 text-xs font-mono uppercase tracking-wider">
+                                    {callStatus === 'connecting' ? 'Connecting...' : assistantIsSpeaking ? 'Speaking...' : 'Listening...'}
+                                </p>
+                            </div>
+                        </div>
+
+                        <Button
+                            onClick={endAICall}
+                            variant="destructive"
+                            size="sm"
+                            className="w-full rounded-full h-10 text-sm font-medium relative z-10 hover:bg-red-600 shadow-lg shadow-red-900/20"
+                        >
+                            <Phone className="mr-2 w-4 h-4 rotate-135" />
+                            End Call
+                        </Button>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

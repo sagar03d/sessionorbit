@@ -1,31 +1,25 @@
-import ProductCard from "./components/ProductCard";
-import { products } from "@/lib/products";
+import Hero from "@/components/landing/Hero";
+import FeaturesGrid from "@/components/landing/FeaturesGrid";
 
 export default function Home() {
   return (
-    <div className="flex-1 flex flex-col">
-      {/* Main Content */}
-      <div className="flex-1 w-full pt-20 pb-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-5xl mx-auto">
-          {/* Hero Section */}
-          <div className="text-center max-w-2xl mx-auto mb-20">
-            <h1 className="text-4xl sm:text-5xl font-bold text-white mb-6 tracking-tight">
-              Simple pricing.
-            </h1>
-
-            <p className="text-lg text-neutral-400 mb-8 leading-relaxed">
-              Two plans. No hidden fees. Cancel anytime.
-            </p>
-          </div>
-
-          {/* Products Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-            {products.map((product) => (
-              <ProductCard key={product.product_id} product={product} />
-            ))}
-          </div>
-        </div>
+    <main className="min-h-screen bg-slate-950 text-white selection:bg-indigo-500/30">
+      {/* Background Gradients */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        <div className="absolute top-0 w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+        <div className="absolute bottom-0 w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+        <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]" />
       </div>
-    </div>
+
+      <div className="relative z-10">
+        <Hero />
+        <FeaturesGrid />
+
+        {/* Simple Footer */}
+        <footer className="w-full py-8 text-center text-slate-500 text-sm border-t border-white/5 mt-20">
+          <p>© 2024 SyncroClass. The future of teaching.</p>
+        </footer>
+      </div>
+    </main>
   );
 }
