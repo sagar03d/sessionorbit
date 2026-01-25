@@ -75,10 +75,51 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
     const participantDbIdRef = useRef<string | null>(null)
 
     useEffect(() => {
+        // Subscription for termination and tab sync - should run for everyone
+        const syncMeetingData = async (mId: string) => {
+            const { data: initialData } = await supabase
+                .from('meetings')
+                .select('whiteboard_data, ended_at')
+                .eq('id', mId)
+                .single()
+
+            if (initialData?.ended_at) {
+                alert("This class has ended.")
+                router.push("/dashboard")
+                return
+            }
+
+            if (initialData?.whiteboard_data?.tabs_config) {
+                setTabs(initialData.whiteboard_data.tabs_config)
+            }
+
+            const channel = supabase.channel(`room_updates_${mId}`)
+                .on('postgres_changes', {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'meetings',
+                    filter: `id=eq.${mId}`
+                }, (payload) => {
+                    const newData = payload.new as any
+                    if (newData.ended_at) {
+                        alert("The host has ended this class.")
+                        router.push("/dashboard")
+                        return
+                    }
+                    if (newData.whiteboard_data?.tabs_config) {
+                        setTabs(newData.whiteboard_data.tabs_config)
+                    }
+                })
+                .subscribe()
+
+            return () => {
+                supabase.removeChannel(channel)
+            }
+        }
+
         const initMeeting = async () => {
             const { data: { user } } = await supabase.auth.getUser()
 
-            // Find meeting by any code
             const { data: meetingData, error: meetingError } = await supabase
                 .from('meetings')
                 .select('*')
@@ -92,6 +133,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
             }
 
             setMeeting(meetingData)
+            syncMeetingData(meetingData.id)
 
             let userRole = "participant"
             if (meetingData.host_code === roomCode) {
@@ -105,141 +147,39 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
             }
             setRole(userRole)
 
-            if (!user && (userRole === "participant" || userRole === "moderator")) {
-                setIsLoading(false)
-            } else if (user) {
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('full_name')
-                    .eq('id', user.id)
-                    .single()
-                const displayName = profile?.full_name || user.email || "User"
-                setName(displayName)
-                fetchToken(meetingData.id, displayName, userRole)
+            const displayName = user ? (
+                (await supabase.from('profiles').select('full_name').eq('id', user.id).single()).data?.full_name || user.email || "User"
+            ) : "Guest"
 
-                // TRACKING: Join Meeting in DB
-                try {
-                    const { data: partData, error: partError } = await supabase
-                        .from('meeting_participants')
-                        .insert([{
-                            meeting_id: meetingData.id,
-                            user_id: user.id,
-                            name: displayName,
-                            role: userRole,
-                            joined_at: new Date().toISOString()
-                        }])
-                        .select()
-                        .single()
-
-                    if (partData) {
-                        setParticipantDbId(partData.id)
-                        participantDbIdRef.current = partData.id
-                    }
-                } catch (err) {
-                    console.error("Failed to track participant join", err)
-                }
-            }
+            setName(displayName)
+            fetchToken(meetingData.id, displayName, userRole)
         }
 
         initMeeting()
 
-        // Sync Tabs Logic & Meeting Status Logic
-        const syncMeetingData = async () => {
-            if (!meeting || !meeting.id) return
-
-            // Initial Load for Status
-            const { data: initialData } = await supabase
-                .from('meetings')
-                .select('whiteboard_data, ended_at')
-                .eq('id', meeting.id)
-                .single()
-
-            if (initialData?.ended_at) {
-                alert("This class has ended.")
-                router.push("/dashboard")
-                return
-            }
-
-            if (initialData?.whiteboard_data?.tabs_config) {
-                setTabs(initialData.whiteboard_data.tabs_config)
-            }
-
-            // Subscribe
-            const channel = supabase.channel('room_updates')
-                .on('postgres_changes', {
-                    event: 'UPDATE',
-                    schema: 'public',
-                    table: 'meetings',
-                    filter: `id=eq.${meeting.id}`
-                }, (payload) => {
-                    const newData = payload.new as any
-
-                    // Check if ended
-                    if (newData.ended_at) {
-                        alert("The host has ended this class.")
-                        router.push("/dashboard")
-                        return
-                    }
-
-                    if (newData.whiteboard_data?.tabs_config) {
-                        setTabs(newData.whiteboard_data.tabs_config)
-                    }
-                })
-                .subscribe()
-
-            return () => {
-                supabase.removeChannel(channel)
-            }
-        }
-
-        // Trigger sync when meeting is loaded
-        let cleaner: any;
-        if (meeting?.id) {
-            syncMeetingData().then(c => cleaner = c)
-        }
-
         // Setup Speech Recognition
-        let recognition: any = null;
-        if (SpeechRecognition) {
-            recognition = new SpeechRecognition();
+        if (SpeechRecognition && !(window as any)._recognition) {
+            const recognition = new SpeechRecognition();
             recognition.continuous = true;
             recognition.interimResults = false;
             recognition.lang = 'en-US';
 
             recognition.onresult = async (event: any) => {
-                const results = event.results;
-                const lastResult = results[results.length - 1];
-                if (lastResult.isFinal) {
-                    const text = lastResult[0].transcript;
-                    if (text && meeting?.id && participantDbIdRef.current) {
-                        // Insert transcription
-                        await supabase.from('meeting_transcriptions').insert({
-                            meeting_id: meeting.id,
-                            participant_id: participantDbIdRef.current,
-                            speaker_name: name || 'Unknown', // We depend on closure 'name' or ref if needed
-                            content: text,
-                            timestamp: new Date().toISOString()
-                        })
-                    }
+                const text = event.results[event.results.length - 1][0].transcript;
+                if (text && meeting?.id && participantDbIdRef.current) {
+                    await supabase.from('meeting_transcriptions').insert({
+                        meeting_id: meeting.id,
+                        participant_id: participantDbIdRef.current,
+                        speaker_name: name || 'Unknown',
+                        content: text,
+                        timestamp: new Date().toISOString()
+                    })
                 }
             };
-
-            recognition.onerror = (event: any) => {
-                console.warn("Speech recognition error", event.error);
-                setIsTranscribing(false)
-            };
+            (window as any)._recognition = recognition
         }
 
-        // Start recognition when joined? Or manual toggle. Let's start auto if we want total coverage, 
-        // but browsers usually block auto-start audio API. Let's make it manual toggle or auto-on-join-interaction.
-        // For now, leave it initialized but not started.
-
-        // TRACKING: Cleanup on leave
         return () => {
-            if (cleaner) cleaner()
-            if (recognition) recognition.stop()
-
-            // Update Left At
             if (participantDbIdRef.current) {
                 const finalTalkTime = talkTimeRef.current + (lastTalkStartRef.current ? (Date.now() - lastTalkStartRef.current) / 1000 : 0);
                 supabase.from('meeting_participants')
@@ -248,11 +188,9 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
                         talk_time_seconds: Math.round(finalTalkTime)
                     })
                     .eq('id', participantDbIdRef.current)
-                    .then(() => console.log("Left meeting tracked"))
             }
         }
-
-    }, [roomCode, router, meeting?.id]) // Removed 'name' from dep array to avoid re-init loops? Careful.
+    }, [roomCode, router]) // Removed 'name' from dep array to avoid re-init loops? Careful.
 
     // Effect to handle Transcription toggling (simplified)
     useEffect(() => {
@@ -279,13 +217,72 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
 
     const handlePreJoin = (enteredName: string, mic: boolean, cam: boolean, audioDeviceId?: string, videoDeviceId?: string) => {
         setPreJoinChoices({ mic, cam, audioDeviceId, videoDeviceId })
-        if (enteredName) setName(enteredName)
+        const finalName = enteredName || name || "Guest"
+        setName(finalName)
+
+        // Calculate role from meeting data to avoid stale state
+        let calculatedRole = "participant"
+        if (meeting) {
+            if (meeting.host_code === roomCode) calculatedRole = "host"
+            else if (meeting.moderator_code === roomCode) calculatedRole = "moderator"
+        }
+
+        const finishJoin = async () => {
+            // Track Join in DB if not already tracked
+            if (meeting && !participantDbIdRef.current) {
+                const { data: { user } } = await supabase.auth.getUser()
+
+                // Explicitly determine role from roomCode and meeting data to avoid state lag
+                let joinRole = "participant"
+                if (meeting.host_code === roomCode) joinRole = "host"
+                else if (meeting.moderator_code === roomCode) joinRole = "moderator"
+
+                // For authenticated users, try to avoid duplicate active rows for the SAME ROLE
+                if (user) {
+                    const { data: existing } = await supabase
+                        .from('meeting_participants')
+                        .select('id')
+                        .eq('meeting_id', meeting.id)
+                        .eq('user_id', user.id)
+                        .eq('role', joinRole)
+                        .is('left_at', null)
+                        .maybeSingle()
+
+                    if (existing) {
+                        setParticipantDbId(existing.id)
+                        participantDbIdRef.current = existing.id
+                        setHasJoinedRoom(true)
+                        return
+                    }
+                }
+
+                const { data: partData, error: partError } = await supabase
+                    .from('meeting_participants')
+                    .insert([{
+                        meeting_id: meeting.id,
+                        user_id: user?.id || null,
+                        name: finalName,
+                        role: joinRole,
+                        joined_at: new Date().toISOString()
+                    }])
+                    .select()
+                    .single()
+
+                if (partData) {
+                    setParticipantDbId(partData.id)
+                    participantDbIdRef.current = partData.id
+                } else if (partError) {
+                    console.error("Failed to track join:", partError)
+                }
+            }
+            setHasJoinedRoom(true)
+        }
 
         if (token) {
-            setHasJoinedRoom(true)
+            finishJoin()
         } else if (meeting) {
-            fetchToken(meeting.id, enteredName, role || "participant").then(() => {
-                setHasJoinedRoom(true)
+            fetchToken(meeting.id, finalName, calculatedRole).then(() => {
+                finishJoin()
             })
         }
     }
@@ -436,26 +433,46 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
     }
 
     const getEmbedUrl = (inputUrl: string) => {
-        try {
-            const url = new URL(inputUrl)
+        let cleanUrl = inputUrl.trim();
+        if (!cleanUrl.startsWith('http')) {
+            cleanUrl = 'https://' + cleanUrl;
+        }
 
-            // YouTube
+        try {
+            const url = new URL(cleanUrl);
+
+            // YouTube Handling
             if (url.hostname.includes('youtube.com') || url.hostname.includes('youtu.be')) {
-                let videoId = ''
+                let videoId = '';
+
                 if (url.hostname.includes('youtu.be')) {
-                    videoId = url.pathname.slice(1)
+                    // Pattern: youtu.be/VIDEO_ID
+                    videoId = url.pathname.slice(1);
+                } else if (url.pathname.includes('/shorts/')) {
+                    // Pattern: youtube.com/shorts/VIDEO_ID
+                    videoId = url.pathname.split('/shorts/')[1].split('?')[0];
+                } else if (url.pathname.includes('/live/')) {
+                    // Pattern: youtube.com/live/VIDEO_ID
+                    videoId = url.pathname.split('/live/')[1].split('?')[0];
+                } else if (url.pathname.includes('/v/')) {
+                    // Pattern: youtube.com/v/VIDEO_ID
+                    videoId = url.pathname.split('/v/')[1].split('?')[0];
                 } else {
-                    videoId = url.searchParams.get('v') || ''
+                    // Pattern: youtube.com/watch?v=VIDEO_ID
+                    videoId = url.searchParams.get('v') || '';
                 }
 
                 if (videoId) {
-                    return `https://www.youtube.com/embed/${videoId}`
+                    return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=0`;
                 }
+
+                // If it's just youtube.com without a video, it will still fail due to SAMEORIGIN
+                // but we've done our best to extract a video ID.
             }
 
-            return inputUrl
+            return cleanUrl;
         } catch (e) {
-            return inputUrl
+            return cleanUrl;
         }
     }
 
@@ -633,7 +650,15 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
                 onToggleRecording={isRecording ? stopRecording : startRecording}
                 copied={copied}
                 onCopyInviteLink={copyInviteLink}
-                onLeave={() => router.push("/dashboard")}
+                onLeave={() => {
+                    if (role === 'participant') {
+                        if (confirm("Are you sure you want to leave this class?")) {
+                            router.push(`/feedback?meeting_id=${meeting?.id}&participant_id=${participantDbId}`)
+                        }
+                    } else {
+                        router.push("/dashboard")
+                    }
+                }}
                 onEndClass={handleEndClass}
                 isLowBandwidth={isLowBandwidth}
                 onToggleLowBandwidth={setIsLowBandwidth}
@@ -770,15 +795,27 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
                 </div>
 
                 {/* Video Sidebar */}
-                <div className="hidden sm:flex w-72 border-l border-neutral-800 bg-neutral-900 flex-col shrink-0 h-full z-20 shadow-xl">
-                    <div className="p-4 border-b border-neutral-800 flex justify-between items-center bg-neutral-900 shrink-0">
-                        <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-widest flex items-center gap-2">
-                            <Video className="w-3.5 h-3.5" />
-                            Live Feeds
-                        </h3>
-                    </div>
-                    <div className="flex-1 overflow-y-auto p-3 space-y-3 thin-scrollbar bg-neutral-950">
-                        <ParticipantVideos role={role} isLowBandwidth={isLowBandwidth} />
+                <div className="hidden sm:flex w-72 border-l border-neutral-800 bg-neutral-900 flex-col shrink-0 h-full z-20 shadow-xl overflow-hidden">
+                    <div className="flex-1 overflow-y-auto thin-scrollbar bg-neutral-950">
+                        <div className="p-4 border-b border-neutral-800 flex justify-between items-center bg-neutral-900 shrink-0">
+                            <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-widest flex items-center gap-2">
+                                <Video className="w-3.5 h-3.5" />
+                                Live Feeds
+                            </h3>
+                        </div>
+                        <div className="p-3 space-y-3">
+                            <ParticipantVideos role={role} isLowBandwidth={isLowBandwidth} />
+                        </div>
+
+                        <div className="p-4 border-y border-neutral-800 flex justify-between items-center bg-neutral-900 shrink-0">
+                            <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-widest flex items-center gap-2">
+                                <Users className="w-3.5 h-3.5" />
+                                Participants
+                            </h3>
+                        </div>
+                        <div className="p-3">
+                            <ParticipantList meetingId={meeting?.id} />
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1046,6 +1083,70 @@ function ParticipantVideos({ role, isLowBandwidth }: { role: string, isLowBandwi
     )
 }
 
+function ParticipantList({ meetingId }: { meetingId: string | undefined }) {
+    const [participants, setParticipants] = useState<any[]>([])
+
+    useEffect(() => {
+        if (!meetingId) return
+
+        const fetchParticipants = async () => {
+            const { data } = await supabase
+                .from('meeting_participants')
+                .select('*')
+                .eq('meeting_id', meetingId)
+                .order('joined_at', { ascending: true })
+            if (data) setParticipants(data)
+        }
+
+        fetchParticipants()
+
+        const channel = supabase.channel(`participants_list_${meetingId}`)
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'meeting_participants',
+                filter: `meeting_id=eq.${meetingId}`
+            }, (payload) => {
+                fetchParticipants()
+            })
+            .subscribe()
+
+        return () => {
+            supabase.removeChannel(channel)
+        }
+    }, [meetingId])
+
+    return (
+        <div className="space-y-2">
+            {participants.map(p => (
+                <div key={p.id} className={`flex items-center justify-between p-2 rounded border transition-colors ${p.left_at ? 'bg-neutral-900/10 border-neutral-900/20 opacity-50' : 'bg-neutral-900/50 border-neutral-800'}`}>
+                    <div className="flex flex-col gap-1 w-full">
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-neutral-200">{p.name}</span>
+                            <span className="text-[10px] text-neutral-500 uppercase font-bold">{p.role}</span>
+                        </div>
+                        <div className="flex flex-col text-[9px] text-neutral-500">
+                            <div className="flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-green-500/50" />
+                                Joined: {new Date(p.joined_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                            {p.left_at && (
+                                <div className="flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-red-500/50" />
+                                    Left: {new Date(p.left_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            ))}
+            {participants.length === 0 && (
+                <p className="text-center text-neutral-600 text-xs py-4">No other participants</p>
+            )}
+        </div>
+    )
+}
+
 function RoomTracker({ participantDbId }: { participantDbId: string | null }) {
     const room = useRoomContext()
     const { localParticipant } = useLocalParticipant()
@@ -1080,7 +1181,7 @@ function RoomTracker({ participantDbId }: { participantDbId: string | null }) {
             // Sync to DB every 10s if changed
             if (Date.now() - lastUpdateRef.current > 10000 && talkTimeRef.current > 0 && participantDbId) {
                 supabase.from('meeting_participants')
-                    .update({ talk_time_seconds: talkTimeRef.current })
+                    .update({ talk_time_seconds: Math.round(talkTimeRef.current) })
                     .eq('id', participantDbId)
                     .then(() => {
                         lastUpdateRef.current = Date.now()
@@ -1095,7 +1196,7 @@ function RoomTracker({ participantDbId }: { participantDbId: string | null }) {
             // Final sync
             if (talkTimeRef.current > 0 && participantDbId) {
                 supabase.from('meeting_participants')
-                    .update({ talk_time_seconds: talkTimeRef.current })
+                    .update({ talk_time_seconds: Math.round(talkTimeRef.current) })
                     .eq('id', participantDbId)
             }
         }

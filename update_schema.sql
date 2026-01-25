@@ -43,10 +43,20 @@ CREATE POLICY "Participants can update themselves." ON public.meeting_participan
 CREATE TABLE IF NOT EXISTS public.meeting_transcriptions (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     meeting_id UUID REFERENCES public.meetings(id) ON DELETE CASCADE NOT NULL,
-    participant_id UUID REFERENCES public.meeting_participants(id) ON DELETE SET NULL, -- Optional link
+    participant_id UUID REFERENCES public.meeting_participants(id) ON DELETE CASCADE,
     speaker_name TEXT NOT NULL,
     content TEXT NOT NULL,
-    timestamp TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+    timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Meeting Feedback Table
+CREATE TABLE IF NOT EXISTS public.meeting_feedback (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    meeting_id UUID REFERENCES public.meetings(id) ON DELETE CASCADE NOT NULL,
+    participant_id UUID REFERENCES public.meeting_participants(id) ON DELETE SET NULL,
+    rating INTEGER CHECK (rating >= 1 AND rating <= 5),
+    feedback_text TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Enable RLS

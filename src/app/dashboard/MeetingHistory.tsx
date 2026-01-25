@@ -157,9 +157,17 @@ export default function MeetingHistory({ userId }: { userId: string }) {
                         >
                             <div className="flex flex-col gap-1">
                                 <span className="font-medium text-neutral-200">{meeting.name}</span>
-                                <div className="flex items-center gap-2 text-xs text-neutral-500">
-                                    <Calendar className="w-3 h-3" />
-                                    <span>{new Date(meeting.created_at).toLocaleDateString()} at {new Date(meeting.created_at).toLocaleTimeString()}</span>
+                                <div className="flex flex-col gap-1 text-xs text-neutral-500">
+                                    <div className="flex items-center gap-2">
+                                        <Calendar className="w-3 h-3" />
+                                        <span>Started: {new Date(meeting.created_at).toLocaleDateString()} at {new Date(meeting.created_at).toLocaleTimeString()}</span>
+                                    </div>
+                                    {meeting.ended_at && (
+                                        <div className="flex items-center gap-2">
+                                            <Clock className="w-3 h-3" />
+                                            <span>Ended: {new Date(meeting.ended_at).toLocaleDateString()} at {new Date(meeting.ended_at).toLocaleTimeString()}</span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
