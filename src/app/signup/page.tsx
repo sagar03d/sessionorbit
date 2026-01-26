@@ -91,25 +91,29 @@ export default function SignupPage() {
             icon: Sparkles,
             title: "AI Lesson Scribe",
             description: "Auto-generated class summaries and homework tracking",
-            color: "indigo"
+            bgClass: "bg-indigo-500/10",
+            iconClass: "text-indigo-400"
         },
         {
             icon: Mic,
             title: "AI Help Desk",
             description: "Voice-guided tech support for students",
-            color: "blue"
+            bgClass: "bg-blue-500/10",
+            iconClass: "text-blue-400"
         },
         {
             icon: Wifi,
             title: "Smooth-Stream",
             description: "Lag-free teaching on any connection",
-            color: "emerald"
+            bgClass: "bg-emerald-500/10",
+            iconClass: "text-emerald-400"
         },
         {
             icon: Eye,
             title: "Focus Orbit",
             description: "Real-time attention tracking and alerts",
-            color: "amber"
+            bgClass: "bg-amber-500/10",
+            iconClass: "text-amber-400"
         }
     ]
 
@@ -260,8 +264,8 @@ export default function SignupPage() {
                                 const Icon = feature.icon
                                 return (
                                     <div key={index} className="flex gap-4 p-4 rounded-xl bg-white/5 border border-white/10 hover:border-indigo-500/30 transition-all">
-                                        <div className={`w-12 h-12 rounded-xl bg-${feature.color}-500/10 flex items-center justify-center shrink-0`}>
-                                            <Icon className={`w-6 h-6 text-${feature.color}-400`} />
+                                        <div className={`w-12 h-12 rounded-xl ${feature.bgClass} flex items-center justify-center shrink-0`}>
+                                            <Icon className={`w-6 h-6 ${feature.iconClass}`} />
                                         </div>
                                         <div>
                                             <h3 className="font-semibold mb-1">{feature.title}</h3>

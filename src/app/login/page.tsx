@@ -16,7 +16,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Check, Sparkles, Mic, Wifi, Eye, Clock, Zap } from "lucide-react"
+import { Check, Sparkles, Mic, Wifi, Eye, Clock, Zap, BarChart, Users, Calendar, BookOpen } from "lucide-react"
 
 export default function LoginPage() {
     const router = useRouter()
@@ -111,43 +111,104 @@ export default function LoginPage() {
 
     const features = [
         {
-            icon: Sparkles,
-            title: "AI Lesson Scribe",
-            description: "Auto-generated class summaries and homework tracking",
-            color: "indigo"
+            icon: BarChart,
+            title: "Advanced Analytics",
+            description: "Deep dive into student performance metrics",
+            bgClass: "bg-purple-500/10",
+            iconClass: "text-purple-400"
         },
         {
-            icon: Mic,
-            title: "AI Help Desk",
-            description: "Voice-guided tech support for students",
-            color: "blue"
+            icon: Users,
+            title: "Class Management",
+            description: "Effortless attendance and grouping tools",
+            bgClass: "bg-pink-500/10",
+            iconClass: "text-pink-400"
         },
         {
-            icon: Wifi,
-            title: "Smooth-Stream",
-            description: "Lag-free teaching on any connection",
-            color: "emerald"
+            icon: Calendar,
+            title: "Smart Scheduling",
+            description: "Automated conflict resolution & reminders",
+            bgClass: "bg-cyan-500/10",
+            iconClass: "text-cyan-400"
         },
         {
-            icon: Eye,
-            title: "Focus Orbit",
-            description: "Real-time attention tracking and alerts",
-            color: "amber"
+            icon: BookOpen,
+            title: "Resource Library",
+            description: "Share and discover lesson materials",
+            bgClass: "bg-orange-500/10",
+            iconClass: "text-orange-400"
         }
     ]
 
     const benefits = [
-        "Save 45+ minutes per session",
-        "99.9% uptime guarantee",
-        "Start teaching in seconds",
-        "No downloads required"
+        "Automated grading assistance",
+        "Parent-teacher communication tools",
+        "Customizable curriculum builder",
+        "Secure document storage"
     ]
 
     return (
         <div className="min-h-screen bg-[#0B0C15] text-white pt-16">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
                 <div className="grid lg:grid-cols-2 gap-12 items-center">
-                    {/* Left Side - Form */}
+                    {/* Left Side - Features Showcase */}
+                    <div className="hidden lg:block space-y-8">
+                        <div>
+                            <h2 className="text-3xl font-bold mb-3">Teaching Reimagined</h2>
+                            <p className="text-xl text-slate-400">Powerful tools to enhance your virtual classroom</p>
+                        </div>
+
+                        <div className="grid gap-4">
+                            {features.map((feature, index) => {
+                                const Icon = feature.icon
+                                return (
+                                    <div key={index} className="flex gap-4 p-4 rounded-xl bg-white/5 border border-white/10 hover:border-purple-500/30 transition-all">
+                                        <div className={`w-12 h-12 rounded-xl ${feature.bgClass} flex items-center justify-center shrink-0`}>
+                                            <Icon className={`w-6 h-6 ${feature.iconClass}`} />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-semibold mb-1">{feature.title}</h3>
+                                            <p className="text-sm text-slate-400">{feature.description}</p>
+                                        </div>
+                                    </div>
+                                )
+                            })}
+                        </div>
+
+                        <div className="p-6 rounded-xl bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/20">
+                            <div className="flex items-center gap-2 mb-4">
+                                <Zap className="w-5 h-5 text-purple-400" />
+                                <h3 className="font-semibold">Pro Features Included</h3>
+                            </div>
+                            <ul className="space-y-3">
+                                {benefits.map((benefit, index) => (
+                                    <li key={index} className="flex items-center gap-3">
+                                        <Check className="w-5 h-5 text-pink-400 shrink-0" />
+                                        <span className="text-slate-300">{benefit}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+
+                        <div className="text-center p-6 rounded-xl bg-white/5 border border-white/10">
+                            <div className="flex items-center justify-center gap-8 mb-4">
+                                <div>
+                                    <div className="text-3xl font-bold text-purple-400">Active</div>
+                                    <div className="text-sm text-slate-400">Community</div>
+                                </div>
+                                <div>
+                                    <div className="text-3xl font-bold text-pink-400">24/7</div>
+                                    <div className="text-sm text-slate-400">Support</div>
+                                </div>
+                                <div>
+                                    <div className="text-3xl font-bold text-cyan-400">Global</div>
+                                    <div className="text-sm text-slate-400">Reach</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Right Side - Form */}
                     <div className="flex items-center justify-center">
                         <div className="w-full max-w-md space-y-6">
                             <div className="text-center lg:text-left">
@@ -274,63 +335,6 @@ export default function LoginPage() {
                                 {" "}and{" "}
                                 <Link href="/privacy" className="underline hover:text-white">Privacy Policy</Link>
                             </p>
-                        </div>
-                    </div>
-
-                    {/* Right Side - Features Showcase */}
-                    <div className="hidden lg:block space-y-8">
-                        <div>
-                            <h2 className="text-3xl font-bold mb-3">Why SessionOrbit?</h2>
-                            <p className="text-xl text-slate-400">Everything you need to teach online, in one platform</p>
-                        </div>
-
-                        <div className="grid gap-4">
-                            {features.map((feature, index) => {
-                                const Icon = feature.icon
-                                return (
-                                    <div key={index} className="flex gap-4 p-4 rounded-xl bg-white/5 border border-white/10 hover:border-indigo-500/30 transition-all">
-                                        <div className={`w-12 h-12 rounded-xl bg-${feature.color}-500/10 flex items-center justify-center shrink-0`}>
-                                            <Icon className={`w-6 h-6 text-${feature.color}-400`} />
-                                        </div>
-                                        <div>
-                                            <h3 className="font-semibold mb-1">{feature.title}</h3>
-                                            <p className="text-sm text-slate-400">{feature.description}</p>
-                                        </div>
-                                    </div>
-                                )
-                            })}
-                        </div>
-
-                        <div className="p-6 rounded-xl bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20">
-                            <div className="flex items-center gap-2 mb-4">
-                                <Zap className="w-5 h-5 text-indigo-400" />
-                                <h3 className="font-semibold">What You Get</h3>
-                            </div>
-                            <ul className="space-y-3">
-                                {benefits.map((benefit, index) => (
-                                    <li key={index} className="flex items-center gap-3">
-                                        <Check className="w-5 h-5 text-emerald-400 shrink-0" />
-                                        <span className="text-slate-300">{benefit}</span>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-
-                        <div className="text-center p-6 rounded-xl bg-white/5 border border-white/10">
-                            <div className="flex items-center justify-center gap-8 mb-4">
-                                <div>
-                                    <div className="text-3xl font-bold text-indigo-400">10K+</div>
-                                    <div className="text-sm text-slate-400">Teachers</div>
-                                </div>
-                                <div>
-                                    <div className="text-3xl font-bold text-purple-400">500K+</div>
-                                    <div className="text-sm text-slate-400">Hours Taught</div>
-                                </div>
-                                <div>
-                                    <div className="text-3xl font-bold text-emerald-400">98%</div>
-                                    <div className="text-sm text-slate-400">Satisfaction</div>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
