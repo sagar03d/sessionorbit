@@ -1,12 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { Suspense, useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import { Star, Send, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
-export default function FeedbackPage() {
+function FeedbackContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const meetingId = searchParams.get('meeting_id')
@@ -94,8 +94,8 @@ export default function FeedbackPage() {
                                 >
                                     <Star
                                         className={`w-12 h-12 transition-colors ${star <= (hoveredRating || rating)
-                                                ? 'fill-yellow-400 text-yellow-400'
-                                                : 'text-neutral-600'
+                                            ? 'fill-yellow-400 text-yellow-400'
+                                            : 'text-neutral-600'
                                             }`}
                                     />
                                 </button>
@@ -160,5 +160,13 @@ export default function FeedbackPage() {
                 </div>
             </div>
         </div>
+    )
+}
+
+export default function FeedbackPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen bg-black text-white flex items-center justify-center">Loading...</div>}>
+            <FeedbackContent />
+        </Suspense>
     )
 }
