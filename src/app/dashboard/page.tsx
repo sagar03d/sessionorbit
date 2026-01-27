@@ -8,62 +8,18 @@ import { Video, Calendar, Clock, ArrowRight } from "lucide-react"
 import { nanoid } from "nanoid"
 import MeetingHistory from "./MeetingHistory"
 import SubscriptionCard from "./components/SubscriptionCard"
+import { useUser } from "@/hooks/useUser"
 
 export default function DashboardPage() {
     const router = useRouter()
-    const [isLoading, setIsLoading] = useState(true)
-    const [user, setUser] = useState<any>(null)
-    const [profile, setProfile] = useState<any>(null)
+    const { user, profile, usage, isLoading } = useUser()
     const [isStartingClass, setIsStartingClass] = useState(false)
-    const [usage, setUsage] = useState(0)
 
     useEffect(() => {
-        const checkUser = async () => {
-            const { data: { user } } = await supabase.auth.getUser()
-            if (!user) {
-                router.push("/login")
-            } else {
-                setUser(user)
-                // Fetch profile data
-                const { data: profileData } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', user.id)
-                    .single()
-
-                // Fetch subscription data as primary source for plan info
-                const { data: subData } = await supabase
-                    .from('subscriptions')
-                    .select('*')
-                    .eq('user_id', user.id)
-                    .eq('status', 'active')
-                    .maybeSingle()
-
-                const activeProfile = {
-                    ...profileData,
-                    plan: subData?.plan_name || profileData?.plan || 'Free',
-                    plan_expiry: subData?.expiry_date || profileData?.plan_expiry
-                }
-
-                setProfile(activeProfile)
-
-                // Fetch usage (meetings count this month)
-                const startOfMonth = new Date()
-                startOfMonth.setDate(1)
-                startOfMonth.setHours(0, 0, 0, 0)
-
-                const { count } = await supabase
-                    .from('meetings')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('host_id', user.id)
-                    .gte('created_at', startOfMonth.toISOString())
-
-                setUsage(count || 0)
-                setIsLoading(false)
-            }
+        if (!isLoading && !user) {
+            router.push("/login")
         }
-        checkUser()
-    }, [router])
+    }, [isLoading, user, router])
 
     const startClass = async () => {
         if (!user || isStartingClass) return
@@ -73,28 +29,83 @@ export default function DashboardPage() {
         const moderatorCode = nanoid(12)
         const participantCode = nanoid(12)
 
-        const { data: meeting, error } = await supabase
-            .from('meetings')
-            .insert([
-                {
-                    host_id: user.id,
-                    name: `${profile?.full_name || 'Guest'}'s Class`,
-                    host_code: hostCode,
-                    moderator_code: moderatorCode,
-                    participant_code: participantCode,
+        try {
+            // Use API to create meeting (Supports Manual & Supabase Auth if adapted, 
+            // but for now Supabase Auth users might use RLS directly? 
+            // To exclude complexity, we use API for EVERYONE or checks?
+            // "Manual" user has no Supabase session, so must use API.
+            // "Supabase" user has Supabase session, but API call works for them 
+            // ONLY IF the API can identify them.
+            // Our API currently confirms ONLY `session_token` cookie.
+            // Supabase auth users don't have `session_token` cookie (unless we set it for them too?).
+            // Uh oh. 
+            // If the user logs in via Supabase (Legacy), `useUser` detects them.
+            // But they don't have `session_token`.
+            // So API call `/api/meetings` will fail (401).
+            // So we need Branching logic here!
+
+            let meeting = null;
+            let error = null;
+
+            // Check if we have a manual session (we can check if useUser returned a user but supabase.auth.session is null?)
+            // Or simpler: Check if we are "source: 'google-manual'"?
+            // Or: Try API. If 401, Try Supabase Client?
+
+            // Try Supabase Client first (Standard Path)
+            const { data: sbSession } = await supabase.auth.getSession()
+
+            if (sbSession?.session) {
+                const { data, error: sbError } = await supabase
+                    .from('meetings')
+                    .insert([
+                        {
+                            host_id: user.id,
+                            name: `${profile?.full_name || 'Guest'}'s Class`,
+                            host_code: hostCode,
+                            moderator_code: moderatorCode,
+                            participant_code: participantCode,
+                        }
+                    ])
+                    .select()
+                    .single()
+                meeting = data;
+                error = sbError;
+            } else {
+                // Try API (Manual Path)
+                const res = await fetch('/api/meetings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: `${profile?.full_name || 'Guest'}'s Class`,
+                        host_code: hostCode,
+                        moderator_code: moderatorCode,
+                        participant_code: participantCode,
+                    })
+                })
+
+                if (!res.ok) {
+                    const errData = await res.json();
+                    error = { message: errData.error || 'API Failed' };
+                } else {
+                    meeting = await res.json();
                 }
-            ])
-            .select()
-            .single()
+            }
 
-        if (error) {
-            console.error('Error creating meeting:', error)
-            alert('Failed to start class. Please try again.')
+            if (error) {
+                console.error('Error creating meeting:', error)
+                alert('Failed to start class. Please try again.')
+                setIsStartingClass(false)
+                return
+            }
+
+            if (meeting) {
+                router.push(`/room/${hostCode}`)
+            }
+        } catch (e) {
+            console.error('Exception starting class:', e)
             setIsStartingClass(false)
-            return
+            alert('Failed to start class.')
         }
-
-        router.push(`/room/${hostCode}`)
     }
 
     if (isLoading) {

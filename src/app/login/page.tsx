@@ -294,7 +294,11 @@ export default function LoginPage() {
                                                 variant="outline"
                                                 type="button"
                                                 disabled={isLoading || isMagicLinkLoading || isGoogleLoading}
-                                                onClick={() => handleOAuthSignIn('google')}
+                                                // Manual Google Login
+                                                onClick={() => {
+                                                    setIsGoogleLoading(true)
+                                                    window.location.href = '/api/auth/google'
+                                                }}
                                                 className="bg-slate-800 border-slate-700 text-white hover:bg-slate-700 hover:text-white"
                                             >
                                                 {isGoogleLoading ? (

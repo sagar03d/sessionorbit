@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils"
 import { supabase } from "@/lib/supabase"
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
+import { useUser } from "@/hooks/useUser"
 
 const navigation = [
     { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
@@ -18,27 +19,10 @@ const navigation = [
 export default function DashboardSidebar() {
     const pathname = usePathname()
     const router = useRouter()
-    const [profile, setProfile] = useState<any>(null)
-
-    useEffect(() => {
-        const fetchProfile = async () => {
-            const { data: { user } } = await supabase.auth.getUser()
-            if (user) {
-                const { data } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', user.id)
-                    .single()
-                setProfile(data)
-            }
-        }
-        fetchProfile()
-    }, [])
+    const { profile, signOut } = useUser()
 
     const handleSignOut = async () => {
-        await supabase.auth.signOut()
-        router.push("/login")
-        router.refresh()
+        await signOut()
     }
 
     return (
