@@ -82,7 +82,17 @@ export async function getGoogleUser(id_token: string, access_token: string): Pro
     return response.json();
 }
 
-export async function createSession(payload: any) {
+export interface SessionPayload {
+    user: {
+        id: string;
+        email: string;
+        name: string;
+        picture: string;
+    };
+    [key: string]: any;
+}
+
+export async function createSession(payload: SessionPayload) {
     return await new SignJWT(payload)
         .setProtectedHeader({ alg: 'HS256' })
         .setIssuedAt()
@@ -90,10 +100,10 @@ export async function createSession(payload: any) {
         .sign(JWT_SECRET);
 }
 
-export async function verifySession(token: string) {
+export async function verifySession(token: string): Promise<SessionPayload | null> {
     try {
         const { payload } = await jwtVerify(token, JWT_SECRET);
-        return payload;
+        return payload as unknown as SessionPayload;
     } catch (error) {
         return null;
     }
