@@ -1,12 +1,19 @@
 
 import { SignJWT, jwtVerify } from 'jose';
 
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID!;
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET!;
-const NEXT_PUBLIC_APP_URL = process.env.NEXT_PUBLIC_APP_URL!;
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID?.trim();
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET?.trim();
+const NEXT_PUBLIC_APP_URL = process.env.NEXT_PUBLIC_APP_URL?.trim();
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'default-secret-change-me');
 
 export function getGoogleAuthURL() {
+    if (!GOOGLE_CLIENT_ID) {
+        throw new Error("GOOGLE_CLIENT_ID is undefined in environment variables.");
+    }
+    if (!NEXT_PUBLIC_APP_URL) {
+        throw new Error("NEXT_PUBLIC_APP_URL is undefined in environment variables.");
+    }
+
     const rootUrl = 'https://accounts.google.com/o/oauth2/v2/auth';
     const options = {
         redirect_uri: `${NEXT_PUBLIC_APP_URL}/api/auth/google/callback`,
@@ -21,7 +28,9 @@ export function getGoogleAuthURL() {
     };
 
     const qs = new URLSearchParams(options).toString();
-    return `${rootUrl}?${qs}`;
+    const fullUrl = `${rootUrl}?${qs}`;
+    console.log("Generated Google Auth URL:", fullUrl); // Debugging
+    return fullUrl;
 }
 
 interface GoogleTokensResult {
@@ -33,6 +42,10 @@ interface GoogleTokensResult {
 }
 
 export async function exchangeCodeForToken(code: string): Promise<GoogleTokensResult> {
+    if (!GOOGLE_CLIENT_ID) throw new Error("GOOGLE_CLIENT_ID is missing");
+    if (!GOOGLE_CLIENT_SECRET) throw new Error("GOOGLE_CLIENT_SECRET is missing");
+    if (!NEXT_PUBLIC_APP_URL) throw new Error("NEXT_PUBLIC_APP_URL is missing");
+
     const url = 'https://oauth2.googleapis.com/token';
     const values = {
         code,
