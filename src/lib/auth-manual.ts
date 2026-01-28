@@ -1,12 +1,12 @@
 
 import { SignJWT, jwtVerify } from 'jose';
 
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID?.trim();
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET?.trim();
-const NEXT_PUBLIC_APP_URL = process.env.NEXT_PUBLIC_APP_URL?.trim();
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'default-secret-change-me');
 
 export function getGoogleAuthURL() {
+    const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID?.trim();
+    const NEXT_PUBLIC_APP_URL = process.env.NEXT_PUBLIC_APP_URL?.trim();
+
     if (!GOOGLE_CLIENT_ID) {
         throw new Error("GOOGLE_CLIENT_ID is undefined in environment variables.");
     }
@@ -42,6 +42,10 @@ interface GoogleTokensResult {
 }
 
 export async function exchangeCodeForToken(code: string): Promise<GoogleTokensResult> {
+    const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID?.trim();
+    const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET?.trim();
+    const NEXT_PUBLIC_APP_URL = process.env.NEXT_PUBLIC_APP_URL?.trim();
+
     if (!GOOGLE_CLIENT_ID) throw new Error("GOOGLE_CLIENT_ID is missing");
     if (!GOOGLE_CLIENT_SECRET) throw new Error("GOOGLE_CLIENT_SECRET is missing");
     if (!NEXT_PUBLIC_APP_URL) throw new Error("NEXT_PUBLIC_APP_URL is missing");
