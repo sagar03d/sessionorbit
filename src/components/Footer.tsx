@@ -28,8 +28,18 @@ export default function Footer() {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 mb-12">
                     <div className="col-span-2 lg:col-span-2">
-                        <Link href="/" className="inline-block mb-4">
-                            <span className="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+                        <Link href="/" className="flex items-center gap-3 mb-4 group">
+                            <div className="relative w-12 h-12 flex items-center justify-center">
+                                <div className="orbit-container">
+                                    <div className="orbiting-dot" />
+                                </div>
+                                <img
+                                    src="/logo.png"
+                                    alt="SessionOrbit Logo"
+                                    className="w-full h-full object-contain relative z-10"
+                                />
+                            </div>
+                            <span className="text-2xl font-bold bg-gradient-to-r from-deep-indigo to-orbit-cyan bg-clip-text text-transparent">
                                 SessionOrbit
                             </span>
                         </Link>

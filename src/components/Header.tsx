@@ -45,12 +45,17 @@ export default function Header() {
             <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
                 <div className="flex items-center gap-12">
                     <Link href="/" className="flex items-center gap-3 group">
-                        <div className="relative w-8 h-8 flex items-center justify-center">
-                            <div className="absolute inset-0 border-2 border-indigo-500/30 rounded-full group-hover:border-indigo-500/50 transition-colors" />
-                            <div className="absolute inset-0 border-2 border-transparent border-t-indigo-500 rounded-full animate-spin [animation-duration:3s]" />
-                            <span className="font-bold text-white text-lg relative z-10">S</span>
+                        <div className="relative w-10 h-10 flex items-center justify-center">
+                            <div className="orbit-container">
+                                <div className="orbiting-dot" />
+                            </div>
+                            <img
+                                src="/logo.png"
+                                alt="SessionOrbit Logo"
+                                className="w-full h-full object-contain relative z-10"
+                            />
                         </div>
-                        <span className="font-bold text-white text-lg tracking-tight hidden sm:block">
+                        <span className="font-bold bg-gradient-to-r from-deep-indigo to-orbit-cyan bg-clip-text text-transparent text-lg tracking-tight hidden sm:block">
                             SessionOrbit
                         </span>
                     </Link>

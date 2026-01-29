@@ -9,35 +9,35 @@ export default function Hero() {
             {/* Starfield / Deep Navy Ambience */}
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-indigo-950/40 via-[#0B0C15] to-[#0B0C15]" />
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[600px] max-w-7xl">
-                <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-indigo-600/10 rounded-full blur-[120px] animate-pulse" style={{ animationDuration: '4s' }} />
-                <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-[120px] animate-pulse" style={{ animationDuration: '7s' }} />
+                <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-orbit-cyan/10 rounded-full blur-[120px] animate-pulse" style={{ animationDuration: '4s' }} />
+                <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-deep-indigo/10 rounded-full blur-[120px] animate-pulse" style={{ animationDuration: '7s' }} />
             </div>
 
             <div className="relative z-10 w-full max-w-7xl flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
 
                 {/* Copy */}
                 <div className="flex-1 text-center lg:text-left space-y-8">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-sm text-indigo-300 font-medium backdrop-blur-sm">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-sm text-orbit-cyan font-medium backdrop-blur-sm">
                         <span className="relative flex h-2 w-2">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orbit-cyan/75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-orbit-cyan"></span>
                         </span>
                         SessionOrbit 2.0 is Live
                     </div>
 
                     <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-white leading-[1.1]">
-                        The Classroom <br />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-indigo-400 animate-gradient-x">
-                            in Perfect Sync.
+                        Sync Every Lesson. <br />
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-deep-indigo via-orbit-cyan to-growth-lime animate-gradient-x">
+                            Scale Every Orbit.
                         </span>
                     </h1>
 
                     <p className="text-lg sm:text-xl text-slate-400 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
-                        Launch lessons. Automate reports. Eliminate tech stress. Everything in one orbit.
+                        The ultimate AI-powered platform for seamless online teaching and student engagement. Everything in one orbit.
                     </p>
 
                     <div className="flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start">
-                        <button className="h-12 px-8 rounded-full bg-white text-slate-950 font-bold hover:bg-indigo-50 transition-colors flex items-center gap-2 group">
+                        <button className="h-12 px-8 rounded-full bg-white text-deep-indigo font-bold hover:bg-stellar-white transition-colors flex items-center gap-2 group">
                             Start a Free Class
                             <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
                         </button>
@@ -53,7 +53,7 @@ export default function Hero() {
                     <div className="relative w-full aspect-[16/9] rounded-2xl overflow-hidden shadow-2xl border border-white/10 group transform transition-transform duration-700 hover:scale-[1.02] hover:rotate-1">
                         <Image
                             src="/hero-visual.png"
-                            alt="SyncroClass Dashboard"
+                            alt="SessionOrbit Dashboard"
                             fill
                             className="object-cover"
                             priority
@@ -70,7 +70,7 @@ export default function Hero() {
                     </div>
 
                     {/* Reflection/Shadow */}
-                    <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-[90%] h-8 bg-indigo-500/20 blur-xl rounded-[100%]" />
+                    <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-[90%] h-8 bg-orbit-cyan/20 blur-xl rounded-[100%]" />
                 </div>
             </div>
         </div>

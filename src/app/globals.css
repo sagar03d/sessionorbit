@@ -60,6 +60,16 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  /* SessionOrbit Official Color Profile */
+  --color-orbit-cyan: #00EAFF;
+  --color-growth-lime: #A1FF00;
+  --color-deep-indigo: #6366F1;
+  --color-cosmos-dark: #0B0C15;
+  --color-stellar-white: #F8FAFC;
+
+  --bg-brand-gradient: linear-gradient(to right, var(--color-deep-indigo), var(--color-orbit-cyan));
+  --bg-growth-gradient: linear-gradient(to right, var(--color-orbit-cyan), var(--color-growth-lime));
 }
 
 :root {
@@ -139,4 +149,50 @@
   body {
     @apply bg-background text-foreground;
   }
-}.rdp { --rdp-cell-size: 40px; --rdp-accent-color: #fff; --rdp-background-color: #262626; margin: 0; } .rdp-day_selected:not([disabled]) { font-weight: bold; background-color: var(--rdp-accent-color); color: var(--rdp-background-color); }
+}
+
+.rdp {
+  --rdp-cell-size: 40px;
+  --rdp-accent-color: #fff;
+  --rdp-background-color: #262626;
+  margin: 0;
+}
+
+.rdp-day_selected:not([disabled]) {
+  font-weight: bold;
+  background-color: var(--rdp-accent-color);
+  color: var(--rdp-background-color);
+}
+
+/* Orbiting Dot Animation */
+.orbit-container {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: logo-orbit 4s linear infinite;
+}
+
+.orbiting-dot {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  background-color: var(--color-deep-indigo);
+  border-radius: 50%;
+  transform: translateX(-50%);
+  box-shadow:
+    0 0 8px var(--color-deep-indigo),
+    0 0 12px var(--color-orbit-cyan);
+}
+
+@keyframes logo-orbit {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}

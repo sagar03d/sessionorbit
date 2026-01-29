@@ -73,6 +73,12 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
 
     // Cleanup ref for leaving
     const participantDbIdRef = useRef<string | null>(null)
+    const meetingRef = useRef<any>(null)
+    const nameRef = useRef<string>("")
+
+    // Update refs to avoid stale closures in event listeners
+    meetingRef.current = meeting
+    nameRef.current = name
 
     useEffect(() => {
         // Subscription for termination and tab sync - should run for everyone
@@ -133,6 +139,9 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
             }
 
             setMeeting(meetingData)
+            if (meetingData.egress_id) {
+                setIsRecording(true)
+            }
             syncMeetingData(meetingData.id)
 
             let userRole = "participant"
@@ -166,14 +175,18 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
 
             recognition.onresult = async (event: any) => {
                 const text = event.results[event.results.length - 1][0].transcript;
-                if (text && meeting?.id && participantDbIdRef.current) {
-                    await supabase.from('meeting_transcriptions').insert({
-                        meeting_id: meeting.id,
+                if (text && meetingRef.current?.id && participantDbIdRef.current) {
+                    const { error } = await supabase.from('meeting_transcriptions').insert({
+                        meeting_id: meetingRef.current.id,
                         participant_id: participantDbIdRef.current,
-                        speaker_name: name || 'Unknown',
+                        speaker_name: nameRef.current || 'Unknown',
                         content: text,
                         timestamp: new Date().toISOString()
                     })
+
+                    if (error) {
+                        console.error("Failed to save transcript:", error)
+                    }
                 }
             };
             (window as any)._recognition = recognition
@@ -215,7 +228,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
         }
     }
 
-    const handlePreJoin = (enteredName: string, mic: boolean, cam: boolean, audioDeviceId?: string, videoDeviceId?: string) => {
+    const handlePreJoin = async (enteredName: string, mic: boolean, cam: boolean, audioDeviceId?: string, videoDeviceId?: string) => {
         setPreJoinChoices({ mic, cam, audioDeviceId, videoDeviceId })
         const finalName = enteredName || name || "Guest"
         setName(finalName)
@@ -278,12 +291,11 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
             setHasJoinedRoom(true)
         }
 
-        if (token) {
-            finishJoin()
-        } else if (meeting) {
-            fetchToken(meeting.id, finalName, calculatedRole).then(() => {
-                finishJoin()
-            })
+        if (meeting) {
+            // Always refetch token to ensure the name is encoded correctly in the token
+            // regardless of whether we had a guest token before.
+            await fetchToken(meeting.id, finalName, calculatedRole)
+            await finishJoin()
         }
     }
 
@@ -488,6 +500,17 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
         if (!meeting || role !== 'host') return
         if (!confirm("Are you sure you want to end this class for everyone?")) return
 
+        // Stop recording if active
+        if (isRecording) {
+            try {
+                await fetch('/api/room/record', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ roomId: meeting.id, action: 'STOP' })
+                });
+            } catch (e) { console.error("Failed to stop recording on end", e) }
+        }
+
         const { error } = await supabase
             .from('meetings')
             .update({ ended_at: new Date().toISOString() })
@@ -514,93 +537,52 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
     }
 
     const startRecording = async () => {
+        if (!meeting || role !== 'host') return;
+
         try {
-            // Get Active Stream
-            const activeTab = tabs.find(t => t.id === activeTabId)
-
-            if (activeTab?.type !== 'whiteboard') {
-                alert("Recording only supported for Whiteboard tabs currently.")
-                return;
-            }
-
-            const stream = whiteboardRefs.current[activeTabId]?.getStream()
-
-            if (!stream) {
-                console.error("Failed to capture composite stream");
-                return;
-            }
-
-            // Audio Mixing
-            const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-            const dest = ctx.createMediaStreamDestination();
-            setAudioContext(ctx);
-            setAudioDestination(dest);
-
-            try {
-                const localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                const localSource = ctx.createMediaStreamSource(localStream);
-                localSource.connect(dest);
-            } catch (e) {
-                console.warn("Could not get local audio for recording", e);
-            }
-
-            const combinedStream = new MediaStream([
-                ...stream.getVideoTracks(),
-                ...dest.stream.getAudioTracks()
-            ]);
-
-            const mimeTypes = [
-                'video/webm;codecs=vp8,opus',
-                'video/webm;codecs=vp9,opus',
-                'video/webm',
-                'video/mp4'
-            ];
-            const supportedType = mimeTypes.find(type => MediaRecorder.isTypeSupported(type)) || '';
-            const options = supportedType ? { mimeType: supportedType } : undefined;
-            const recorder = new MediaRecorder(combinedStream, options);
-            const chunks: BlobPart[] = [];
-
-            recorder.ondataavailable = (e) => {
-                if (e.data.size > 0) chunks.push(e.data);
-            };
-
-            recorder.onerror = (e) => {
-                console.error("MediaRecorder Error:", e);
-                stopRecording();
-            };
-
-            recorder.onstop = () => {
-                stream.getTracks().forEach(track => track.stop());
-                combinedStream.getTracks().forEach(track => track.stop());
-
-                const blob = new Blob(chunks, { type: supportedType || "video/webm" });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                const ext = supportedType.includes("mp4") ? "mp4" : "webm";
-                a.download = `classroom-recording-${new Date().toISOString()}.${ext}`;
-                a.click();
-                URL.revokeObjectURL(url);
+            setIsRecording(true); // Optimistic UI
+            const res = await fetch('/api/room/record', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ roomId: meeting.id, action: 'START' })
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                console.error("Failed to start cloud recording", data);
+                alert("Failed to start cloud recording: " + (data.error || "Unknown error"));
                 setIsRecording(false);
-                if (ctx.state !== 'closed') ctx.close();
-                setMediaRecorder(null);
-            };
-
-            recorder.start();
-            setMediaRecorder(recorder);
-            setIsRecording(true);
-
+            } else {
+                console.log("Cloud recording started:", data.egressId);
+            }
         } catch (err) {
             console.error("Error starting recording:", err);
             setIsRecording(false);
+            alert("Network error starting recording");
         }
     };
 
-    const stopRecording = () => {
-        if (mediaRecorder && mediaRecorder.state !== "inactive") {
-            mediaRecorder.stop();
-        } else {
-            setIsRecording(false);
+    const stopRecording = async () => {
+        if (!meeting || role !== 'host') return;
+
+        try {
+            // Optimistic UI update or wait?
+            // Better to wait for confirmation for stop
+            const res = await fetch('/api/room/record', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ roomId: meeting.id, action: 'STOP' })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                setIsRecording(false);
+                alert("Recording stopped. It will be processed shortly.");
+            } else {
+                console.error("Failed to stop recording", data);
+                alert("Failed to stop recording: " + data.error);
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Error stopping recording");
         }
     };
 
@@ -917,7 +899,19 @@ function RoomHeader({
 
     return (
         <div className="bg-neutral-900 border-b border-neutral-800 h-14 flex items-center justify-between px-4 z-50 shadow-2xl shrink-0">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-6">
+                <div className="flex items-center gap-2.5 group">
+                    <div className="relative w-7 h-7 flex items-center justify-center">
+                        <div className="orbit-container">
+                            <div className="orbiting-dot" />
+                        </div>
+                        <img
+                            src="/logo.png"
+                            alt="Logo"
+                            className="w-full h-full object-contain relative z-10"
+                        />
+                    </div>
+                </div>
                 <div className="flex items-center gap-2 text-sm">
                     <Users className="w-4 h-4 text-white" />
                     <span className="font-semibold text-white truncate max-w-[100px] sm:max-w-none">{meetingName}</span>

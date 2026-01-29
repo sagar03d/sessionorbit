@@ -69,22 +69,6 @@ export default function SignupPage() {
         }
     }
 
-    const handleOAuthSignIn = async (provider: 'google') => {
-        setIsGoogleLoading(true)
-        setError(null)
-        try {
-            const { error } = await supabase.auth.signInWithOAuth({
-                provider,
-                options: {
-                    redirectTo: `${window.location.origin}/auth/callback`,
-                },
-            })
-            if (error) throw error
-        } catch (err) {
-            setError("An unexpected error occurred. Please try again.")
-            setIsGoogleLoading(false)
-        }
-    }
 
     const features = [
         {
@@ -218,7 +202,10 @@ export default function SignupPage() {
                                             variant="outline"
                                             type="button"
                                             disabled={isLoading || success || isGoogleLoading}
-                                            onClick={() => handleOAuthSignIn('google')}
+                                            onClick={() => {
+                                                setIsGoogleLoading(true)
+                                                window.location.href = '/api/auth/google'
+                                            }}
                                             className="w-full bg-slate-800 border-slate-700 text-white hover:bg-slate-700 hover:text-white"
                                         >
                                             {isGoogleLoading ? (
