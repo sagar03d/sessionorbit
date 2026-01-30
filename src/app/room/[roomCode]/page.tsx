@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, use, useRef } from "react"
+import { useEffect, useState, use, useRef, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import {
@@ -12,10 +12,12 @@ import {
 } from "@livekit/components-react"
 import "@livekit/components-styles"
 import { Track } from "livekit-client"
-import { Copy, Check, Users, Layout, Video, LogOut, VideoOff, Mic, MicOff, Settings, Wifi, WifiOff, FileText, Image as ImageIcon, Plus, Link as LinkIcon, Globe, X, Captions } from "lucide-react"
+import { Copy, Check, Users, Layout, Video, LogOut, VideoOff, Mic, MicOff, Settings, Wifi, WifiOff, FileText, Image as ImageIcon, Plus, Link as LinkIcon, Globe, X, Captions, Code2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import Whiteboard, { WhiteboardHandle } from "../../components/Whiteboard"
+import ExcalidrawBoard from "../../components/ExcalidrawBoard"
+import CodeEditor from "../../components/CodeEditor"
 import PreJoinScreen from "../../components/PreJoinScreen"
 
 // Helper for speech recognition
@@ -25,12 +27,16 @@ const SpeechRecognition = (typeof window !== 'undefined' && ((window as any).Spe
 
 interface Tab {
     id: string
-    type: 'whiteboard' | 'embed'
+    type: 'whiteboard' | 'embed' | 'code' | 'excalidraw'
     title: string
     src?: string // for embed or background image helper
     boardId?: string
     initialData?: {
         background?: string
+        content?: string
+        language?: string
+        elements?: any[]
+        appState?: any
     }
 }
 
@@ -66,7 +72,8 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
 
     // Participant & Transcription State
     const [participantDbId, setParticipantDbId] = useState<string | null>(null)
-    const [isTranscribing, setIsTranscribing] = useState(false)
+    const [isTranscribing, setIsTranscribing] = useState(true)
+    const [localCanWrite, setLocalCanWrite] = useState(false)
     const conversationRef = useRef<any[]>([])
     const talkTimeRef = useRef<number>(0)
     const lastTalkStartRef = useRef<number | null>(null)
@@ -144,6 +151,37 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
             }
             syncMeetingData(meetingData.id)
 
+            // Subscribe to local participant's can_write status if they are not the host
+            const subscribeToLocalAccess = async (mId: string, uId: string | null) => {
+                const { data } = await supabase
+                    .from('meeting_participants')
+                    .select('can_write')
+                    .eq('meeting_id', mId)
+                    .eq('user_id', uId)
+                    .is('left_at', null)
+                    .maybeSingle()
+
+                if (data) setLocalCanWrite(data.can_write)
+
+                const accessChannel = supabase.channel(`local_access_${mId}`)
+                    .on('postgres_changes', {
+                        event: 'UPDATE',
+                        schema: 'public',
+                        table: 'meeting_participants',
+                        filter: `meeting_id=eq.${mId}`
+                    }, (payload) => {
+                        const newUser = payload.new as any
+                        if (newUser.user_id === uId || (newUser.name === nameRef.current && !uId)) {
+                            setLocalCanWrite(newUser.can_write)
+                        }
+                    })
+                    .subscribe()
+
+                return () => {
+                    supabase.removeChannel(accessChannel)
+                }
+            }
+
             let userRole = "participant"
             if (meetingData.host_code === roomCode) {
                 userRole = "host"
@@ -158,39 +196,20 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
 
             const displayName = user ? (
                 (await supabase.from('profiles').select('full_name').eq('id', user.id).single()).data?.full_name || user.email || "User"
-            ) : "Guest"
+            ) : ""
 
             setName(displayName)
             fetchToken(meetingData.id, displayName, userRole)
+            if (userRole !== 'host') {
+                subscribeToLocalAccess(meetingData.id, user?.id || null)
+            } else {
+                setLocalCanWrite(true) // Host can always write
+            }
         }
 
         initMeeting()
 
-        // Setup Speech Recognition
-        if (SpeechRecognition && !(window as any)._recognition) {
-            const recognition = new SpeechRecognition();
-            recognition.continuous = true;
-            recognition.interimResults = false;
-            recognition.lang = 'en-US';
-
-            recognition.onresult = async (event: any) => {
-                const text = event.results[event.results.length - 1][0].transcript;
-                if (text && meetingRef.current?.id && participantDbIdRef.current) {
-                    const { error } = await supabase.from('meeting_transcriptions').insert({
-                        meeting_id: meetingRef.current.id,
-                        participant_id: participantDbIdRef.current,
-                        speaker_name: nameRef.current || 'Unknown',
-                        content: text,
-                        timestamp: new Date().toISOString()
-                    })
-
-                    if (error) {
-                        console.error("Failed to save transcript:", error)
-                    }
-                }
-            };
-            (window as any)._recognition = recognition
-        }
+        // Speech Recognition will be handled by a dedicated effect now
 
         return () => {
             if (participantDbIdRef.current) {
@@ -205,21 +224,94 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
         }
     }, [roomCode, router]) // Removed 'name' from dep array to avoid re-init loops? Careful.
 
-    // Effect to handle Transcription toggling (simplified)
+    // Dedicated Effect for Speech Recognition Lifecycle
     useEffect(() => {
-        if (!hasJoinedRoom) return;
-        // logic to start/stop recognition could go here
-    }, [hasJoinedRoom])
+        if (!hasJoinedRoom || !SpeechRecognition || !isTranscribing) return;
+
+        let recognition: any = null;
+        let shouldRestart = true;
+
+        const startRecognition = () => {
+            try {
+                recognition = new SpeechRecognition();
+                recognition.continuous = true;
+                recognition.interimResults = false;
+                recognition.lang = 'en-US';
+
+                recognition.onstart = () => {
+                    console.log("[SpeechRecognition] Started");
+                };
+
+                recognition.onresult = async (event: any) => {
+                    const text = event.results[event.results.length - 1][0].transcript;
+                    if (text && meetingRef.current?.id && participantDbIdRef.current) {
+                        console.log("[SpeechRecognition] Result:", text);
+                        const { error } = await supabase.from('meeting_transcriptions').insert({
+                            meeting_id: meetingRef.current.id,
+                            participant_id: participantDbIdRef.current,
+                            speaker_name: nameRef.current || 'Unknown',
+                            content: text,
+                            timestamp: new Date().toISOString()
+                        });
+
+                        if (error) console.error("[SpeechRecognition] Save Error:", error);
+                    }
+                };
+
+                recognition.onerror = (event: any) => {
+                    console.error("[SpeechRecognition] Error:", event.error);
+                    if (event.error === 'not-allowed') {
+                        shouldRestart = false;
+                        alert("Speech recognition permission denied. Please allow microphone access for captions.");
+                    }
+                };
+
+                recognition.onend = () => {
+                    console.log("[SpeechRecognition] Ended");
+                    if (shouldRestart && isTranscribing) {
+                        console.log("[SpeechRecognition] Restarting...");
+                        setTimeout(startRecognition, 1000);
+                    }
+                };
+
+                recognition.start();
+            } catch (e) {
+                console.error("[SpeechRecognition] Init Error:", e);
+            }
+        };
+
+        startRecognition();
+
+        return () => {
+            shouldRestart = false;
+            if (recognition) {
+                recognition.onend = null;
+                recognition.stop();
+            }
+        };
+    }, [hasJoinedRoom, isTranscribing]);
+
+    // Auto-start recording for host
+    useEffect(() => {
+        if (hasJoinedRoom && role === 'host' && !isRecording && meeting?.id) {
+            console.log("Auto-starting recording for host...");
+            startRecording();
+        }
+    }, [hasJoinedRoom, role, meeting?.id]);
 
 
-    const fetchToken = async (roomId: string, displayName: string, userRole: string) => {
+    const fetchToken = async (roomId: string, displayName: string, userRole: string, identity?: string) => {
         setIsJoining(true)
         try {
-            const resp = await fetch(
-                `/api/livekit/token?room=${roomId}&username=${displayName}&role=${userRole}`
-            )
+            let url = `/api/livekit/token?room=${roomId}&username=${encodeURIComponent(displayName)}&role=${userRole}`
+            if (identity) {
+                url += `&identity=${encodeURIComponent(identity)}`
+            }
+            const resp = await fetch(url)
             const data = await resp.json()
-            setToken(data.token)
+            if (data.token) {
+                setToken(data.token)
+            }
         } catch (e) {
             console.error(e)
         } finally {
@@ -284,24 +376,30 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
                 if (partData) {
                     setParticipantDbId(partData.id)
                     participantDbIdRef.current = partData.id
+                    return partData.id
                 } else if (partError) {
                     console.error("Failed to track join:", partError)
                 }
             }
-            setHasJoinedRoom(true)
+            return participantDbIdRef.current
         }
 
         if (meeting) {
-            // Always refetch token to ensure the name is encoded correctly in the token
-            // regardless of whether we had a guest token before.
-            await fetchToken(meeting.id, finalName, calculatedRole)
-            await finishJoin()
+            // Step 1: Track join in DB first to get a UUID
+            const pId = await finishJoin()
+
+            // Step 2: Fetch token using the UUID as identity
+            // This ensures LiveKit identity === Supabase meeting_participants.id
+            await fetchToken(meeting.id, finalName, calculatedRole, pId || undefined)
+
+            // Step 3: Trigger join
+            setHasJoinedRoom(true)
         }
     }
 
     // --- Dynamic Tab Handlers ---
 
-    const addNewTab = async (type: 'whiteboard' | 'embed', content?: string) => {
+    const addNewTab = async (type: 'whiteboard' | 'embed' | 'code' | 'excalidraw', content?: string) => {
         if (!meeting) return
 
         const newId = crypto.randomUUID()
@@ -314,6 +412,22 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
                 title: content ? 'Worksheet' : 'Whiteboard',
                 boardId: newId,
                 initialData: content ? { background: content } : undefined,
+            }
+        } else if (type === 'code') {
+            newTab = {
+                id: newId,
+                type: 'code',
+                title: 'Code Editor',
+                boardId: newId,
+                initialData: { content: "// Write your code here...", language: 'javascript' }
+            }
+        } else if (type === 'excalidraw') {
+            newTab = {
+                id: newId,
+                type: 'excalidraw',
+                title: 'Infinite Board',
+                boardId: newId,
+                initialData: { elements: [], appState: {} }
             }
         } else {
             newTab = {
@@ -344,11 +458,24 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
         const updatedWbData = {
             ...currentWbData,
             tabs_config: updatedTabs,
-            // Init data for new whiteboard if needed
+            // Init data for new whiteboard or code if needed
             ...(type === 'whiteboard' && content ? {
                 [newId]: {
                     strokes: [],
                     background: content
+                }
+            } : {}),
+            ...(type === 'code' ? {
+                [newId]: {
+                    content: "// Write your code here...",
+                    language: 'javascript'
+                }
+            } : {}),
+            ...(type === 'excalidraw' ? {
+                [newId]: {
+                    type: 'excalidraw',
+                    elements: [],
+                    appState: {}
                 }
             } : {})
         }
@@ -405,7 +532,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
     }
 
     // Fix: Correct function definition keyword
-    const addNewTabWrapper = (type: 'whiteboard' | 'embed', content?: string) => {
+    const addNewTabWrapper = (type: 'whiteboard' | 'embed' | 'code' | 'excalidraw', content?: string) => {
         return addNewTab(type, content)
     }
 
@@ -497,8 +624,8 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
     }
 
     const handleEndClass = async () => {
-        if (!meeting || role !== 'host') return
-        if (!confirm("Are you sure you want to end this class for everyone?")) return
+        if (!meeting || role !== 'host') return false
+        if (!confirm("Are you sure you want to end this class for everyone?")) return false
 
         // Stop recording if active
         if (isRecording) {
@@ -519,11 +646,10 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
         if (error) {
             console.error("Failed to end class", error)
             alert("Failed to end class. Please try again.")
+            return false
         } else {
-            // Optimistically leave, though subscription would catch it too
-            // router.push("/dashboard") 
-            // Let the subscription handle it so it feels same flow, or force it:
             router.push("/dashboard")
+            return true
         }
     }
 
@@ -645,26 +771,13 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
                 isLowBandwidth={isLowBandwidth}
                 onToggleLowBandwidth={setIsLowBandwidth}
                 isTranscribing={isTranscribing}
-                onToggleTranscription={() => {
-                    const newVal = !isTranscribing
-                    setIsTranscribing(newVal)
-                    // If we had the recognition instance in state/ref, we would call start/stop here.
-                    // IMPORTANT: Since `recognition` was in useEffect scope, we need to lift it or use a simpler approach.
-                    // We will use a dedicated `useSpeechRecognition` hook pattern or just global ref for simplicity in this patch.
-                    // For now, let's assume the Effect watches `isTranscribing` if we refactor, 
-                    // OR we just use a window property hack for the immediate fix.
-                    if (newVal) {
-                        if ((window as any)._recognition) (window as any)._recognition.start()
-                    } else {
-                        if ((window as any)._recognition) (window as any)._recognition.stop()
-                    }
-                }}
             />
 
             <div className="flex-1 relative bg-white overflow-hidden flex flex-row min-h-0" style={{ height: '-webkit-fill-available' } as React.CSSProperties}>
                 <RoomAudioEffects />
                 <RoomTracker participantDbId={participantDbId} />
                 <RemoteMuteHandler />
+                <ActiveRoomManager meetingId={meeting?.id} />
 
                 {/* Main Content Area */}
                 <div className="flex-1 relative bg-white overflow-hidden h-full min-w-0 flex flex-col">
@@ -682,7 +795,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
                                     {tab.type === 'whiteboard' ? <Layout className="w-3.5 h-3.5" /> : <Globe className="w-3.5 h-3.5" />}
                                     {tab.title}
                                 </button>
-                                {tab.id !== 'main' && (
+                                {tab.id !== 'main' && role === 'host' && (
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation()
@@ -698,43 +811,59 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
                         ))}
 
                         {/* Plus Button */}
-                        <div className="relative ml-2">
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                    <button
-                                        className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-neutral-200 text-neutral-500 transition-colors"
-                                        title="Add New Tab"
-                                    >
-                                        <Plus className="w-4 h-4" />
-                                    </button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-48 p-0" align="start">
-                                    <div className="flex flex-col py-1 bg-white rounded-lg">
+                        {role === 'host' && (
+                            <div className="relative ml-2">
+                                <Popover>
+                                    <PopoverTrigger asChild>
                                         <button
-                                            className="w-full px-4 py-2 text-left text-sm hover:bg-neutral-50 flex items-center gap-2 text-neutral-700"
-                                            onClick={() => { fileInputRef.current?.click(); }}
+                                            className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-neutral-200 text-neutral-500 transition-colors"
+                                            title="Add New Tab"
                                         >
-                                            <ImageIcon className="w-4 h-4" />
-                                            Worksheet (Image)
+                                            <Plus className="w-4 h-4" />
                                         </button>
-                                        <button
-                                            className="w-full px-4 py-2 text-left text-sm hover:bg-neutral-50 flex items-center gap-2 text-neutral-700"
-                                            onClick={handleEmbedUrl}
-                                        >
-                                            <LinkIcon className="w-4 h-4" />
-                                            Embed URL
-                                        </button>
-                                    </div>
-                                </PopoverContent>
-                            </Popover>
-                            <input
-                                type="file"
-                                ref={fileInputRef}
-                                className="hidden"
-                                accept="image/*"
-                                onChange={handleImageUploadForTab}
-                            />
-                        </div>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-48 p-0" align="start">
+                                        <div className="flex flex-col py-1 bg-white rounded-lg">
+                                            <button
+                                                className="w-full px-4 py-2 text-left text-sm hover:bg-neutral-50 flex items-center gap-2 text-neutral-700"
+                                                onClick={() => { fileInputRef.current?.click(); }}
+                                            >
+                                                <ImageIcon className="w-4 h-4" />
+                                                Worksheet (Image)
+                                            </button>
+                                            <button
+                                                className="w-full px-4 py-2 text-left text-sm hover:bg-neutral-50 flex items-center gap-2 text-neutral-700"
+                                                onClick={handleEmbedUrl}
+                                            >
+                                                <LinkIcon className="w-4 h-4" />
+                                                Embed URL
+                                            </button>
+                                            <button
+                                                className="w-full px-4 py-2 text-left text-sm hover:bg-neutral-50 flex items-center gap-2 text-neutral-700 border-t border-neutral-100 mt-1"
+                                                onClick={() => addNewTabWrapper('code')}
+                                            >
+                                                <Code2 className="w-4 h-4" />
+                                                New Code Tab
+                                            </button>
+                                            {/* <button
+                                                className="w-full px-4 py-2 text-left text-sm hover:bg-neutral-50 flex items-center gap-2 text-neutral-700 border-t border-neutral-100 mt-1"
+                                                onClick={() => addNewTabWrapper('excalidraw')}
+                                            >
+                                                <Layout className="w-4 h-4" />
+                                                Infinite Whiteboard
+                                            </button> */}
+                                        </div>
+                                    </PopoverContent>
+                                </Popover>
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    className="hidden"
+                                    accept="image/*"
+                                    onChange={handleImageUploadForTab}
+                                />
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex-1 relative w-full h-full">
@@ -754,8 +883,43 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
                                             }}
                                             meetingId={meeting?.id}
                                             boardId={tab.boardId || 'main'}
-                                            enableUpload={true}
+                                            enableUpload={localCanWrite}
+                                            canWrite={localCanWrite}
                                             initialData={tab.initialData}
+                                        />
+                                    </div>
+                                )
+                            } else if (tab.type === 'code') {
+                                // Render Code Editor (Hidden if not active to preserve state)
+                                const isVisible = activeTabId === tab.id
+                                return (
+                                    <div
+                                        key={tab.id}
+                                        className="absolute inset-0 w-full h-full"
+                                        style={{ display: isVisible ? 'block' : 'none', visibility: isVisible ? 'visible' : 'hidden' }}
+                                    >
+                                        <CodeEditor
+                                            meetingId={meeting?.id}
+                                            boardId={tab.boardId || tab.id}
+                                            canWrite={localCanWrite}
+                                            initialData={tab.initialData as any}
+                                        />
+                                    </div>
+                                )
+                            } else if (tab.type === 'excalidraw') {
+                                // Render Excalidraw Board
+                                const isVisible = activeTabId === tab.id
+                                return (
+                                    <div
+                                        key={tab.id}
+                                        className="absolute inset-0 w-full h-full"
+                                        style={{ display: isVisible ? 'block' : 'none', visibility: isVisible ? 'visible' : 'hidden' }}
+                                    >
+                                        <ExcalidrawBoard
+                                            meetingId={meeting?.id}
+                                            boardId={tab.boardId || tab.id}
+                                            canWrite={localCanWrite}
+                                            initialData={tab.initialData as any}
                                         />
                                     </div>
                                 )
@@ -796,7 +960,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
                             </h3>
                         </div>
                         <div className="p-3">
-                            <ParticipantList meetingId={meeting?.id} />
+                            <ParticipantList meetingId={meeting?.id} currentRole={role} />
                         </div>
                     </div>
                 </div>
@@ -816,7 +980,6 @@ function RoomHeader({
     isLowBandwidth,
     onToggleLowBandwidth,
     isTranscribing,
-    onToggleTranscription,
     onEndClass
 }: {
     meetingName: string,
@@ -829,8 +992,7 @@ function RoomHeader({
     isLowBandwidth: boolean,
     onToggleLowBandwidth: (state: boolean) => void,
     isTranscribing: boolean,
-    onToggleTranscription: () => void,
-    onEndClass?: () => void
+    onEndClass?: () => Promise<boolean>
 }) {
     const [isSettingsOpen, setIsSettingsOpen] = useState(false)
     const [noiseCancellationEnabled, setNoiseCancellationEnabled] = useState(false)
@@ -950,17 +1112,12 @@ function RoomHeader({
                     <span className="hidden lg:inline">{isLowBandwidth ? "Low Data Mode" : "Save Data"}</span>
                 </button>
 
-                <button
-                    onClick={onToggleTranscription}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs font-bold uppercase tracking-wider transition-all ${isTranscribing
-                        ? 'bg-green-600 text-white shadow-[0_0_10px_rgba(22,163,74,0.5)] border border-green-400'
-                        : 'bg-neutral-800 text-neutral-400 border border-neutral-700 hover:bg-neutral-700'
-                        }`}
-                    title="Toggle Live Transcription"
-                >
-                    <Captions className="w-3.5 h-3.5" />
-                    <span className="hidden lg:inline">{isTranscribing ? "Captions On" : "Captions Off"}</span>
-                </button>
+                {/* {isTranscribing && (
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded text-xs font-bold uppercase tracking-wider bg-green-600 text-white shadow-[0_0_10px_rgba(22,163,74,0.5)] border border-green-400">
+                        <Captions className="w-3.5 h-3.5 animate-pulse" />
+                        <span className="hidden lg:inline">Live Captions Active</span>
+                    </div>
+                )} */}
 
                 <div className="relative" ref={settingsRef}>
                     <button
@@ -1022,8 +1179,17 @@ function RoomHeader({
                                         Leave Class
                                     </button>
                                     <button
-                                        onClick={onEndClass}
-                                        className="w-full text-left px-3 py-2 text-sm text-red-500 hover:bg-red-950/30 rounded-md transition-colors font-bold"
+                                        onClick={async () => {
+                                            const success = await onEndClass?.()
+                                            if (success && room) {
+                                                const encoder = new TextEncoder()
+                                                const payload = encoder.encode(JSON.stringify({ type: 'room-terminated' }))
+                                                try {
+                                                    await room.localParticipant.publishData(payload, { reliable: true })
+                                                } catch (e) { console.error("Failed to broadcast termination", e) }
+                                            }
+                                        }}
+                                        className="w-full text-left px-3 py-2 text-sm text-red-500 hover:bg-neutral-800 rounded-md transition-colors font-bold"
                                     >
                                         End Class for All
                                     </button>
@@ -1077,20 +1243,30 @@ function ParticipantVideos({ role, isLowBandwidth }: { role: string, isLowBandwi
     )
 }
 
-function ParticipantList({ meetingId }: { meetingId: string | undefined }) {
+function ParticipantList({ meetingId, currentRole }: { meetingId: string | undefined, currentRole: string }) {
     const [participants, setParticipants] = useState<any[]>([])
+    const room = useRoomContext()
+
+    const fetchParticipants = useCallback(async () => {
+        if (!meetingId) return
+        console.log("[ParticipantList] Fetching participants for meeting:", meetingId)
+        const { data, error } = await supabase
+            .from('meeting_participants')
+            .select('*')
+            .eq('meeting_id', meetingId)
+            .is('left_at', null)
+            .order('joined_at', { ascending: true })
+
+        if (error) {
+            console.error("[ParticipantList] Error fetching participants:", error)
+        } else {
+            console.log("[ParticipantList] Fetched participants:", data)
+            setParticipants(data || [])
+        }
+    }, [meetingId])
 
     useEffect(() => {
-        if (!meetingId) return
-
-        const fetchParticipants = async () => {
-            const { data } = await supabase
-                .from('meeting_participants')
-                .select('*')
-                .eq('meeting_id', meetingId)
-                .order('joined_at', { ascending: true })
-            if (data) setParticipants(data)
-        }
+        if (!meetingId || !room) return
 
         fetchParticipants()
 
@@ -1101,14 +1277,58 @@ function ParticipantList({ meetingId }: { meetingId: string | undefined }) {
                 table: 'meeting_participants',
                 filter: `meeting_id=eq.${meetingId}`
             }, (payload) => {
+                console.log("[ParticipantList] Supabase subscription event received:", payload.eventType, payload)
                 fetchParticipants()
             })
-            .subscribe()
+            .subscribe((status) => {
+                console.log("[ParticipantList] Subscription status:", status)
+            })
+
+        // Fallback: Listen to LiveKit events to refresh (with delay to allow DB commit)
+        const handleParticipantConnected = () => {
+            console.log("[ParticipantList] LiveKit participantConnected event")
+            fetchParticipants()
+        }
+
+        const handleParticipantDisconnected = () => {
+            console.log("[ParticipantList] LiveKit participantDisconnected event")
+            // Add small delay to allow database update to complete
+            setTimeout(() => {
+                fetchParticipants()
+            }, 500)
+        }
+
+        // Listen for custom cleanup event for immediate updates
+        const handleCleanupEvent = (event: any) => {
+            console.log("[ParticipantList] Received participant-cleanup event:", event.detail)
+            fetchParticipants()
+        }
+
+        room.on('participantConnected', handleParticipantConnected)
+        room.on('participantDisconnected', handleParticipantDisconnected)
+        window.addEventListener('participant-cleanup', handleCleanupEvent)
 
         return () => {
             supabase.removeChannel(channel)
+            room.off('participantConnected', handleParticipantConnected)
+            room.off('participantDisconnected', handleParticipantDisconnected)
+            window.removeEventListener('participant-cleanup', handleCleanupEvent)
         }
-    }, [meetingId])
+    }, [meetingId, room, fetchParticipants])
+
+    const toggleWriteAccess = async (participantId: string, currentVal: boolean) => {
+        if (currentRole !== 'host') return
+        const { error } = await supabase
+            .from('meeting_participants')
+            .update({ can_write: !currentVal })
+            .eq('id', participantId)
+
+        if (error) {
+            console.error("Failed to toggle write access", error)
+        } else {
+            fetchParticipants()
+        }
+    }
 
     return (
         <div className="space-y-2">
@@ -1117,7 +1337,18 @@ function ParticipantList({ meetingId }: { meetingId: string | undefined }) {
                     <div className="flex flex-col gap-1 w-full">
                         <div className="flex items-center justify-between">
                             <span className="text-sm font-medium text-neutral-200">{p.name}</span>
-                            <span className="text-[10px] text-neutral-500 uppercase font-bold">{p.role}</span>
+                            <div className="flex items-center gap-2">
+                                {currentRole === 'host' && p.role !== 'host' && !p.left_at && (
+                                    <button
+                                        onClick={() => toggleWriteAccess(p.id, p.can_write)}
+                                        className={`text-[9px] px-1.5 py-0.5 rounded border transition-colors ${p.can_write ? 'bg-blue-600 border-blue-400 text-white' : 'bg-neutral-800 border-neutral-700 text-neutral-400 hover:border-neutral-500'}`}
+                                        title={p.can_write ? "Revoke Write Access" : "Grant Write Access"}
+                                    >
+                                        {p.can_write ? 'CAN WRITE' : 'READ ONLY'}
+                                    </button>
+                                )}
+                                <span className="text-[10px] text-neutral-500 uppercase font-bold">{p.role}</span>
+                            </div>
                         </div>
                         <div className="flex flex-col text-[9px] text-neutral-500">
                             <div className="flex items-center gap-1">
@@ -1195,6 +1426,83 @@ function RoomTracker({ participantDbId }: { participantDbId: string | null }) {
             }
         }
     }, [room, localParticipant, participantDbId])
+
+    return null
+}
+function ActiveRoomManager({ meetingId }: { meetingId: string | undefined }) {
+    const room = useRoomContext()
+    const router = useRouter()
+
+    useEffect(() => {
+        if (!room || !meetingId) return
+
+        const handleData = (payload: Uint8Array) => {
+            const decoder = new TextDecoder()
+            const data = JSON.parse(decoder.decode(payload))
+
+            if (data.type === 'room-terminated') {
+                console.log("[ActiveRoomManager] Room terminated by host")
+                alert("The host has ended this class.")
+                router.push("/dashboard")
+            } else if (data.type === 'participant-left-cleanup') {
+                console.log("[ActiveRoomManager] Received participant-left signal, triggering refresh")
+                // Trigger a custom event that ParticipantList can listen to
+                window.dispatchEvent(new CustomEvent('participant-cleanup', {
+                    detail: { participantId: data.participantId }
+                }))
+            }
+        }
+
+        const handleParticipantDisconnected = async (participant: any) => {
+            console.log("[ActiveRoomManager] Participant disconnected event fired")
+            console.log("[ActiveRoomManager] Identity:", participant.identity)
+            console.log("[ActiveRoomManager] Name:", participant.name)
+            console.log("[ActiveRoomManager] Meeting ID:", meetingId)
+
+            if (!participant.identity) {
+                console.warn("[ActiveRoomManager] No identity found, skipping cleanup")
+                return
+            }
+
+            // Mark as left in Supabase using the identity (which is now the Supabase UUID)
+            console.log("[ActiveRoomManager] Attempting to mark participant as left:", participant.identity)
+            const { data, error } = await supabase
+                .from('meeting_participants')
+                .update({ left_at: new Date().toISOString() })
+                .eq('id', participant.identity)
+                .is('left_at', null)
+                .select()
+
+            if (error) {
+                console.error("[ActiveRoomManager] Error cleaning up participant:", error)
+            } else {
+                console.log("[ActiveRoomManager] Successfully marked participant as left:", data)
+
+                // Broadcast a signal to force immediate UI update
+                if (room && data && data.length > 0) {
+                    const encoder = new TextEncoder()
+                    const payload = encoder.encode(JSON.stringify({
+                        type: 'participant-left-cleanup',
+                        participantId: participant.identity
+                    }))
+                    try {
+                        await room.localParticipant.publishData(payload, { reliable: true })
+                        console.log("[ActiveRoomManager] Broadcasted participant-left signal")
+                    } catch (e) {
+                        console.error("[ActiveRoomManager] Failed to broadcast", e)
+                    }
+                }
+            }
+        }
+
+        room.on('dataReceived', handleData)
+        room.on('participantDisconnected', handleParticipantDisconnected)
+
+        return () => {
+            room.off('dataReceived', handleData)
+            room.off('participantDisconnected', handleParticipantDisconnected)
+        }
+    }, [room, meetingId, router])
 
     return null
 }

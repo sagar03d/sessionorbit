@@ -12,6 +12,7 @@ export default function MeetingDetailsPage({ params }: { params: Promise<{ id: s
     const [meeting, setMeeting] = useState<any>(null)
     const [participants, setParticipants] = useState<any[]>([])
     const [transcriptions, setTranscriptions] = useState<any[]>([])
+    const [summary, setSummary] = useState<any>(null)
     const [isLoading, setIsLoading] = useState(true)
 
     useEffect(() => {
@@ -46,6 +47,15 @@ export default function MeetingDetailsPage({ params }: { params: Promise<{ id: s
                 .order('timestamp', { ascending: true })
 
             setTranscriptions(transData || [])
+
+            // Fetch Summary
+            const { data: summaryData } = await supabase
+                .from('meeting_summaries')
+                .select('*')
+                .eq('meeting_id', id)
+                .maybeSingle()
+
+            setSummary(summaryData)
 
             setIsLoading(false)
         }
@@ -115,6 +125,46 @@ export default function MeetingDetailsPage({ params }: { params: Promise<{ id: s
                         )}
                     </div>
                 </div>
+
+                {/* Recording Player Section */}
+                {meeting.recording_url && (
+                    <div className="rounded-2xl overflow-hidden border border-neutral-800 bg-neutral-900/50 backdrop-blur-sm">
+                        <div className="p-4 border-b border-neutral-800 flex items-center justify-between bg-neutral-900/80">
+                            <h2 className="text-sm font-semibold flex items-center gap-2">
+                                <FileText className="w-4 h-4 text-blue-500" /> Class Recording
+                            </h2>
+                            <a
+                                href={meeting.recording_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-neutral-400 hover:text-white transition-colors"
+                            >
+                                Open in Browser
+                            </a>
+                        </div>
+                        <div className="aspect-video bg-black flex items-center justify-center">
+                            <video
+                                src={meeting.recording_url}
+                                controls
+                                className="w-full h-full"
+                                poster="/recording-poster.jpg" // Fallback or placeholder
+                            />
+                        </div>
+                    </div>
+                )}
+
+                {/* Summary Section */}
+                {summary && (
+                    <div className="p-6 rounded-2xl border border-neutral-800 bg-neutral-900/50 backdrop-blur-sm space-y-4">
+                        <h2 className="text-xl font-semibold flex items-center gap-2">
+                            <FileText className="w-5 h-5 text-purple-500" /> AI Class Summary
+                        </h2>
+                        <div
+                            className="prose prose-invert max-w-none text-neutral-300 text-sm leading-relaxed"
+                            dangerouslySetInnerHTML={{ __html: summary.summary }}
+                        />
+                    </div>
+                )}
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {/* Participants Column */}

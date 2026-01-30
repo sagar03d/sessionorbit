@@ -24,10 +24,37 @@ export async function POST(req: NextRequest) {
         console.log(`Processing recording for Room ${roomId}...`);
 
         // 2. Transcribe with Deepgram
-        // We can pass the URL directly if it's publicly accessible or a presigned URL.
-        // Supabase Storage URLs are usually public if the bucket is public, or we need a signed URL.
+        // If fileUrl is a standard bucket URL, it might be private.
+        // We attempt to get a signed URL if it's from Supabase Storage.
+        let transcriptionUrl = fileUrl;
+        if (fileUrl.includes('supabase.co')) {
+            try {
+                // Extract bucket and path from URL if possible, or just use as is if already signed
+                // For now, we'll try to generate a signed URL if it's not already one.
+                const urlParts = new URL(fileUrl);
+                const pathParts = urlParts.pathname.split('/storage/v1/object/public/');
+                if (pathParts.length > 1) {
+                    const fullPath = pathParts[1];
+                    const firstSlash = fullPath.indexOf('/');
+                    const bucket = fullPath.substring(0, firstSlash);
+                    const fileKey = fullPath.substring(firstSlash + 1);
+
+                    const { data: signedData } = await supabaseAdmin.storage
+                        .from(bucket)
+                        .createSignedUrl(fileKey, 3600); // 1 hour
+
+                    if (signedData?.signedUrl) {
+                        transcriptionUrl = signedData.signedUrl;
+                        console.log("Using signed URL for transcription");
+                    }
+                }
+            } catch (e) {
+                console.warn("Failed to generate signed URL, falling back to original URL:", e);
+            }
+        }
+
         const { result, error } = await deepgram.listen.prerecorded.transcribeUrl(
-            { url: fileUrl },
+            { url: transcriptionUrl },
             {
                 model: "nova-2",
                 smart_format: true,

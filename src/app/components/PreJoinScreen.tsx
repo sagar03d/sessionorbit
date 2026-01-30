@@ -384,18 +384,16 @@ export default function PreJoinScreen({ onJoin, userDisplayName, meetingName, is
                     </div>
 
                     <div className="w-full max-w-sm space-y-4">
-                        {!userDisplayName && (
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-neutral-300">Your Name</label>
-                                <input
-                                    type="text"
-                                    value={name}
-                                    onChange={(e) => setName(e.target.value)}
-                                    placeholder="Enter your name"
-                                    className="w-full bg-transparent border border-neutral-600 rounded-lg px-4 py-3 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all placeholder:text-neutral-600"
-                                />
-                            </div>
-                        )}
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-neutral-300">Your Name</label>
+                            <input
+                                type="text"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                placeholder="Enter your name"
+                                className="w-full bg-transparent border border-neutral-600 rounded-lg px-4 py-3 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all placeholder:text-neutral-600"
+                            />
+                        </div>
 
                         <div className="flex gap-4">
                             <Button

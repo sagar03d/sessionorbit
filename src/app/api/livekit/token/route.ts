@@ -4,6 +4,7 @@ import { AccessToken } from "livekit-server-sdk";
 export async function GET(req: NextRequest) {
     const room = req.nextUrl.searchParams.get("room");
     const username = req.nextUrl.searchParams.get("username");
+    const identity = req.nextUrl.searchParams.get("identity");
     const role = req.nextUrl.searchParams.get("role") || "participant";
 
     if (!room) {
@@ -30,7 +31,7 @@ export async function GET(req: NextRequest) {
     }
 
     const at = new AccessToken(apiKey, apiSecret, {
-        identity: username,
+        identity: identity || username,
         name: username,
     });
 

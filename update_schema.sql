@@ -23,7 +23,8 @@ CREATE TABLE IF NOT EXISTS public.meeting_participants (
     joined_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     left_at TIMESTAMP WITH TIME ZONE,
     talk_time_seconds INTEGER DEFAULT 0,
-    role TEXT DEFAULT 'participant'
+    role TEXT DEFAULT 'participant',
+    can_write BOOLEAN DEFAULT false
 );
 
 -- Enable RLS

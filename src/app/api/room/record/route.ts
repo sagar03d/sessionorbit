@@ -27,6 +27,11 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "LiveKit credentials not configured" }, { status: 500 });
         }
 
+        if (!S3_ENDPOINT || !S3_ACCESS_KEY || !S3_SECRET_KEY) {
+            console.warn("S3 credentials missing. Uploding to storage might fail.");
+            // We still try, but logging is better
+        }
+
         const egressClient = new EgressClient(LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET);
 
         if (action === "START") {
@@ -49,14 +54,15 @@ export async function POST(req: NextRequest) {
             });
 
             // Start Room Composite Egress (Video + Audio)
-            // You can also use startTrackCompositeEgress for audio only if preferred to save cost/bandwidth
             const info = await egressClient.startRoomCompositeEgress(
                 roomId,
                 {
                     file: fileOutput,
                 },
                 {
-                    layout: "grid", // or your custom layout
+                    layout: "grid",
+                    audioOnly: false,
+                    videoOnly: false,
                 }
             );
 
