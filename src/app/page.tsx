@@ -1,5 +1,6 @@
 import Hero from "@/components/landing/Hero";
 import FeaturesGrid from "@/components/landing/FeaturesGrid";
+import DetailedFeatures from "@/components/landing/DetailedFeatures";
 import Stats from "@/components/landing/Stats";
 import Testimonials from "@/components/landing/Testimonials";
 import PricingPreview from "@/components/landing/PricingPreview";
@@ -20,6 +21,7 @@ export default function Home() {
         <Hero />
         <Stats />
         <FeaturesGrid />
+        <DetailedFeatures />
         <Testimonials />
         <PricingPreview />
         <FAQ />
