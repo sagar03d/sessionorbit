@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { EgressClient, EncodedFileOutput, EncodedFileType } from "livekit-server-sdk";
+import { EgressClient, EncodedFileOutput, EncodedFileType, EncodingOptionsPreset } from "livekit-server-sdk";
 import { supabaseAdmin } from "@/lib/supabase";
 
 export async function POST(req: NextRequest) {
@@ -94,8 +94,7 @@ export async function POST(req: NextRequest) {
                     file: fileOutput,
                 },
                 {
-                    width: 1920,
-                    height: 1080,
+                    encodingOptions: EncodingOptionsPreset.H264_1080P_30,
                     audioOnly: false,
                     videoOnly: false,
                 }
