@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, use, useRef, useCallback } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import {
     LiveKitRoom,
@@ -56,6 +56,10 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
     // Dynamic Tabs State
     const [tabs, setTabs] = useState<Tab[]>([{ id: 'main', type: 'whiteboard', title: 'Whiteboard', boardId: 'main' }])
     const [activeTabId, setActiveTabId] = useState<string>('main')
+
+    const searchParams = useSearchParams()
+    const recorderToken = searchParams.get("recorder_token")
+    const isRecorder = !!recorderToken
 
     // Refs
     // We keep a map of refs for all active whiteboards to support recording
@@ -194,11 +198,22 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
             }
             setRole(userRole)
 
+
             const displayName = user ? (
                 (await supabase.from('profiles').select('full_name').eq('id', user.id).single()).data?.full_name || user.email || "User"
             ) : ""
 
             setName(displayName)
+
+            // If it's the recorder, use the token directly and skip everything else
+            if (recorderToken) {
+                console.log("Recorder detected, auto-joining...");
+                setToken(recorderToken);
+                setHasJoinedRoom(true);
+                setPreJoinChoices({ mic: false, cam: false }); // Force mute
+                return;
+            }
+
             fetchToken(meetingData.id, displayName, userRole)
             if (userRole !== 'host') {
                 subscribeToLocalAccess(meetingData.id, user?.id || null)
@@ -688,7 +703,10 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
     };
 
     const stopRecording = async () => {
-        if (!meeting || role !== 'host') return;
+        if (!meeting || role !== 'host') {
+            console.error("Unauthorized attempt to stop recording. Role:", role)
+            return
+        }
 
         try {
             // Optimistic UI update or wait?
@@ -751,27 +769,29 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
                 router.push("/dashboard")
             }}
         >
-            <RoomHeader
-                meetingName={meeting?.name || "Classroom"}
-                role={role}
-                isRecording={isRecording}
-                onToggleRecording={isRecording ? stopRecording : startRecording}
-                copied={copied}
-                onCopyInviteLink={copyInviteLink}
-                onLeave={() => {
-                    if (role === 'participant') {
-                        if (confirm("Are you sure you want to leave this class?")) {
-                            router.push(`/feedback?meeting_id=${meeting?.id}&participant_id=${participantDbId}`)
+            {!isRecorder && (
+                <RoomHeader
+                    meetingName={meeting?.name || "Classroom"}
+                    role={role}
+                    isRecording={isRecording}
+                    onToggleRecording={isRecording ? stopRecording : startRecording}
+                    copied={copied}
+                    onCopyInviteLink={copyInviteLink}
+                    onLeave={() => {
+                        if (role === 'participant') {
+                            if (confirm("Are you sure you want to leave this class?")) {
+                                router.push(`/feedback?meeting_id=${meeting?.id}&participant_id=${participantDbId}`)
+                            }
+                        } else {
+                            router.push("/dashboard")
                         }
-                    } else {
-                        router.push("/dashboard")
-                    }
-                }}
-                onEndClass={handleEndClass}
-                isLowBandwidth={isLowBandwidth}
-                onToggleLowBandwidth={setIsLowBandwidth}
-                isTranscribing={isTranscribing}
-            />
+                    }}
+                    onEndClass={handleEndClass}
+                    isLowBandwidth={isLowBandwidth}
+                    onToggleLowBandwidth={setIsLowBandwidth}
+                    isTranscribing={isTranscribing}
+                />
+            )}
 
             <div className="flex-1 relative bg-white overflow-hidden flex flex-row min-h-0" style={{ height: '-webkit-fill-available' } as React.CSSProperties}>
                 <RoomAudioEffects />
@@ -1079,15 +1099,19 @@ function RoomHeader({
                     <span className="font-semibold text-white truncate max-w-[100px] sm:max-w-none">{meetingName}</span>
                     <span className="hidden xs:inline-block text-[10px] bg-white/10 text-neutral-300 px-1.5 py-0.5 rounded uppercase font-bold tracking-tighter">{role}</span>
                 </div>
-                {role === "host" && (
-                    <div className="flex gap-2">
+                <div className="flex gap-2">
+                    {(role === "host" || isRecording) && (
                         <button
-                            onClick={onToggleRecording}
-                            className={`flex items-center gap-2 text-xs font-semibold py-1.5 px-3 rounded transition-colors border ${isRecording ? 'bg-red-500/20 text-red-500 border-red-500/20 hover:bg-red-500/30' : 'bg-white/10 text-white border-white/5 hover:bg-white/20'}`}
+                            type="button"
+                            disabled={role !== 'host'}
+                            onClick={role === "host" ? onToggleRecording : undefined}
+                            className={`flex items-center gap-2 text-xs font-semibold py-1.5 px-3 rounded transition-colors border ${isRecording ? 'bg-red-500/20 text-red-500 border-red-500/20' : 'bg-white/10 text-white border-white/5'} ${role === 'host' ? (isRecording ? 'hover:bg-red-500/30 cursor-pointer' : 'hover:bg-white/20 cursor-pointer') : 'cursor-default opacity-100 pointer-events-none'}`}
                         >
                             <div className={`w-2 h-2 rounded-full ${isRecording ? 'bg-red-500 animate-pulse' : 'bg-white'}`} />
                             <span className="hidden sm:inline">{isRecording ? 'Recording...' : 'Record'}</span>
                         </button>
+                    )}
+                    {role === "host" && (
                         <button
                             onClick={onCopyInviteLink}
                             className="flex items-center gap-2 bg-white/10 text-white text-xs font-semibold py-1.5 px-3 rounded hover:bg-white/20 transition-colors border border-white/5"
@@ -1095,8 +1119,8 @@ function RoomHeader({
                             {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                             <span className="hidden sm:inline">{copied ? 'Copied Link' : 'Invite'}</span>
                         </button>
-                    </div>
-                )}
+                    )}
+                </div>
             </div>
 
             <div className="flex items-center gap-2">

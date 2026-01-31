@@ -35,6 +35,39 @@ export async function POST(req: NextRequest) {
         const egressClient = new EgressClient(LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET);
 
         if (action === "START") {
+            // 1. Fetch participant_code to construct the join URL
+            const { data: meetingData, error: meetingError } = await supabaseAdmin
+                .from("meetings")
+                .select("participant_code")
+                .eq("id", roomId)
+                .single();
+
+            if (meetingError || !meetingData) {
+                throw new Error("Meeting not found");
+            }
+
+            // 2. Generate Access Token for the Recorder
+            const { AccessToken } = await import("livekit-server-sdk");
+            const at = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, {
+                identity: `recorder-${roomId}`,
+                name: "Recorder",
+            });
+            at.addGrant({
+                roomJoin: true,
+                room: roomId,
+                canPublish: false,
+                canSubscribe: true,
+                hidden: true, // Invisible to other users
+            });
+            const recorderToken = await at.toJwt();
+
+            // 3. Construct the Web Url
+            const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://sessionorbit.com";
+            // Ensure we use the correct route pattern: /room/[code]
+            const webUrl = `${BASE_URL}/room/${meetingData.participant_code}?recorder_token=${recorderToken}`;
+
+            console.log("Starting Web Egress on URL:", webUrl);
+
             const filename = `recording-${roomId}-${Date.now()}.mp4`;
 
             // Configure Output to S3 (Supabase Storage)
@@ -49,18 +82,20 @@ export async function POST(req: NextRequest) {
                         region: S3_REGION,
                         endpoint: S3_ENDPOINT,
                         bucket: S3_BUCKET,
+                        forcePathStyle: true,
                     }
                 }
             });
 
-            // Start Room Composite Egress (Video + Audio)
-            const info = await egressClient.startRoomCompositeEgress(
-                roomId,
+            // Start Web Egress
+            const info = await egressClient.startWebEgress(
+                webUrl,
                 {
                     file: fileOutput,
                 },
                 {
-                    layout: "grid",
+                    width: 1920,
+                    height: 1080,
                     audioOnly: false,
                     videoOnly: false,
                 }
