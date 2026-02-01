@@ -41,6 +41,7 @@ interface Course {
 export default function BatchesPage({ params }: { params: Promise<{ id: string }> }) {
     // Next.js 15+ async params unwrap
     const { id: courseId } = use(params)
+    const { user } = useUser()
 
     const router = useRouter()
     const [course, setCourse] = useState<Course | null>(null)
