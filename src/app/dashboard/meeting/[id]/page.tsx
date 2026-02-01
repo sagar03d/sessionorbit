@@ -3,7 +3,7 @@
 import { useEffect, useState, use } from "react"
 import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Clock, Users, FileText, Calendar, Download, Play, ShieldAlert } from "lucide-react"
+import { ArrowLeft, Clock, Users, FileText, Calendar, Download, Play, ShieldAlert, BrainCircuit, Zap, Loader2, Mail } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 export default function MeetingDetailsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -14,6 +14,90 @@ export default function MeetingDetailsPage({ params }: { params: Promise<{ id: s
     const [transcriptions, setTranscriptions] = useState<any[]>([])
     const [summary, setSummary] = useState<any>(null)
     const [isLoading, setIsLoading] = useState(true)
+    const [isGenerating, setIsGenerating] = useState(false)
+
+    const handleGenerateSummary = async () => {
+        setIsGenerating(true)
+        try {
+            const res = await fetch('/api/meeting/generate-summary', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ meetingId: id })
+            })
+            const data = await res.json()
+            if (data.success && data.summary) {
+                setSummary({ summary: data.summary })
+            }
+        } catch (error) {
+            console.error("Failed to generate summary", error)
+        } finally {
+            setIsGenerating(false)
+        }
+    }
+
+    const [isSending, setIsSending] = useState(false)
+
+    const handleSendEmail = async () => {
+        const email = window.prompt("Enter parent's email address:")
+        if (!email) return
+
+        setIsSending(true)
+        try {
+            const res = await fetch('/api/meeting/send-report', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ meetingId: id, email })
+            })
+            const data = await res.json()
+            if (data.success) {
+                alert(data.mocked ? "Email sending simulated (API Key missing)." : "Report sent successfully!")
+            } else {
+                alert("Failed to send report: " + (data.error || "Unknown error"))
+            }
+        } catch (error) {
+            console.error("Email send failed", error)
+            alert("Failed to send email.")
+        } finally {
+            setIsSending(false)
+        }
+    }
+
+    const handleDownloadPDF = () => {
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) {
+            alert("Please allow popups to download the report.");
+            return;
+        }
+
+        const summaryContent = summary?.summary || "";
+
+        const htmlContent = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>SessionOrbit Report - ${meeting?.name || 'Session'}</title>
+                <style>
+                    body { font-family: system-ui, -apple-system, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; color: #1a1a1a; }
+                    h2 { color: #4f46e5; border-bottom: 2px solid #e0e7ff; padding-bottom: 0.5rem; }
+                    .print-footer { margin-top: 30px; font-size: 12px; color: #666; text-align: center; border-top: 1px solid #eee; padding-top: 10px; }
+                    /* Ensure colors print correctly */
+                    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                </style>
+            </head>
+            <body>
+                ${summaryContent}
+                <script>
+                    window.onload = function() {
+                        window.print();
+                    }
+                </script>
+            </body>
+            </html>
+        `;
+
+        printWindow.document.write(htmlContent);
+        printWindow.document.close();
+    }
 
     useEffect(() => {
         const fetchData = async () => {
@@ -189,15 +273,72 @@ export default function MeetingDetailsPage({ params }: { params: Promise<{ id: s
                 )}
 
                 {/* Summary Section */}
-                {summary && (
+                {summary ? (
                     <div className="p-6 rounded-2xl border border-neutral-800 bg-neutral-900/50 backdrop-blur-sm space-y-4">
-                        <h2 className="text-xl font-semibold flex items-center gap-2">
-                            <FileText className="w-5 h-5 text-purple-500" /> AI Class Summary
-                        </h2>
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-xl font-semibold flex items-center gap-2">
+                                <FileText className="w-5 h-5 text-purple-500" /> AI Class Summary
+                            </h2>
+                            <Button variant="outline" size="sm" className="h-8 text-xs gap-2" onClick={handleSendEmail} disabled={isSending}>
+                                {isSending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Mail className="w-3 h-3" />}
+                                {isSending ? "Sending..." : "Send to Parent"}
+                            </Button>
+
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-8 text-xs gap-2"
+                                onClick={async () => {
+                                    try {
+                                        const { pdf } = await import('@react-pdf/renderer');
+                                        const SessionReportPDF = (await import('@/components/reports/SessionReportPDF')).default;
+                                        const blob = await pdf(<SessionReportPDF meeting={meeting} participants={participants} summary={summary} />).toBlob();
+                                        const url = URL.createObjectURL(blob);
+                                        const link = document.createElement('a');
+                                        link.href = url;
+                                        link.download = `SessionOrbit-Report-${meeting.name || 'Session'}.pdf`;
+                                        document.body.appendChild(link);
+                                        link.click();
+                                        document.body.removeChild(link);
+                                        URL.revokeObjectURL(url);
+                                    } catch (err) {
+                                        console.error("PDF Generation failed:", err);
+                                        alert("Failed to generate PDF. Please try again.");
+                                    }
+                                }}
+                            >
+                                <Download className="w-3 h-3" /> PDF
+                            </Button>
+                        </div>
                         <div
                             className="prose prose-invert max-w-none text-neutral-300 text-sm leading-relaxed"
                             dangerouslySetInnerHTML={{ __html: summary.summary }}
                         />
+                    </div>
+                ) : (
+                    <div className="p-8 rounded-2xl border border-dashed border-neutral-800 bg-neutral-900/20 flex flex-col items-center justify-center text-center space-y-4">
+                        <div className="w-12 h-12 rounded-full bg-purple-500/10 flex items-center justify-center">
+                            <BrainCircuit className="w-6 h-6 text-purple-500" />
+                        </div>
+                        <div className="space-y-1">
+                            <h2 className="text-lg font-bold text-white">Generate Parent Report</h2>
+                            <p className="text-neutral-400 text-sm max-w-md mx-auto">Create an insightful, AI-powered summary of this session to share with parents.</p>
+                        </div>
+                        <Button
+                            onClick={handleGenerateSummary}
+                            disabled={isGenerating}
+                            className="bg-purple-600 hover:bg-purple-700 text-white"
+                        >
+                            {isGenerating ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating...
+                                </>
+                            ) : (
+                                <>
+                                    <Zap className="w-4 h-4 mr-2" /> Generate Summary
+                                </>
+                            )}
+                        </Button>
                     </div>
                 )}
 

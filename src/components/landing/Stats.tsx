@@ -1,31 +1,31 @@
 "use client"
 
-import { TrendingUp, Users, Clock, Zap } from "lucide-react"
+import { FileText, Wifi, BrainCircuit, CheckCircle2 } from "lucide-react"
 
 export default function Stats() {
     const stats = [
         {
-            icon: Users,
-            value: "10,000+",
-            label: "Active Teachers",
+            icon: FileText,
+            value: "45 mins",
+            label: "Saved per Report",
             color: "indigo"
         },
         {
-            icon: Clock,
-            value: "500K+",
-            label: "Hours Taught",
+            icon: Wifi,
+            value: "10 mins",
+            label: "Saved on Tech Issues",
             color: "purple"
         },
         {
-            icon: TrendingUp,
-            value: "98%",
-            label: "Satisfaction Rate",
+            icon: BrainCircuit,
+            value: "1 hr",
+            label: "Saved on Lesson Prep",
             color: "emerald"
         },
         {
-            icon: Zap,
-            value: "45min",
-            label: "Avg. Time Saved",
+            icon: CheckCircle2,
+            value: "30 mins",
+            label: "Saved on Grading",
             color: "amber"
         }
     ]
