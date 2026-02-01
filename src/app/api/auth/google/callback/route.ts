@@ -3,6 +3,9 @@ import { exchangeCodeForToken, getGoogleUser, createSession } from "@/lib/auth-m
 import { supabaseAdmin } from "@/lib/supabase";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { Resend } from "resend";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
@@ -197,7 +200,25 @@ async function getOrCreateSupabaseUser(googleUser: any) {
         }
     });
 
-    if (data.user) return data.user;
+    if (data.user) {
+        // Send Admin Notification for New User
+        try {
+            await resend.emails.send({
+                from: 'Session Orbit <updates@sessionorbit.com>',
+                to: 'sagar03d@gmail.com',
+                subject: 'New User Registration',
+                html: `
+                    <h1>New User Signed Up</h1>
+                    <p><strong>Name:</strong> ${googleUser.name}</p>
+                    <p><strong>Email:</strong> ${googleUser.email}</p>
+                    <p><strong>Source:</strong> Google Auth</p>
+                `
+            });
+        } catch (emailError) {
+            console.error("Failed to send admin notification:", emailError);
+        }
+        return data.user;
+    }
 
     // If fail, assume exists. API doesn't allow easy lookup by email.
     // SCALABILITY WARNING: listing all users is bad properly.
