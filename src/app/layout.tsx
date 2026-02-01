@@ -20,6 +20,9 @@ export const metadata: Metadata = {
   description: "Advanced Educational Platform - Powered by SessionOrbit",
 };
 
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
+
 export default function RootLayout({
   children,
 }: {
@@ -30,6 +33,8 @@ export default function RootLayout({
       <body className="bg-black text-white selection:bg-white selection:text-black antialiased min-h-screen flex flex-col">
         <LayoutContent>
           {children}
+          <Analytics />
+          <SpeedInsights />
         </LayoutContent>
       </body>
     </html>
