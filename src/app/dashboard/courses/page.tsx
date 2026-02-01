@@ -13,6 +13,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table"
+import { useUser } from "@/hooks/useUser"
 import {
     Dialog,
     DialogContent,
@@ -32,6 +33,7 @@ interface Course {
 
 export default function CoursesPage() {
     const router = useRouter()
+    const { user } = useUser()
     const [courses, setCourses] = useState<Course[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -39,42 +41,51 @@ export default function CoursesPage() {
 
     const fetchCourses = async () => {
         setIsLoading(true)
-        const { data: { user } } = await supabase.auth.getUser()
         if (!user) return
 
-        const { data, error } = await supabase
-            .from('courses')
-            .select('*')
-            .order('created_at', { ascending: false })
+        try {
+            const res = await fetch('/api/v1/courses')
+            const result = await res.json()
 
-        if (data) {
-            setCourses(data)
+            if (res.ok && result.data) {
+                setCourses(result.data)
+            } else {
+                console.error("Failed to fetch courses:", result.error)
+            }
+        } catch (err) {
+            console.error("Error fetching courses:", err)
         }
         setIsLoading(false)
     }
 
     useEffect(() => {
-        fetchCourses()
-    }, [])
+        if (user) {
+            fetchCourses()
+        }
+    }, [user])
 
     const handleCreateWrapper = async () => {
         if (!newCourse.name || !newCourse.code) return alert("All fields are required")
-
-        const { data: { user } } = await supabase.auth.getUser()
         if (!user) return
 
-        const { error } = await supabase
-            .from('courses')
-            .insert([{
-                user_id: user.id,
-                name: newCourse.name,
-                code: newCourse.code
-            }])
+        try {
+            const res = await fetch('/api/v1/courses', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: newCourse.name, code: newCourse.code })
+            })
+            const result = await res.json()
 
-        if (!error) {
-            fetchCourses()
-            setIsDialogOpen(false)
-            setNewCourse({ name: '', code: '' })
+            if (res.ok) {
+                fetchCourses()
+                setIsDialogOpen(false)
+                setNewCourse({ name: '', code: '' })
+            } else {
+                alert(result.error || "Failed to create course")
+            }
+        } catch (e) {
+            console.error("Create failed", e)
+            alert("Create failed")
         }
     }
 
