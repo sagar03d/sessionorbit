@@ -54,7 +54,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-    const { supabase, error } = await getAuthedClient(req);
+    const { supabase, user, error } = await getAuthedClient(req);
     if (error) return NextResponse.json({ error: error.message }, { status: error.status });
 
     try {
