@@ -111,6 +111,12 @@ export default function Header() {
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                 Mission Control
               </Link>
+              <Link
+                href="/dashboard/settings"
+                className="text-sm font-medium text-neutral-400 hover:text-white transition-colors"
+              >
+                Settings
+              </Link>
               <button
                 onClick={handleSignOut}
                 className="text-sm font-medium text-neutral-400 hover:text-white transition-colors"

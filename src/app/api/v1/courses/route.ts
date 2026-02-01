@@ -77,3 +77,25 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
     }
 }
+
+export async function DELETE(req: NextRequest) {
+    const { supabase, user, error, isManual } = await getAuthedClient(req);
+    if (error) return NextResponse.json({ error: error.message }, { status: error.status });
+
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+
+    if (!id) return NextResponse.json({ error: "Course ID is required" }, { status: 400 });
+
+    let query = supabase!.from('courses').delete().eq('id', id);
+
+    // Enforce ownership if manual (or safe redundancy for RLS)
+    // Ensure we only delete if it belongs to user
+    query = query.eq('user_id', user!.id);
+
+    const { error: deleteError } = await query;
+
+    if (deleteError) return NextResponse.json({ error: deleteError.message }, { status: 500 });
+
+    return NextResponse.json({ success: true });
+}

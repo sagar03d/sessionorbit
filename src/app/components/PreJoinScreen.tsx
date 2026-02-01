@@ -33,6 +33,24 @@ export default function PreJoinScreen({ onJoin, userDisplayName, meetingName, is
     // Background Settings
     const [bgSettings, setBgSettings] = useState<{ type: 'none' | 'blur' | 'image', imageUrl?: string }>({ type: 'none' });
 
+    // Load saved settings from Dashboard
+    useEffect(() => {
+        const saved = localStorage.getItem('virtualBgSettings')
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved)
+                // Map 'imageBase64' to 'imageUrl' for compatibility
+                if (parsed.type === 'image' && parsed.imageBase64) {
+                    setBgSettings({ type: 'image', imageUrl: parsed.imageBase64 })
+                } else {
+                    setBgSettings({ type: parsed.type, imageUrl: undefined })
+                }
+            } catch (e) {
+                console.error("Failed to load bg settings", e)
+            }
+        }
+    }, [])
+
 
 
     // Vapi State
@@ -403,57 +421,8 @@ export default function PreJoinScreen({ onJoin, userDisplayName, meetingName, is
                             </div>
 
                             {/* Background Controls */}
-                            <div className="flex items-center gap-1 bg-[#3c4043] rounded-full p-1 border border-neutral-700">
-                                <Popover>
-                                    <PopoverTrigger asChild>
-                                        <button className="p-3 rounded-full hover:bg-neutral-600 transition-colors" title="Background Settings">
-                                            <Settings className="w-5 h-5 text-white" />
-                                        </button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-72 p-4 bg-[#202124] border-neutral-700 text-white" align="center">
-                                        <div className="text-sm font-semibold mb-3">Background Effects</div>
-                                        <div className="grid grid-cols-3 gap-2">
-                                            <button
-                                                onClick={() => setBgSettings({ type: 'none' })}
-                                                className={`h-16 rounded-lg border flex flex-col items-center justify-center gap-1 transition-all ${bgSettings.type === 'none' ? 'border-blue-500 bg-blue-500/20' : 'border-neutral-600 hover:border-neutral-500'}`}
-                                            >
-                                                <div className="w-6 h-6 rounded border border-neutral-400"></div>
-                                                <span className="text-[10px]">None</span>
-                                            </button>
-
-                                            <button
-                                                onClick={() => setBgSettings({ type: 'blur' })}
-                                                className={`h-16 rounded-lg border flex flex-col items-center justify-center gap-1 transition-all ${bgSettings.type === 'blur' ? 'border-blue-500 bg-blue-500/20' : 'border-neutral-600 hover:border-neutral-500'}`}
-                                            >
-                                                <div className="w-6 h-6 rounded bg-gradient-to-br from-neutral-400 to-neutral-600 blur-[2px]"></div>
-                                                <span className="text-[10px]">Blur</span>
-                                            </button>
-
-                                            <label className={`h-16 rounded-lg border flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${bgSettings.type === 'image' ? 'border-blue-500 bg-blue-500/20' : 'border-neutral-600 hover:border-neutral-500'}`}>
-                                                <input
-                                                    type="file"
-                                                    accept="image/*"
-                                                    className="hidden"
-                                                    onChange={(e) => {
-                                                        const file = e.target.files?.[0];
-                                                        if (file) {
-                                                            const url = URL.createObjectURL(file);
-                                                            setBgSettings({ type: 'image', imageUrl: url });
-                                                        }
-                                                    }}
-                                                />
-                                                <div className="w-6 h-6 flex items-center justify-center">
-                                                    <div className="text-neutral-300">Img</div>
-                                                </div>
-                                                <span className="text-[10px]">Upload</span>
-                                            </label>
-                                        </div>
-                                    </PopoverContent>
-                                </Popover>
-                            </div>
                         </div>
                     </div>
-                    {/* Audio visualizer link or text could go here */}
                 </div>
 
                 {/* Right Side: Join Controls */}
@@ -504,70 +473,72 @@ export default function PreJoinScreen({ onJoin, userDisplayName, meetingName, is
                             <p className="text-center text-xs text-neutral-500 mt-2">Having trouble? Talk to our AI assistant.</p>
                         </div>
                     </div>
-                </div>
-            </div>
+                </div >
+            </div >
             {/* Vapi Call Overlay */}
             {/* Vapi Call Popup (Draggable) */}
-            {isInCall && (
-                <div
-                    className="fixed z-50 animate-in fade-in zoom-in duration-300 shadow-2xl rounded-2xl overflow-hidden bg-[#202124] border border-neutral-700 w-80"
-                    style={{
-                        right: `${position.x}px`,
-                        bottom: `${position.y}px`,
-                        cursor: isDragging ? 'grabbing' : 'default'
-                    }}
-                    onMouseMove={handleMouseMove}
-                    onMouseUp={handleMouseUp}
-                    onMouseLeave={handleMouseUp}
-                >
-                    {/* Drag Handle */}
+            {
+                isInCall && (
                     <div
-                        className="h-6 bg-neutral-800 w-full flex items-center justify-center cursor-grab hover:bg-neutral-700 transition-colors"
-                        onMouseDown={handleMouseDown}
+                        className="fixed z-50 animate-in fade-in zoom-in duration-300 shadow-2xl rounded-2xl overflow-hidden bg-[#202124] border border-neutral-700 w-80"
+                        style={{
+                            right: `${position.x}px`,
+                            bottom: `${position.y}px`,
+                            cursor: isDragging ? 'grabbing' : 'default'
+                        }}
+                        onMouseMove={handleMouseMove}
+                        onMouseUp={handleMouseUp}
+                        onMouseLeave={handleMouseUp}
                     >
-                        <GripHorizontal className="w-8 h-4 text-neutral-500" />
-                    </div>
+                        {/* Drag Handle */}
+                        <div
+                            className="h-6 bg-neutral-800 w-full flex items-center justify-center cursor-grab hover:bg-neutral-700 transition-colors"
+                            onMouseDown={handleMouseDown}
+                        >
+                            <GripHorizontal className="w-8 h-4 text-neutral-500" />
+                        </div>
 
-                    <div className="p-6 flex flex-col items-center gap-6 relative">
-                        {/* Background Glow - Smaller */}
-                        <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-blue-500/10 rounded-full blur-[60px] transition-all duration-500 ${assistantIsSpeaking ? 'opacity-100' : 'opacity-30'}`} />
+                        <div className="p-6 flex flex-col items-center gap-6 relative">
+                            {/* Background Glow - Smaller */}
+                            <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-blue-500/10 rounded-full blur-[60px] transition-all duration-500 ${assistantIsSpeaking ? 'opacity-100' : 'opacity-30'}`} />
 
-                        <div className="relative z-10 flex flex-col items-center gap-3 text-center">
-                            {/* Smaller Avatar */}
-                            <div className={`w-20 h-20 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${assistantIsSpeaking ? 'border-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.4)]' : 'border-neutral-700'}`}>
-                                <div className={`w-[72px] h-[72px] rounded-full bg-neutral-800 flex items-center justify-center overflow-hidden relative`}>
-                                    {assistantIsSpeaking ? (
-                                        <div className="flex items-center gap-0.5">
-                                            {[...Array(4)].map((_, i) => (
-                                                <div key={i} className="w-1 bg-blue-400 rounded-full animate-[music-bar_0.8s_ease-in-out_infinite]" style={{ animationDelay: `${i * 0.1}s`, height: `${10 + Math.random() * 20}px` }} />
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <Monitor className="w-8 h-8 text-neutral-600" />
-                                    )}
+                            <div className="relative z-10 flex flex-col items-center gap-3 text-center">
+                                {/* Smaller Avatar */}
+                                <div className={`w-20 h-20 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${assistantIsSpeaking ? 'border-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.4)]' : 'border-neutral-700'}`}>
+                                    <div className={`w-[72px] h-[72px] rounded-full bg-neutral-800 flex items-center justify-center overflow-hidden relative`}>
+                                        {assistantIsSpeaking ? (
+                                            <div className="flex items-center gap-0.5">
+                                                {[...Array(4)].map((_, i) => (
+                                                    <div key={i} className="w-1 bg-blue-400 rounded-full animate-[music-bar_0.8s_ease-in-out_infinite]" style={{ animationDelay: `${i * 0.1}s`, height: `${10 + Math.random() * 20}px` }} />
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <Monitor className="w-8 h-8 text-neutral-600" />
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <h3 className="text-lg font-semibold text-white">AI Support</h3>
+                                    <p className="text-neutral-400 text-xs font-mono uppercase tracking-wider">
+                                        {callStatus === 'connecting' ? 'Connecting...' : assistantIsSpeaking ? 'Speaking...' : 'Listening...'}
+                                    </p>
                                 </div>
                             </div>
 
-                            <div>
-                                <h3 className="text-lg font-semibold text-white">AI Support</h3>
-                                <p className="text-neutral-400 text-xs font-mono uppercase tracking-wider">
-                                    {callStatus === 'connecting' ? 'Connecting...' : assistantIsSpeaking ? 'Speaking...' : 'Listening...'}
-                                </p>
-                            </div>
+                            <Button
+                                onClick={endAICall}
+                                variant="destructive"
+                                size="sm"
+                                className="w-full rounded-full h-10 text-sm font-medium relative z-10 hover:bg-red-600 shadow-lg shadow-red-900/20"
+                            >
+                                <Phone className="mr-2 w-4 h-4 rotate-135" />
+                                End Call
+                            </Button>
                         </div>
-
-                        <Button
-                            onClick={endAICall}
-                            variant="destructive"
-                            size="sm"
-                            className="w-full rounded-full h-10 text-sm font-medium relative z-10 hover:bg-red-600 shadow-lg shadow-red-900/20"
-                        >
-                            <Phone className="mr-2 w-4 h-4 rotate-135" />
-                            End Call
-                        </Button>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     )
 }

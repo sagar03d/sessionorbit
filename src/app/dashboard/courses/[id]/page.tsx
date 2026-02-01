@@ -21,7 +21,7 @@ import {
     DialogTitle,
     DialogFooter,
 } from "@/components/ui/dialog"
-import { Plus, ChevronRight, ArrowLeft } from "lucide-react"
+import { Plus, ChevronRight, ArrowLeft, Trash2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 
@@ -121,6 +121,24 @@ export default function BatchesPage({ params }: { params: Promise<{ id: string }
         }
     }
 
+    const handleDelete = async (batchId: string, e: React.MouseEvent) => {
+        e.stopPropagation()
+        if (!confirm("Are you sure you want to delete this batch?")) return
+        if (!user) return
+
+        try {
+            const res = await fetch(`/api/v1/batches?id=${batchId}`, { method: 'DELETE' })
+            const result = await res.json()
+            if (res.ok) {
+                fetchData()
+            } else {
+                alert(result.error || "Delete failed")
+            }
+        } catch (err) {
+            console.error("Delete error:", err)
+        }
+    }
+
     return (
         <div className="p-8 max-w-6xl mx-auto">
             <div className="mb-6">
@@ -179,7 +197,17 @@ export default function BatchesPage({ params }: { params: Promise<{ id: string }
                                         {batch.code}
                                     </TableCell>
                                     <TableCell className="text-right pr-6">
-                                        <ChevronRight className="w-5 h-5 text-neutral-600 group-hover:text-white transition-colors ml-auto" />
+                                        <div className="flex items-center justify-end gap-3">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8 text-neutral-400 hover:text-red-500 hover:bg-neutral-800"
+                                                onClick={(e) => handleDelete(batch.id, e)}
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </Button>
+                                            <ChevronRight className="w-5 h-5 text-neutral-600 group-hover:text-white transition-colors" />
+                                        </div>
                                     </TableCell>
                                 </TableRow>
                             ))

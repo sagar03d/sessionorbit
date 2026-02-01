@@ -216,13 +216,16 @@ export default function SchedulesPage({ params }: { params: Promise<{ id: string
     const handleDeleteSchedule = async (id: string) => {
         if (!confirm("Are you sure you want to delete this schedule?")) return
 
-        const { error } = await supabase
-            .from('class_schedules')
-            .delete()
-            .eq('id', id)
-
-        if (!error) {
-            fetchData()
+        try {
+            const res = await fetch(`/api/v1/schedules?id=${id}`, { method: 'DELETE' })
+            if (res.ok) {
+                fetchData()
+            } else {
+                alert("Failed to delete schedule")
+            }
+        } catch (e) {
+            console.error(e)
+            alert("Error deleting schedule")
         }
     }
 

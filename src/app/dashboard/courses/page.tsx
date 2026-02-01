@@ -20,7 +20,7 @@ import {
     DialogTitle,
     DialogFooter,
 } from "@/components/ui/dialog"
-import { Plus, ChevronRight, Hash } from "lucide-react"
+import { Plus, ChevronRight, Hash, Trash2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 interface Course {
@@ -78,6 +78,24 @@ export default function CoursesPage() {
         }
     }
 
+    const handleDelete = async (id: string, e: React.MouseEvent) => {
+        e.stopPropagation() // Prevent row click
+        if (!confirm("Are you sure you want to delete this course?")) return
+        if (!user) return
+
+        try {
+            const res = await fetch(`/api/v1/courses?id=${id}`, { method: 'DELETE' })
+            const result = await res.json()
+            if (res.ok) {
+                fetchCourses()
+            } else {
+                alert(result.error || "Delete failed")
+            }
+        } catch (err) {
+            console.error("Delete error:", err)
+        }
+    }
+
     return (
         <div className="p-8 max-w-6xl mx-auto">
             <div className="flex justify-between items-center mb-8">
@@ -130,7 +148,17 @@ export default function CoursesPage() {
                                         </div>
                                     </TableCell>
                                     <TableCell className="text-right pr-6">
-                                        <ChevronRight className="w-5 h-5 text-neutral-600 group-hover:text-white transition-colors ml-auto" />
+                                        <div className="flex items-center justify-end gap-3">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8 text-neutral-400 hover:text-red-500 hover:bg-neutral-800"
+                                                onClick={(e) => handleDelete(course.id, e)}
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </Button>
+                                            <ChevronRight className="w-5 h-5 text-neutral-600 group-hover:text-white transition-colors" />
+                                        </div>
                                     </TableCell>
                                 </TableRow>
                             ))

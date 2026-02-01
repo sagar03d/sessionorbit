@@ -29,7 +29,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${outfit.variable}`}>
+    <html lang="en" className={`dark ${inter.variable} ${outfit.variable}`}>
       <body className="bg-black text-white selection:bg-white selection:text-black antialiased min-h-screen flex flex-col">
         <LayoutContent>
           {children}

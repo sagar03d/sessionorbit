@@ -95,3 +95,58 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
     }
 }
+
+export async function DELETE(req: NextRequest) {
+    const { supabase, user, error, isManual } = await getAuthedClient(req);
+    if (error) return NextResponse.json({ error: error.message }, { status: error.status });
+
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+
+    if (!id) return NextResponse.json({ error: "Batch ID is required" }, { status: 400 });
+
+    // Verify Ownership via Course
+    // We need to know if this batch's course belongs to the user
+    const { data: batch } = await supabase!
+        .from('batches')
+        .select('course_id, courses(user_id)')
+        .eq('id', id)
+        .single();
+
+    // Check if batch exists and if joined course.user_id matches
+    // Note: 'courses' is singular or plural depending on relation name. usually 'courses'.
+    // If Supabase typings are strict, we might need 'courses!inner'.
+    // Assuming simple relation. If query fails due to relation, we'll fix.
+
+    // Simpler Manual Check:
+    // 1. Get Batch -> CourseID
+    // 2. Get Course -> UserID (if not using join)
+    // Using join is better if configured. Let's try separate generic check to be safe & robust.
+
+    const { data: existingBatch } = await supabase!
+        .from('batches')
+        .select('course_id')
+        .eq('id', id)
+        .single();
+
+    if (!existingBatch) return NextResponse.json({ error: "Batch not found" }, { status: 404 });
+
+    const { data: course } = await supabase!
+        .from('courses')
+        .select('user_id')
+        .eq('id', existingBatch.course_id)
+        .single();
+
+    if (!course || course.user_id !== user!.id) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
+
+    const { error: deleteError } = await supabase!
+        .from('batches')
+        .delete()
+        .eq('id', id);
+
+    if (deleteError) return NextResponse.json({ error: deleteError.message }, { status: 500 });
+
+    return NextResponse.json({ success: true });
+}
