@@ -3,7 +3,7 @@
 import { useEffect, useState, use } from "react"
 import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Clock, Users, FileText, Calendar } from "lucide-react"
+import { ArrowLeft, Clock, Users, FileText, Calendar, Download, Play, ShieldAlert } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 export default function MeetingDetailsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -127,28 +127,63 @@ export default function MeetingDetailsPage({ params }: { params: Promise<{ id: s
                 </div>
 
                 {/* Recording Player Section */}
-                {meeting.recording_url && (
-                    <div className="rounded-2xl overflow-hidden border border-neutral-800 bg-neutral-900/50 backdrop-blur-sm">
-                        <div className="p-4 border-b border-neutral-800 flex items-center justify-between bg-neutral-900/80">
-                            <h2 className="text-sm font-semibold flex items-center gap-2">
-                                <FileText className="w-4 h-4 text-blue-500" /> Class Recording
-                            </h2>
-                            <a
-                                href={meeting.recording_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-xs text-neutral-400 hover:text-white transition-colors"
-                            >
-                                Open in Browser
-                            </a>
+                {meeting.recording_url ? (
+                    <div className="rounded-2xl overflow-hidden border border-neutral-800 bg-neutral-900/50 backdrop-blur-sm shadow-2xl group/player">
+                        <div className="p-5 border-b border-neutral-800 flex items-center justify-between bg-neutral-900/80">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                                    <Play className="w-4 h-4 text-blue-500" />
+                                </div>
+                                <div>
+                                    <h2 className="text-sm font-bold text-white tracking-tight">Class Replay</h2>
+                                    <p className="text-[10px] text-neutral-500 font-medium uppercase tracking-widest">Recorded Session</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <a
+                                    href={meeting.recording_url}
+                                    download={`recording-${meeting.id}.mp4`}
+                                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-neutral-800 text-xs font-bold text-neutral-300 hover:bg-neutral-700 hover:text-white transition-all border border-neutral-700 shadow-sm"
+                                >
+                                    <Download className="w-3.5 h-3.5" />
+                                    Download
+                                </a>
+                                <a
+                                    href={meeting.recording_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="px-3 py-1.5 rounded-lg bg-blue-600 text-xs font-bold text-white hover:bg-blue-500 transition-all shadow-lg shadow-blue-500/20"
+                                >
+                                    Full View
+                                </a>
+                            </div>
                         </div>
-                        <div className="aspect-video bg-black flex items-center justify-center">
+                        <div className="aspect-video bg-black relative">
                             <video
                                 src={meeting.recording_url}
                                 controls
-                                className="w-full h-full"
-                                poster="/recording-poster.jpg" // Fallback or placeholder
+                                className="w-full h-full object-contain"
                             />
+                        </div>
+                    </div>
+                ) : meeting.egress_id ? (
+                    <div className="rounded-2xl p-12 border border-dashed border-neutral-800 bg-neutral-900/20 flex flex-col items-center justify-center text-center space-y-4">
+                        <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center animate-pulse">
+                            <div className="w-3 h-3 rounded-full bg-red-500" />
+                        </div>
+                        <div className="space-y-1">
+                            <h2 className="text-lg font-bold text-white uppercase tracking-tighter">Live Recording in Progress</h2>
+                            <p className="text-neutral-500 text-sm max-w-xs mx-auto">This session is currently being recorded. The replay will be available shortly after the meeting ends.</p>
+                        </div>
+                    </div>
+                ) : meeting.ended_at && !meeting.recording_url && (
+                    <div className="rounded-2xl p-12 border border-neutral-800 bg-neutral-900/30 flex flex-col items-center justify-center text-center space-y-4">
+                        <div className="w-12 h-12 rounded-full bg-neutral-800 flex items-center justify-center text-neutral-500">
+                            <Clock className="w-6 h-6 animate-spin" />
+                        </div>
+                        <div className="space-y-1">
+                            <h2 className="text-sm font-bold text-neutral-300 uppercase tracking-widest">Processing Recording</h2>
+                            <p className="text-neutral-500 text-xs">We're finalizing the class video. Please check back in a few minutes.</p>
                         </div>
                     </div>
                 )}

@@ -217,10 +217,10 @@ export default function DashboardPage() {
 
                 {/* Recent Activity Section */}
                 <div className="space-y-6">
-                    <div className="flex items-center justify-between">
+                    {/* <div className="flex items-center justify-between">
                         <h2 className="text-xl font-semibold">Recent Class History</h2>
                         <Button variant="link" className="text-neutral-400 hover:text-white">View all history</Button>
-                    </div>
+                    </div> */}
                     <div className="rounded-2xl border border-neutral-800 bg-neutral-900/20 overflow-hidden">
                         <MeetingHistory userId={user?.id} />
                     </div>

@@ -81,6 +81,11 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({ meetingId, b
     const [color, setColor] = useState('#000000')
     const [width, setWidth] = useState(4)
     const [camera, setCamera] = useState({ x: 0, y: 0, z: 1 })
+    const [editingId, setEditingId] = useState<string | null>(null)
+
+    const textareaRef = useRef<HTMLTextAreaElement>(null)
+    const lastToolRef = useRef<ElementType | 'hand' | 'select'>('pencil')
+    const lastEditingTimeRef = useRef<number>(0)
 
     const roomContext = useRoomContext()
     const room = roomContext || null
@@ -217,9 +222,27 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({ meetingId, b
         const ctx = canvas.getContext('2d')
         if (!ctx) return
 
+        // Clear and set background
         ctx.clearRect(0, 0, canvas.width, canvas.height)
-        ctx.fillStyle = '#ffffff'
+        ctx.fillStyle = '#1e293b' // Dark background matching theme
         ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+        // Dotted Pattern
+        ctx.save()
+        ctx.fillStyle = '#334155'
+        const gridSize = 40 * camera.z
+        const dotSize = 1.5 * Math.max(0.5, camera.z)
+        const offsetX = camera.x % gridSize
+        const offsetY = camera.y % gridSize
+
+        for (let x = offsetX; x < canvas.width; x += gridSize) {
+            for (let y = offsetY; y < canvas.height; y += gridSize) {
+                ctx.beginPath()
+                ctx.arc(x, y, dotSize, 0, Math.PI * 2)
+                ctx.fill()
+            }
+        }
+        ctx.restore()
 
         ctx.save()
         ctx.translate(camera.x, camera.y)
@@ -230,6 +253,18 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({ meetingId, b
         }
 
         const renderElement = (element: WhiteboardElement) => {
+            // Skip rendering text on canvas if it's being edited (we show the textarea instead)
+            if (element.id === editingId) {
+                if (element.type === 'sticky') {
+                    // Still render the sticky background box
+                    ctx.fillStyle = element.color + '33'
+                    ctx.fillRect(element.x - 40, element.y - 40, 80, 80)
+                    ctx.strokeStyle = element.color
+                    ctx.strokeRect(element.x - 40, element.y - 40, 80, 80)
+                }
+                return
+            }
+
             ctx.strokeStyle = element.color
             ctx.fillStyle = element.color
             ctx.lineWidth = element.strokeWidth
@@ -237,12 +272,12 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({ meetingId, b
             ctx.lineJoin = 'round'
             ctx.globalAlpha = element.opacity || 1
 
-            if (element.type === 'pencil' || element.type === 'highlighter' || element.type === 'eraser') {
+            if (['pencil', 'highlighter', 'eraser'].includes(element.type)) {
                 if (!element.points || element.points.length === 0) return
 
                 if (element.type === 'eraser') {
-                    ctx.strokeStyle = '#ffffff'
-                    ctx.fillStyle = '#ffffff'
+                    ctx.strokeStyle = '#1e293b' // Match background
+                    ctx.fillStyle = '#1e293b'
                 }
 
                 const outlinePoints = getStroke(element.points, {
@@ -292,7 +327,15 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({ meetingId, b
                 ctx.font = `${element.strokeWidth * 4}px sans-serif`
                 ctx.textAlign = 'center'
                 ctx.textBaseline = 'middle'
-                ctx.fillText(element.text || "", element.x, element.y)
+
+                // Multiline text handling
+                const lines = (element.text || "").split('\n')
+                const lineHeight = element.strokeWidth * 4 * 1.2
+                const startY = element.y - ((lines.length - 1) * lineHeight) / 2
+
+                lines.forEach((line, i) => {
+                    ctx.fillText(line, element.x, startY + (i * lineHeight))
+                })
             }
         }
 
@@ -300,7 +343,7 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({ meetingId, b
         if (currentElement) renderElement(currentElement)
 
         ctx.restore()
-    }, [elements, currentElement, bgImageObj, camera])
+    }, [elements, currentElement, bgImageObj, camera, editingId])
 
     useImperativeHandle(ref, () => ({
         getStream: () => {
@@ -374,6 +417,7 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({ meetingId, b
         }
     }));
 
+    // --- Interaction Handlers ---
     const screenToWorld = (x: number, y: number) => {
         return {
             x: (x - camera.x) / camera.z,
@@ -381,25 +425,174 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({ meetingId, b
         }
     }
 
+    // --- Keyboard & Wheel Handling ---
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.code === 'Space' && !e.repeat) {
+                const tag = (e.target as HTMLElement).tagName
+                if (tag === 'INPUT' || tag === 'TEXTAREA') return
+
+                setSelectedTool(prev => {
+                    if (prev !== 'hand') {
+                        lastToolRef.current = prev
+                        return 'hand'
+                    }
+                    return prev
+                })
+            }
+        }
+        const handleKeyUp = (e: KeyboardEvent) => {
+            if (e.code === 'Space') {
+                setSelectedTool(prev => {
+                    if (prev === 'hand') {
+                        return lastToolRef.current
+                    }
+                    return prev
+                })
+            }
+        }
+        window.addEventListener('keydown', handleKeyDown)
+        window.addEventListener('keyup', handleKeyUp)
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown)
+            window.removeEventListener('keyup', handleKeyUp)
+        }
+    }, [])
+
+    // Focus textarea when editing starts
+    useEffect(() => {
+        if (editingId && textareaRef.current) {
+            textareaRef.current.focus()
+            const len = textareaRef.current.value.length
+            textareaRef.current.setSelectionRange(len, len)
+        }
+    }, [editingId])
+
+    const handleWheel = (e: React.WheelEvent) => {
+        if (e.ctrlKey || e.metaKey) {
+            const delta = -e.deltaY * 0.01
+            setCamera(c => ({
+                ...c,
+                z: Math.min(5, Math.max(0.1, c.z + delta))
+            }))
+        } else {
+            setCamera(c => ({
+                ...c,
+                x: c.x - e.deltaX,
+                y: c.y - e.deltaY
+            }))
+        }
+    }
+
+    // --- Text Edit Handlers ---
+    const handleTextUpdate = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        if (!editingId) return
+        const newText = e.target.value
+        setElements(prev => prev.map(el => el.id === editingId ? { ...el, text: newText } : el))
+
+        // No auto-save on every keystroke to avoid spamming DB/LiveKit, wait for blur
+    }
+
+    const handleTextBlur = () => {
+        if (!editingId) return
+        const el = elements.find(e => e.id === editingId)
+
+        if (el) {
+            if (!el.text?.trim()) {
+                const newElements = elements.filter(e => e.id !== editingId)
+                setElements(newElements)
+                saveToDb(newElements, backgroundImage)
+            } else {
+                saveToDb(elements, backgroundImage)
+                // Publish update
+                if (room) {
+                    const encoder = new TextEncoder()
+                    const payload = encoder.encode(JSON.stringify({
+                        type: 'whiteboard-stroke', // Treat update as new stroke for simplicity or need update type?
+                        boardId,
+                        stroke: el // sending the full updated element
+                        // Note: ideally we should have an 'update' type, but 'stroke' adds/overwrites if id matches?
+                        // The current logic in useEffect append strokes. We might need a whiteboard-update type.
+                    }))
+                    // Actually, let's just use what we have. If we append, it might duplicate. 
+                    // Let's modify the listener later to handle updates by ID if possible, 
+                    // or just send the whole board for text updates? 
+                    // Sending whole board is safer for now for text edits.
+                    const payloadFull = encoder.encode(JSON.stringify({
+                        type: 'whiteboard-full',
+                        boardId,
+                        elements: elements
+                    }))
+                    room.localParticipant.publishData(payloadFull, { reliable: true })
+                }
+            }
+        }
+        setEditingId(null)
+        lastEditingTimeRef.current = Date.now()
+    }
+
+    const handleTextKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Escape') {
+            (e.currentTarget as HTMLElement).blur()
+        }
+    }
+
+    const getEditingStyle = () => {
+        if (!editingId || !canvasRef.current) return {};
+        const el = elements.find(e => e.id === editingId);
+        if (!el) return {};
+
+        const screenPos = {
+            x: (el.x * camera.z) + camera.x,
+            y: (el.y * camera.z) + camera.y
+        }
+
+        const fontSize = Math.max(16, el.strokeWidth * 4 * camera.z);
+
+        return {
+            left: screenPos.x,
+            top: screenPos.y,
+            transform: 'translate(-50%, -50%)',
+            fontSize: `${fontSize}px`,
+            color: el.type === 'sticky' ? '#000000' : (el.color === '#ffffff' ? '#ffffff' : el.color),
+            minWidth: '120px',
+            maxWidth: '400px',
+            minHeight: '1.5em',
+            padding: '10px',
+            background: el.type === 'sticky' ? 'transparent' : 'rgba(15, 23, 42, 0.95)',
+            borderRadius: '8px',
+            border: `2px solid ${el.color}`,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+            zIndex: 100,
+            outline: 'none',
+            fontFamily: 'sans-serif'
+        }
+    }
+
+
     const handlePointerDown = (e: React.PointerEvent) => {
         if (!canWrite) return
-        e.currentTarget.setPointerCapture(e.pointerId)
+        if (editingId) return
+
+        // Prevent accidental creation after editing
+        if (Date.now() - lastEditingTimeRef.current < 100) return;
+
+        const isDrawingTool = ['pencil', 'highlighter', 'eraser', 'rect', 'circle', 'triangle'].includes(selectedTool);
+        if (isDrawingTool || selectedTool === 'hand') {
+            e.currentTarget.setPointerCapture(e.pointerId)
+        }
+
         const rect = canvasRef.current?.getBoundingClientRect()
         if (!rect) return
 
         const screenX = e.clientX - rect.left
         const screenY = e.clientY - rect.top
-
         const { x, y } = screenToWorld(screenX, screenY)
 
         if (selectedTool === 'hand') return
 
         const id = Math.random().toString(36).substring(7)
-
         let type = selectedTool as ElementType
-        let defaultText = ""
-        if (type === 'text') defaultText = "Text"
-        if (type === 'sticky') defaultText = "Note"
 
         const newElement: WhiteboardElement = {
             id,
@@ -410,24 +603,22 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({ meetingId, b
             endY: y,
             color,
             strokeWidth: width,
-            points: (type === 'pencil' || type === 'highlighter' || type === 'eraser') ? [{ x, y, pressure: e.pressure }] : undefined,
+            points: ['pencil', 'highlighter', 'eraser'].includes(type) ? [{ x, y, pressure: e.pressure }] : undefined,
             opacity: type === 'highlighter' ? 0.4 : 1,
-            text: (type === 'text' || type === 'sticky') ? prompt("Enter text:", defaultText) || defaultText : undefined
+            text: ""
         }
 
-        if ((type === 'text' || type === 'sticky') && !newElement.text) {
-            // Cancel insertion if no text
-            return
+        if (type === 'text' || type === 'sticky') {
+            setElements(prev => [...prev, newElement])
+            setEditingId(id)
+        } else {
+            setCurrentElement(newElement)
         }
-
-        setCurrentElement(newElement)
     }
 
     const handlePointerMove = (e: React.PointerEvent) => {
         const rect = canvasRef.current?.getBoundingClientRect()
         if (!rect) return
-        const screenX = e.clientX - rect.left
-        const screenY = e.clientY - rect.top
 
         if (selectedTool === 'hand' && e.buttons === 1) {
             setCamera(c => ({
@@ -440,6 +631,8 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({ meetingId, b
 
         if (!currentElement || !canWrite) return
 
+        const screenX = e.clientX - rect.left
+        const screenY = e.clientY - rect.top
         const { x, y } = screenToWorld(screenX, screenY)
 
         if (currentElement.points) {
@@ -457,24 +650,28 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({ meetingId, b
     }
 
     const handlePointerUp = (e: React.PointerEvent) => {
-        if (!currentElement) return
+        if (currentElement) {
+            const newElements = [...elements, currentElement]
+            setHistory([...history, elements])
+            setRedoStack([])
+            setElements(newElements)
+            setCurrentElement(null)
 
-        const newElements = [...elements, currentElement]
-        setHistory([...history, elements])
-        setRedoStack([])
-        setElements(newElements)
-        setCurrentElement(null)
+            saveToDb(newElements, backgroundImage)
 
-        saveToDb(newElements, backgroundImage)
+            if (room) {
+                const encoder = new TextEncoder()
+                const payload = encoder.encode(JSON.stringify({
+                    type: 'whiteboard-stroke',
+                    boardId,
+                    stroke: currentElement
+                }))
+                room.localParticipant.publishData(payload, { reliable: true })
+            }
+        }
 
-        if (room) {
-            const encoder = new TextEncoder()
-            const payload = encoder.encode(JSON.stringify({
-                type: 'whiteboard-stroke',
-                boardId,
-                stroke: currentElement
-            }))
-            room.localParticipant.publishData(payload, { reliable: true })
+        if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+            e.currentTarget.releasePointerCapture(e.pointerId);
         }
     }
 
@@ -585,139 +782,95 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({ meetingId, b
 
 
     return (
-        <div className="relative w-full h-full bg-white group select-none touch-none overflow-hidden">
+        <div className="relative w-full h-full bg-[#1e293b] group select-none touch-none overflow-hidden text-white">
             {/* Toolbar */}
             {canWrite && (
-                <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-[#1a1c1e] p-1.5 rounded-xl shadow-2xl border border-white/10 z-50 transition-all duration-300">
-                    {/* Tool Groups */}
-                    <div className="flex items-center gap-0.5 px-1 border-r border-white/10">
-                        <button
-                            onClick={() => setSelectedTool('select')}
-                            className={`p-2 rounded-lg transition-colors ${selectedTool === 'select' ? 'bg-blue-600 text-white' : 'text-neutral-400 hover:bg-white/10 hover:text-white'}`}
-                            title="Select"
-                        >
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 sm:top-4 sm:left-1/2 sm:-translate-x-1/2 sm:translate-y-0 flex flex-col sm:flex-row items-center gap-1 bg-[#0f172a]/95 p-1.5 rounded-2xl shadow-2xl border border-white/10 z-30 transition-all duration-300 backdrop-blur-md">
+
+                    <div className="flex flex-col sm:flex-row items-center gap-1 px-1 border-b sm:border-b-0 sm:border-r border-white/10 pb-1 sm:pb-0">
+                        <button onClick={() => setSelectedTool('select')} className={`p-2 rounded-lg ${selectedTool === 'select' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`}>
                             <MousePointer2 className="w-4 h-4" />
                         </button>
-                        <button
-                            onClick={() => setSelectedTool('hand')}
-                            className={`p-2 rounded-lg transition-colors ${selectedTool === 'hand' ? 'bg-blue-600 text-white' : 'text-neutral-400 hover:bg-white/10 hover:text-white'}`}
-                            title="Pan (Space)"
-                        >
+                        <button onClick={() => setSelectedTool('hand')} className={`p-2 rounded-lg ${selectedTool === 'hand' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`}>
                             <Hand className="w-4 h-4" />
                         </button>
                     </div>
 
-                    <div className="flex items-center gap-0.5 px-1 border-r border-white/10">
-                        <button
-                            onClick={() => setSelectedTool('pencil')}
-                            className={`p-2 rounded-lg transition-colors ${selectedTool === 'pencil' ? 'bg-blue-600 text-white' : 'text-neutral-400 hover:bg-white/10 hover:text-white'}`}
-                            title="Pencil"
-                        >
+                    <div className="flex flex-col sm:flex-row items-center gap-1 px-1 border-b sm:border-b-0 sm:border-r border-white/10 py-1 sm:py-0">
+                        <button onClick={() => setSelectedTool('pencil')} className={`p-2 rounded-lg ${selectedTool === 'pencil' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`}>
                             <Pencil className="w-4 h-4" />
                         </button>
-                        <button
-                            onClick={() => setSelectedTool('highlighter')}
-                            className={`p-2 rounded-lg transition-colors ${selectedTool === 'highlighter' ? 'bg-blue-600 text-white' : 'text-neutral-400 hover:bg-white/10 hover:text-white'}`}
-                            title="Highlighter"
-                        >
+                        <button onClick={() => setSelectedTool('highlighter')} className={`p-2 rounded-lg ${selectedTool === 'highlighter' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`}>
                             <Highlighter className="w-4 h-4" />
                         </button>
-                        <button
-                            onClick={() => setSelectedTool('eraser')}
-                            className={`p-2 rounded-lg transition-colors ${selectedTool === 'eraser' ? 'bg-blue-600 text-white' : 'text-neutral-400 hover:bg-white/10 hover:text-white'}`}
-                            title="Eraser"
-                        >
+                        <button onClick={() => setSelectedTool('eraser')} className={`p-2 rounded-lg ${selectedTool === 'eraser' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`}>
                             <Eraser className="w-4 h-4" />
                         </button>
                     </div>
 
-                    <div className="flex items-center gap-0.5 px-1 border-r border-white/10">
-                        <button
-                            onClick={() => setSelectedTool('rect')}
-                            className={`p-2 rounded-lg transition-colors ${selectedTool === 'rect' ? 'bg-blue-600 text-white' : 'text-neutral-400 hover:bg-white/10 hover:text-white'}`}
-                            title="Rectangle"
-                        >
+                    <div className="flex flex-col sm:flex-row items-center gap-1 px-1 border-b sm:border-b-0 sm:border-r border-white/10 py-1 sm:py-0 hidden sm:flex">
+                        <button onClick={() => setSelectedTool('rect')} className={`p-2 rounded-lg ${selectedTool === 'rect' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`}>
                             <Square className="w-4 h-4" />
                         </button>
-                        <button
-                            onClick={() => setSelectedTool('circle')}
-                            className={`p-2 rounded-lg transition-colors ${selectedTool === 'circle' ? 'bg-blue-600 text-white' : 'text-neutral-400 hover:bg-white/10 hover:text-white'}`}
-                            title="Circle"
-                        >
+                        <button onClick={() => setSelectedTool('circle')} className={`p-2 rounded-lg ${selectedTool === 'circle' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`}>
                             <Circle className="w-4 h-4" />
                         </button>
-                        <button
-                            onClick={() => setSelectedTool('triangle')}
-                            className={`p-2 rounded-lg transition-colors ${selectedTool === 'triangle' ? 'bg-blue-600 text-white' : 'text-neutral-400 hover:bg-white/10 hover:text-white'}`}
-                            title="Triangle"
-                        >
+                        <button onClick={() => setSelectedTool('triangle')} className={`p-2 rounded-lg ${selectedTool === 'triangle' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`}>
                             <Triangle className="w-4 h-4" />
                         </button>
                     </div>
 
-                    <div className="flex items-center gap-0.5 px-1 border-r border-white/10">
-                        <button
-                            onClick={() => setSelectedTool('text')}
-                            className={`p-2 rounded-lg transition-colors ${selectedTool === 'text' ? 'bg-blue-600 text-white' : 'text-neutral-400 hover:bg-white/10 hover:text-white'}`}
-                            title="Text"
-                        >
+                    <div className="flex flex-col sm:flex-row items-center gap-1 px-1 border-b sm:border-b-0 sm:border-r border-white/10 py-1 sm:py-0">
+                        <button onClick={() => setSelectedTool('text')} className={`p-2 rounded-lg ${selectedTool === 'text' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`}>
                             <TypeIcon className="w-4 h-4" />
                         </button>
-                        <button
-                            onClick={() => setSelectedTool('sticky')}
-                            className={`p-2 rounded-lg transition-colors ${selectedTool === 'sticky' ? 'bg-blue-600 text-white' : 'text-neutral-400 hover:bg-white/10 hover:text-white'}`}
-                            title="Sticky Note"
-                        >
+                        <button onClick={() => setSelectedTool('sticky')} className={`p-2 rounded-lg ${selectedTool === 'sticky' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`}>
                             <StickyNote className="w-4 h-4" />
                         </button>
-                        {enableUpload && (
-                            <button
-                                onClick={() => fileInputRef.current?.click()}
-                                className="p-2 text-neutral-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-                                title="Upload Image"
-                            >
-                                <Upload className="w-4 h-4" />
-                            </button>
-                        )}
                     </div>
 
                     <div className="flex items-center gap-0.5 px-1 border-r border-white/10">
-                        <button
-                            onClick={undo}
-                            disabled={history.length === 0}
-                            className="p-2 text-neutral-400 hover:text-white hover:bg-white/10 rounded-lg disabled:opacity-30 disabled:hover:bg-transparent"
-                            title="Undo (Ctrl+Z)"
-                        >
+                        <button onClick={undo} disabled={history.length === 0} className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg disabled:opacity-30">
                             <Undo2 className="w-4 h-4" />
                         </button>
-                        <button
-                            onClick={redo}
-                            disabled={redoStack.length === 0}
-                            className="p-2 text-neutral-400 hover:text-white hover:bg-white/10 rounded-lg disabled:opacity-30 disabled:hover:bg-transparent"
-                            title="Redo (Ctrl+Y)"
-                        >
+                        <button onClick={redo} disabled={redoStack.length === 0} className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg disabled:opacity-30">
                             <Redo2 className="w-4 h-4" />
                         </button>
                     </div>
 
                     <div className="flex items-center gap-1 px-2 border-r border-white/10">
-                        <button onClick={() => setCamera(c => ({ ...c, z: Math.max(0.1, c.z - 0.1) }))} className="p-1 text-neutral-400 hover:text-white"><Minus className="w-3.5 h-3.5" /></button>
-                        <span className="text-[10px] font-mono text-neutral-400 min-w-[30px] text-center">{Math.round(camera.z * 100)}%</span>
-                        <button onClick={() => setCamera(c => ({ ...c, z: Math.min(5, c.z + 0.1) }))} className="p-1 text-neutral-400 hover:text-white"><Plus className="w-3.5 h-3.5" /></button>
-                        <button onClick={() => setCamera({ x: 0, y: 0, z: 1 })} className="p-1 text-neutral-400 hover:text-white ml-1" title="Reset View"><Maximize className="w-3.5 h-3.5" /></button>
+                        <button onClick={() => setCamera(c => ({ ...c, z: Math.max(0.1, c.z - 0.1) }))} className="p-1.5 text-slate-400 hover:text-white rounded hover:bg-white/10">
+                            <Minus className="w-3.5 h-3.5" />
+                        </button>
+                        <span className="text-[10px] font-mono text-slate-400 min-w-[30px] text-center">{Math.round(camera.z * 100)}%</span>
+                        <button onClick={() => setCamera(c => ({ ...c, z: Math.min(5, c.z + 0.1) }))} className="p-1.5 text-slate-400 hover:text-white rounded hover:bg-white/10">
+                            <Plus className="w-3.5 h-3.5" />
+                        </button>
                     </div>
 
-                    <div className="flex items-center gap-2 px-2">
+                    <div className="flex flex-col sm:flex-row items-center gap-1 px-2 pt-1 sm:pt-0">
                         <div className="flex items-center gap-1.5">
-                            <button onClick={() => setColor('#000000')} className={`w-4 h-4 rounded-full border border-white/20 ${color === '#000000' ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-[#1a1c1e]' : ''} bg-black`} />
-                            <button onClick={() => setColor('#ef4444')} className={`w-4 h-4 rounded-full border border-white/20 ${color === '#ef4444' ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-[#1a1c1e]' : ''} bg-red-500`} />
-                            <button onClick={() => setColor('#22c55e')} className={`w-4 h-4 rounded-full border border-white/20 ${color === '#22c55e' ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-[#1a1c1e]' : ''} bg-green-500`} />
-                            <button onClick={() => setColor('#3b82f6')} className={`w-4 h-4 rounded-full border border-white/20 ${color === '#3b82f6' ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-[#1a1c1e]' : ''} bg-blue-500`} />
+                            <button onClick={() => setColor('#000000')} className={`w-4 h-4 rounded-full bg-black border border-white/20 ${color === '#000000' ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-[#0f172a]' : ''}`} />
+                            <button onClick={() => setColor('#ef4444')} className={`w-4 h-4 rounded-full bg-red-500 border border-white/20 ${color === '#ef4444' ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-[#0f172a]' : ''}`} />
+                            <button onClick={() => setColor('#22c55e')} className={`w-4 h-4 rounded-full bg-green-500 border border-white/20 ${color === '#22c55e' ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-[#0f172a]' : ''}`} />
+                            <button onClick={() => setColor('#3b82f6')} className={`w-4 h-4 rounded-full bg-blue-500 border border-white/20 ${color === '#3b82f6' ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-[#0f172a]' : ''}`} />
                         </div>
 
-                        <div className="flex items-center gap-1 ml-2">
-                            <button onClick={clearBoard} className="p-2 text-neutral-400 hover:text-red-400 hover:bg-red-400/10 rounded-lg" title="Clear All"><Trash2 className="w-4 h-4" /></button>
-                            <button onClick={downloadPDF} className="p-2 text-neutral-400 hover:text-blue-400 hover:bg-blue-400/10 rounded-lg" title="Export PDF"><Download className="w-4 h-4" /></button>
+                        <div className="w-px h-6 bg-white/10 mx-1 hidden sm:block" />
+                        <div className="w-6 h-px bg-white/10 my-1 block sm:hidden" />
+
+                        <div className="flex flex-col sm:flex-row gap-1">
+                            <button onClick={clearBoard} className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg" title="Clear">
+                                <Trash2 className="w-4 h-4" />
+                            </button>
+                            {enableUpload && (
+                                <button onClick={() => fileInputRef.current?.click()} className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg" title="Upload Image">
+                                    <Upload className="w-4 h-4" />
+                                </button>
+                            )}
+                            <button onClick={downloadPDF} className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg" title="Export PDF">
+                                <Download className="w-4 h-4" />
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -739,29 +892,24 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({ meetingId, b
                 onPointerMove={handlePointerMove}
                 onPointerUp={handlePointerUp}
                 onPointerLeave={handlePointerUp}
-                className={`w-full h-full block cursor-crosshair active:cursor-crosshair ${selectedTool === 'hand' ? 'cursor-grab active:cursor-grabbing' : ''}`}
-                onWheel={(e) => {
-                    const rect = canvasRef.current?.getBoundingClientRect()
-                    if (!rect) return
-
-                    if (e.ctrlKey) {
-                        // Zoom
-                        const delta = -e.deltaY * 0.01
-                        setCamera(c => ({
-                            ...c,
-                            z: Math.min(5, Math.max(0.1, c.z + delta))
-                        }))
-                    } else {
-                        // Pan
-                        setCamera(c => ({
-                            ...c,
-                            x: c.x - e.deltaX,
-                            y: c.y - e.deltaY
-                        }))
-                    }
-                }}
-                style={{ touchAction: 'none' }}
+                onWheel={handleWheel}
+                className={`w-full h-full block touch-none ${selectedTool === 'hand' ? 'cursor-grab active:cursor-grabbing' : 'cursor-crosshair'}`}
             />
+
+            {/* Text Editing Overlay */}
+            {editingId && (
+                <textarea
+                    ref={textareaRef}
+                    value={elements.find(e => e.id === editingId)?.text || ""}
+                    onChange={handleTextUpdate}
+                    onBlur={handleTextBlur}
+                    onKeyDown={handleTextKeyDown}
+                    placeholder="Type..."
+                    className="absolute z-[100] border-0 outline-none resize-none overflow-hidden text-center pointer-events-auto shadow-2xl"
+                    style={getEditingStyle() as React.CSSProperties}
+                    autoFocus
+                />
+            )}
         </div>
     )
 })

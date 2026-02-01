@@ -113,72 +113,65 @@ export default function CodeEditor({ meetingId, boardId, canWrite, initialData }
     }
 
     return (
-        <div className="flex flex-col h-full bg-[#1e1e1e] text-neutral-300 overflow-hidden">
-            {/* Header */}
-            <div className="flex items-center justify-between px-4 py-2 bg-[#2d2d2d] border-b border-white/5 shrink-0">
-                <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                        <Code2 className="w-4 h-4 text-blue-400" />
-                        <span className="text-xs font-bold uppercase tracking-wider text-neutral-400">Editor</span>
-                    </div>
-
-                    {/* Language Selector */}
-                    <div className="relative">
-                        <button
-                            onClick={() => canWrite && setIsLangMenuOpen(!isLangMenuOpen)}
-                            className={`flex items-center gap-2 px-3 py-1 rounded bg-[#3c3c3c] hover:bg-[#4a4a4a] transition-colors text-xs font-medium ${!canWrite && 'opacity-50 cursor-not-allowed'}`}
-                        >
-                            {LANGUAGES.find(l => l.value === language)?.label || 'Plain Text'}
-                            <ChevronDown className="w-3 h-3" />
-                        </button>
-
-                        {isLangMenuOpen && (
-                            <div className="absolute top-full left-0 mt-1 w-48 bg-[#2d2d2d] border border-white/10 rounded shadow-2xl z-[100] py-1 max-h-64 overflow-y-auto thin-scrollbar">
-                                {LANGUAGES.map(lang => (
-                                    <button
-                                        key={lang.value}
-                                        onClick={() => handleLanguageChange(lang.value)}
-                                        className="w-full text-left px-3 py-1.5 text-xs hover:bg-[#3c3c3c] flex items-center justify-between"
-                                    >
-                                        {lang.label}
-                                        {language === lang.value && <Check className="w-3 h-3 text-blue-400" />}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                <button
-                    onClick={copyToClipboard}
-                    className="p-1.5 rounded hover:bg-white/10 text-neutral-400 hover:text-white transition-colors"
-                    title="Copy Code"
-                >
-                    {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
-                </button>
-            </div>
-
+        <div className="relative w-full h-full bg-[#1e1e1e] group">
             {/* Editor Area */}
-            <div className="flex-1 relative overflow-hidden">
+            <div className="absolute inset-0">
                 <textarea
                     value={content}
                     onChange={handleContentChange}
                     readOnly={!canWrite}
                     spellCheck={false}
-                    className="absolute inset-0 w-full h-full bg-transparent p-6 font-mono text-sm leading-relaxed resize-none focus:outline-none scrollbar-thin scrollbar-thumb-white/10"
+                    className="w-full h-full bg-transparent p-6 font-mono text-sm leading-relaxed resize-none focus:outline-none text-neutral-300 scrollbar-thin scrollbar-thumb-white/10"
                     placeholder="Type your code here..."
                 />
             </div>
 
-            {/* Footer / Status */}
-            <div className="px-4 py-1.5 bg-[#007acc] text-white flex items-center justify-between shrink-0">
-                <div className="flex items-center gap-4 text-[10px] font-medium uppercase tracking-wider">
-                    <span>{language}</span>
-                    <span>UTF-8</span>
+            {/* Floating Toolbar */}
+            <div className="absolute left-4 top-1/2 -translate-y-1/2 sm:top-auto sm:left-1/2 sm:-translate-x-1/2 sm:bottom-6 sm:translate-y-0 flex flex-col sm:flex-row items-center gap-1 bg-[#0f172a]/95 p-1.5 rounded-2xl shadow-2xl border border-white/10 z-30 transition-all duration-300 backdrop-blur-md">
+
+                {/* Language Selector */}
+                <div className="relative flex items-center px-1 border-b sm:border-b-0 sm:border-r border-white/10 pb-1 sm:pb-0">
+                    <button
+                        onClick={() => canWrite && setIsLangMenuOpen(!isLangMenuOpen)}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-white/10 transition-colors text-sm font-medium text-slate-300 ${!canWrite && 'opacity-50 cursor-not-allowed'}`}
+                    >
+                        <Code2 className="w-4 h-4 text-indigo-400" />
+                        <span className="hidden sm:inline">{LANGUAGES.find(l => l.value === language)?.label || 'Plain Text'}</span>
+                        <ChevronDown className={`w-3 h-3 transition-transform ${isLangMenuOpen ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {/* Language Menu - Popover up */}
+                    {isLangMenuOpen && (
+                        <div className="absolute bottom-full left-0 mb-2 w-48 bg-[#0f172a]/95 backdrop-blur-md border border-white/10 rounded-xl shadow-2xl z-[100] py-1 max-h-64 overflow-y-auto thin-scrollbar">
+                            {LANGUAGES.map(lang => (
+                                <button
+                                    key={lang.value}
+                                    onClick={() => handleLanguageChange(lang.value)}
+                                    className="w-full text-left px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/10 flex items-center justify-between"
+                                >
+                                    {lang.label}
+                                    {language === lang.value && <Check className="w-3 h-3 text-indigo-400" />}
+                                </button>
+                            ))}
+                        </div>
+                    )}
                 </div>
-                {!canWrite && (
-                    <span className="text-[10px] font-bold uppercase italic opacity-80">Read Only</span>
-                )}
+
+                {/* Actions */}
+                <div className="flex flex-col sm:flex-row items-center gap-1 px-1 pt-1 sm:pt-0">
+                    <button
+                        onClick={copyToClipboard}
+                        className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                        title="Copy Code"
+                    >
+                        {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                    </button>
+                    {!canWrite && (
+                        <div className="px-2 py-1 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-bold uppercase tracking-wider">
+                            Read Only
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     )

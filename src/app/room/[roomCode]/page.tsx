@@ -9,6 +9,7 @@ import {
     useRoomContext,
     useTracks,
     VideoTrack,
+    useRemoteParticipants,
 } from "@livekit/components-react"
 import "@livekit/components-styles"
 import { Track } from "livekit-client"
@@ -140,7 +141,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
             const { data: meetingData, error: meetingError } = await supabase
                 .from('meetings')
                 .select('*')
-                .or(`host_code.eq.${roomCode},moderator_code.eq.${roomCode},participant_code.eq.${roomCode}`)
+                .or(`host_code.eq."${roomCode}",moderator_code.eq."${roomCode}",participant_code.eq."${roomCode}"`)
                 .single()
 
             if (meetingError || !meetingData) {
@@ -199,9 +200,12 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
             setRole(userRole)
 
 
-            const displayName = user ? (
-                (await supabase.from('profiles').select('full_name').eq('id', user.id).single()).data?.full_name || user.email || "User"
-            ) : ""
+            const profileData = user ? (
+                (await supabase.from('profiles').select('full_name, avatar_url').eq('id', user.id).single()).data
+            ) : null
+
+            const displayName = profileData?.full_name || user?.email || "User"
+            const avatarUrl = profileData?.avatar_url
 
             setName(displayName)
 
@@ -214,7 +218,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
                 return;
             }
 
-            fetchToken(meetingData.id, displayName, userRole)
+            fetchToken(meetingData.id, displayName, userRole, avatarUrl || undefined)
             if (userRole !== 'host') {
                 subscribeToLocalAccess(meetingData.id, user?.id || null)
             } else {
@@ -315,12 +319,15 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
     }, [hasJoinedRoom, role, meeting?.id]);
 
 
-    const fetchToken = async (roomId: string, displayName: string, userRole: string, identity?: string) => {
+    const fetchToken = async (roomId: string, displayName: string, userRole: string, avatarUrl?: string, identity?: string) => {
         setIsJoining(true)
         try {
             let url = `/api/livekit/token?room=${roomId}&username=${encodeURIComponent(displayName)}&role=${userRole}`
             if (identity) {
                 url += `&identity=${encodeURIComponent(identity)}`
+            }
+            if (avatarUrl) {
+                url += `&avatarUrl=${encodeURIComponent(avatarUrl)}`
             }
             const resp = await fetch(url)
             const data = await resp.json()
@@ -354,8 +361,12 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
 
                 // Explicitly determine role from roomCode and meeting data to avoid state lag
                 let joinRole = "participant"
+                console.log(`[finishJoin] host_code: '${meeting.host_code}', moderator_code: '${meeting.moderator_code}', roomCode: '${roomCode}'`)
+
                 if (meeting.host_code === roomCode) joinRole = "host"
                 else if (meeting.moderator_code === roomCode) joinRole = "moderator"
+
+                console.log(`[finishJoin] Calculated joinRole: ${joinRole}`)
 
                 // For authenticated users, try to avoid duplicate active rows for the SAME ROLE
                 if (user) {
@@ -403,12 +414,17 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
             // Step 1: Track join in DB first to get a UUID
             const pId = await finishJoin()
 
-            // Step 2: Fetch token using the UUID as identity
-            // This ensures LiveKit identity === Supabase meeting_participants.id
-            await fetchToken(meeting.id, finalName, calculatedRole, pId || undefined)
+            if (meeting && finalName.trim()) {
+                setIsLoading(true)
+                // Get avatar for pre-join too if possible
+                const { data: { user } } = await supabase.auth.getUser()
+                const profileData = user ? (await supabase.from('profiles').select('avatar_url').eq('id', user.id).single()).data : null
+                const avatarUrl = profileData?.avatar_url
 
-            // Step 3: Trigger join
-            setHasJoinedRoom(true)
+                await fetchToken(meeting.id, finalName, calculatedRole, avatarUrl || undefined, pId || undefined)
+                setPreJoinChoices({ mic: mic, cam: cam })
+                setHasJoinedRoom(true)
+            }
         }
     }
 
@@ -970,22 +986,236 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
                             </h3>
                         </div>
                         <div className="p-3 space-y-3">
-                            <ParticipantVideos role={role} isLowBandwidth={isLowBandwidth} />
-                        </div>
-
-                        <div className="p-4 border-y border-neutral-800 flex justify-between items-center bg-neutral-900 shrink-0">
-                            <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-widest flex items-center gap-2">
-                                <Users className="w-3.5 h-3.5" />
-                                Participants
-                            </h3>
-                        </div>
-                        <div className="p-3">
-                            <ParticipantList meetingId={meeting?.id} currentRole={role} />
+                            <ParticipantVideos isLowBandwidth={isLowBandwidth} />
                         </div>
                     </div>
                 </div>
             </div>
         </LiveKitRoom>
+    )
+}
+
+function VideoTile({ track, isLowBandwidth }: { track: any, isLowBandwidth: boolean }) {
+    const { localParticipant } = useLocalParticipant()
+    const participant = track.participant
+    const isLocal = participant.identity === localParticipant.identity
+
+    const [metadata, setMetadata] = useState<any>({})
+
+    useEffect(() => {
+        try {
+            if (participant.metadata) {
+                const parsed = JSON.parse(participant.metadata)
+                console.log(`[VideoTile] ${participant.identity} role:`, parsed.role)
+                setMetadata(parsed)
+            }
+        } catch (e) {
+            // Support legacy metadata format if any
+            setMetadata({ role: participant.metadata })
+        }
+    }, [participant.metadata])
+
+    // Distraction Detection
+    useEffect(() => {
+        if (!isLocal) return;
+
+        const handleVisibilityChange = () => {
+            const isDistracted = document.visibilityState === 'hidden';
+            try {
+                const currentMetadata = JSON.parse(localParticipant.metadata || '{}');
+                localParticipant.setMetadata(JSON.stringify({
+                    ...currentMetadata,
+                    isDistracted
+                }));
+            } catch (e) {
+                console.error("Failed to update distraction metadata", e);
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        // Set initial state if needed
+        handleVisibilityChange();
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            // Reset state when unmounting
+            try {
+                const currentMetadata = JSON.parse(localParticipant.metadata || '{}');
+                localParticipant.setMetadata(JSON.stringify({
+                    ...currentMetadata,
+                    isDistracted: false
+                }));
+            } catch (e) { }
+        };
+    }, [isLocal, localParticipant]);
+
+    const role = metadata.role || 'participant'
+
+    const toggleMic = async () => {
+        if (isLocal) {
+            await localParticipant.setMicrophoneEnabled(!localParticipant.isMicrophoneEnabled)
+        }
+    }
+
+    const toggleCam = async () => {
+        if (isLocal) {
+            await localParticipant.setCameraEnabled(!localParticipant.isCameraEnabled)
+        }
+    }
+
+    return (
+        <div className="relative aspect-video bg-neutral-800 rounded-lg overflow-hidden border border-neutral-700 shadow-xl group">
+            {/* Distraction Alert */}
+            {metadata.isDistracted && (
+                <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/60 backdrop-blur-md transition-all duration-500">
+                    <div className="bg-red-500/20 p-3 rounded-full mb-3 animate-pulse border border-red-500/30">
+                        <X className="w-8 h-8 text-red-500" />
+                    </div>
+                    <div className="text-center px-4">
+                        <h3 className="text-lg font-black text-white uppercase tracking-tighter mb-0.5 select-none animate-bounce">
+                            Distracted!
+                        </h3>
+                        <p className="text-neutral-400 text-[10px] font-bold uppercase tracking-widest opacity-80 select-none">
+                            Tab switched
+                        </p>
+                    </div>
+                </div>
+            )}
+
+            {/* Mirroring local video */}
+            {!isLowBandwidth && participant.isCameraEnabled ? (
+                <VideoTrack
+                    trackRef={track}
+                    className="w-full h-full object-cover -scale-x-100"
+                />
+            ) : (
+                /* Placeholder if camera off */
+                <div className="w-full h-full flex items-center justify-center bg-neutral-900 border-2 border-dashed border-neutral-800 rounded-lg">
+                    {metadata.avatarUrl ? (
+                        <img
+                            src={metadata.avatarUrl}
+                            alt={participant.name}
+                            className="w-20 h-20 rounded-full object-cover border-4 border-white/10 shadow-2xl"
+                        />
+                    ) : (
+                        <div className="w-16 h-16 rounded-full bg-indigo-600 flex items-center justify-center text-2xl font-bold text-white shadow-2xl ring-4 ring-white/5">
+                            {participant.name?.[0]?.toUpperCase() || 'P'}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Role Overlay */}
+            <div className="absolute top-2 left-2">
+                <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider backdrop-blur-md shadow-lg border ${role === 'host' ? 'bg-indigo-600/80 text-white border-indigo-400/50' : 'bg-black/60 text-neutral-300 border-white/10'}`}>
+                    {role === 'host' ? 'Teacher' : 'Student'}
+                </span>
+            </div>
+
+            {/* In-feed Controls (Visible on hover if local) */}
+            {isLocal && (
+                <div className="absolute inset-0 flex items-center justify-center gap-3 bg-black/40 opacity-0 group-hover:opacity-100 transition-all duration-300 backdrop-blur-[2px]">
+                    <button
+                        onClick={toggleMic}
+                        className={`p-2.5 rounded-full transition-all hover:scale-110 shadow-lg ${localParticipant.isMicrophoneEnabled ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-red-500 hover:bg-red-600 text-white'}`}
+                        title={localParticipant.isMicrophoneEnabled ? "Mute Mic" : "Unmute Mic"}
+                    >
+                        {localParticipant.isMicrophoneEnabled ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
+                    </button>
+                    <button
+                        onClick={toggleCam}
+                        className={`p-2.5 rounded-full transition-all hover:scale-110 shadow-lg ${localParticipant.isCameraEnabled ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-red-500 hover:bg-red-600 text-white'}`}
+                        title={localParticipant.isCameraEnabled ? "Stop Video" : "Start Video"}
+                    >
+                        {localParticipant.isCameraEnabled ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
+                    </button>
+                </div>
+            )}
+
+            {/* Status Indicators */}
+            <div className="absolute bottom-2 right-2 flex gap-1.5">
+                {!participant.isMicrophoneEnabled && (
+                    <div className="p-1.5 bg-red-500/90 backdrop-blur-sm rounded-full shadow-lg border border-red-400/50">
+                        <MicOff className="w-3 h-3 text-white" />
+                    </div>
+                )}
+                {!participant.isCameraEnabled && (
+                    <div className="p-1.5 bg-neutral-900/90 backdrop-blur-sm rounded-full shadow-lg border border-white/10">
+                        <VideoOff className="w-3 h-3 text-white" />
+                    </div>
+                )}
+            </div>
+
+            {/* Small name bottom left (subtle) */}
+            <div className="absolute bottom-2 left-2 text-[9px] font-bold text-white/40 uppercase tracking-tighter truncate max-w-[80px]">
+                {participant.name}
+            </div>
+        </div>
+    )
+}
+
+// Add useRemoteParticipants to imports at the top first, or just use it if available in scope?
+// I need to add the import first.
+function ParticipantVideos({ isLowBandwidth }: { isLowBandwidth: boolean }) {
+    const { localParticipant } = useLocalParticipant();
+    const remoteParticipants = useRemoteParticipants();
+    const screenShareTracks = useTracks([Track.Source.ScreenShare]);
+
+    // We also subscribe to tracks to ensure re-renders when tracks are published/unpublished/muted
+    // This is crucial because useRemoteParticipants handles participant list, but not necessarily track state deep updates
+    useTracks([Track.Source.Camera, Track.Source.ScreenShare]);
+
+    // Create track references for all participants (Camera source)
+    // This ensures we show a tile for everyone, even if camera is off (publication is undefined)
+    const cameraTracks = [localParticipant, ...remoteParticipants].map(p => ({
+        participant: p,
+        source: Track.Source.Camera,
+        publication: p.getTrackPublication(Track.Source.Camera)
+    }));
+
+    // Sort tracks: Host first, then Moderator, then others
+    const sortedTracks = [...cameraTracks, ...screenShareTracks].sort((a, b) => {
+        let roleA = 'participant';
+        let roleB = 'participant';
+
+        try {
+            if (a.participant.metadata) {
+                const meta = JSON.parse(a.participant.metadata);
+                roleA = meta.role || 'participant';
+            }
+        } catch (e) { roleA = a.participant.metadata || 'participant' }
+
+        try {
+            if (b.participant.metadata) {
+                const meta = JSON.parse(b.participant.metadata);
+                roleB = meta.role || 'participant';
+            }
+        } catch (e) { roleB = b.participant.metadata || 'participant' }
+
+        const score = (r: string) => {
+            if (r === 'host') return 0;
+            if (r === 'moderator') return 1;
+            return 2;
+        }
+
+        return score(roleA) - score(roleB);
+    });
+
+    return (
+        <div className="grid grid-cols-1 gap-3">
+            {sortedTracks.map((track, i) => (
+                <VideoTile
+                    key={`${track.participant.identity}-${track.source}-${i}`}
+                    track={track}
+                    isLowBandwidth={isLowBandwidth}
+                />
+            ))}
+            {sortedTracks.length === 0 && (
+                <div className="p-8 text-center bg-neutral-900/50 rounded-xl border border-dashed border-neutral-800">
+                    <p className="text-neutral-500 text-xs font-medium">Waiting for participants...</p>
+                </div>
+            )}
+        </div>
     )
 }
 
@@ -1235,6 +1465,7 @@ function RoomHeader({
     )
 }
 
+
 function RoomAudioEffects() {
     // Placeholder for now
     return null
@@ -1243,157 +1474,6 @@ function RoomAudioEffects() {
 function RemoteMuteHandler() {
     // Placeholder for now
     return null
-}
-
-function ParticipantVideos({ role, isLowBandwidth }: { role: string, isLowBandwidth: boolean }) {
-    const tracks = useTracks([Track.Source.Camera, Track.Source.ScreenShare])
-
-    return (
-        <div className="grid grid-cols-1 gap-2">
-            {tracks.map(track => (
-                <div key={track.participant.identity} className="relative aspect-video bg-neutral-800 rounded-lg overflow-hidden border border-neutral-700">
-                    {!isLowBandwidth && <VideoTrack trackRef={track} className="w-full h-full object-cover" />}
-                    <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-md text-white text-[10px] px-2 py-0.5 rounded-full font-medium">
-                        {track.participant.name || track.participant.identity}
-                    </div>
-                </div>
-            ))}
-            {tracks.length === 0 && (
-                <div className="p-4 text-center text-neutral-500 text-xs italic">
-                    No active video feeds
-                </div>
-            )}
-        </div>
-    )
-}
-
-function ParticipantList({ meetingId, currentRole }: { meetingId: string | undefined, currentRole: string }) {
-    const [participants, setParticipants] = useState<any[]>([])
-    const room = useRoomContext()
-
-    const fetchParticipants = useCallback(async () => {
-        if (!meetingId) return
-        console.log("[ParticipantList] Fetching participants for meeting:", meetingId)
-        const { data, error } = await supabase
-            .from('meeting_participants')
-            .select('*')
-            .eq('meeting_id', meetingId)
-            .is('left_at', null)
-            .order('joined_at', { ascending: true })
-
-        if (error) {
-            console.error("[ParticipantList] Error fetching participants:", error)
-        } else {
-            console.log("[ParticipantList] Fetched participants:", data)
-            setParticipants(data || [])
-        }
-    }, [meetingId])
-
-    useEffect(() => {
-        if (!meetingId || !room) return
-
-        fetchParticipants()
-
-        const channel = supabase.channel(`participants_list_${meetingId}`)
-            .on('postgres_changes', {
-                event: '*',
-                schema: 'public',
-                table: 'meeting_participants',
-                filter: `meeting_id=eq.${meetingId}`
-            }, (payload) => {
-                console.log("[ParticipantList] Supabase subscription event received:", payload.eventType, payload)
-                fetchParticipants()
-            })
-            .subscribe((status) => {
-                console.log("[ParticipantList] Subscription status:", status)
-            })
-
-        // Fallback: Listen to LiveKit events to refresh (with delay to allow DB commit)
-        const handleParticipantConnected = () => {
-            console.log("[ParticipantList] LiveKit participantConnected event")
-            fetchParticipants()
-        }
-
-        const handleParticipantDisconnected = () => {
-            console.log("[ParticipantList] LiveKit participantDisconnected event")
-            // Add small delay to allow database update to complete
-            setTimeout(() => {
-                fetchParticipants()
-            }, 500)
-        }
-
-        // Listen for custom cleanup event for immediate updates
-        const handleCleanupEvent = (event: any) => {
-            console.log("[ParticipantList] Received participant-cleanup event:", event.detail)
-            fetchParticipants()
-        }
-
-        room.on('participantConnected', handleParticipantConnected)
-        room.on('participantDisconnected', handleParticipantDisconnected)
-        window.addEventListener('participant-cleanup', handleCleanupEvent)
-
-        return () => {
-            supabase.removeChannel(channel)
-            room.off('participantConnected', handleParticipantConnected)
-            room.off('participantDisconnected', handleParticipantDisconnected)
-            window.removeEventListener('participant-cleanup', handleCleanupEvent)
-        }
-    }, [meetingId, room, fetchParticipants])
-
-    const toggleWriteAccess = async (participantId: string, currentVal: boolean) => {
-        if (currentRole !== 'host') return
-        const { error } = await supabase
-            .from('meeting_participants')
-            .update({ can_write: !currentVal })
-            .eq('id', participantId)
-
-        if (error) {
-            console.error("Failed to toggle write access", error)
-        } else {
-            fetchParticipants()
-        }
-    }
-
-    return (
-        <div className="space-y-2">
-            {participants.map(p => (
-                <div key={p.id} className={`flex items-center justify-between p-2 rounded border transition-colors ${p.left_at ? 'bg-neutral-900/10 border-neutral-900/20 opacity-50' : 'bg-neutral-900/50 border-neutral-800'}`}>
-                    <div className="flex flex-col gap-1 w-full">
-                        <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium text-neutral-200">{p.name}</span>
-                            <div className="flex items-center gap-2">
-                                {currentRole === 'host' && p.role !== 'host' && !p.left_at && (
-                                    <button
-                                        onClick={() => toggleWriteAccess(p.id, p.can_write)}
-                                        className={`text-[9px] px-1.5 py-0.5 rounded border transition-colors ${p.can_write ? 'bg-blue-600 border-blue-400 text-white' : 'bg-neutral-800 border-neutral-700 text-neutral-400 hover:border-neutral-500'}`}
-                                        title={p.can_write ? "Revoke Write Access" : "Grant Write Access"}
-                                    >
-                                        {p.can_write ? 'CAN WRITE' : 'READ ONLY'}
-                                    </button>
-                                )}
-                                <span className="text-[10px] text-neutral-500 uppercase font-bold">{p.role}</span>
-                            </div>
-                        </div>
-                        <div className="flex flex-col text-[9px] text-neutral-500">
-                            <div className="flex items-center gap-1">
-                                <span className="w-1.5 h-1.5 rounded-full bg-green-500/50" />
-                                Joined: {new Date(p.joined_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </div>
-                            {p.left_at && (
-                                <div className="flex items-center gap-1">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-red-500/50" />
-                                    Left: {new Date(p.left_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            ))}
-            {participants.length === 0 && (
-                <p className="text-center text-neutral-600 text-xs py-4">No other participants</p>
-            )}
-        </div>
-    )
 }
 
 function RoomTracker({ participantDbId }: { participantDbId: string | null }) {

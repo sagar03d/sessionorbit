@@ -34,7 +34,21 @@ export async function POST(req: NextRequest) {
             const egressInfo = event.egressInfo as any;
             if (egressInfo?.file?.location) {
                 const roomId = egressInfo.roomName;
-                const fileUrl = egressInfo.file.location;
+                let fileUrl = egressInfo.file.location;
+
+                // LiveKit might return just the filename/key for S3
+                // If it's not a full URL, we need to construct the Supabase Storage Public URL
+                if (!fileUrl.startsWith('http')) {
+                    const S3_BUCKET = process.env.S3_BUCKET || "class-recordings";
+                    const { data } = supabaseAdmin
+                        .storage
+                        .from(S3_BUCKET)
+                        .getPublicUrl(fileUrl);
+
+                    if (data?.publicUrl) {
+                        fileUrl = data.publicUrl;
+                    }
+                }
 
                 console.log(`Recording available for Room ${roomId}: ${fileUrl}`);
 
@@ -49,7 +63,7 @@ export async function POST(req: NextRequest) {
 
                 // Proactively trigger processing
                 console.log(`Triggering processing for Room ${roomId} with URL: ${fileUrl}`);
-                fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/process-recording`, {
+                fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/webhooks/process-recording`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ roomId, fileUrl })
