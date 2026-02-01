@@ -13,6 +13,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table"
+import { useUser } from "@/hooks/useUser"
 import {
     Dialog,
     DialogContent,
@@ -50,47 +51,72 @@ export default function BatchesPage({ params }: { params: Promise<{ id: string }
 
     const fetchData = async () => {
         setIsLoading(true)
+        if (!user) return
 
-        // Fetch course details
-        const { data: courseData } = await supabase
-            .from('courses')
-            .select('*')
-            .eq('id', courseId)
-            .single()
+        try {
+            // Fetch batches via API
+            const res = await fetch(`/api/v1/batches?courseId=${courseId}`)
+            const result = await res.json()
 
-        if (courseData) setCourse(courseData)
+            if (res.ok && result.data) {
+                setBatches(result.data)
+            }
 
-        // Fetch batches
-        const { data: batchData } = await supabase
-            .from('batches')
-            .select('*')
-            .eq('course_id', courseId)
-            .order('created_at', { ascending: false })
+            // Fetch course details (still via Supabase for now or create API? 
+            // Existing Courses API doesn't support get-one easily without update.
+            // But we can misuse list with filter? 
+            // Actually, we can just use the existing `courses` API if we update it to support fetching one?
+            // OR, for now, we try Supabase direct for course details? 
+            // NO, Supabase direct details will ALSO fail in Prod!
+            // We need to fetch course details via API too.
+            // Let's assume we can add `?id=` support to `courses` endpoint or just fetch all and find?
+            // "Fetch all and find" is inefficient but simple for now given existing API.
+            // Ideally we update `courses` API.
+            // Let's use `courses` API and filter client side for 1 item (MVP).
 
-        if (batchData) setBatches(batchData)
+            const courseRes = await fetch('/api/v1/courses')
+            const courseResult = await courseRes.json()
+            if (courseRes.ok && courseResult.data) {
+                const found = courseResult.data.find((c: any) => c.id === courseId)
+                if (found) setCourse(found)
+            }
 
+        } catch (e) {
+            console.error("Fetch error:", e)
+        }
         setIsLoading(false)
     }
 
     useEffect(() => {
-        fetchData()
-    }, [courseId])
+        if (user) fetchData()
+    }, [courseId, user])
 
     const handleCreate = async () => {
         if (!newBatch.name || !newBatch.code) return alert("All fields are required")
+        if (!user) return
 
-        const { error } = await supabase
-            .from('batches')
-            .insert([{
-                course_id: courseId,
-                name: newBatch.name,
-                code: newBatch.code
-            }])
+        try {
+            const res = await fetch('/api/v1/batches', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    courseId,
+                    name: newBatch.name,
+                    code: newBatch.code
+                })
+            })
+            const result = await res.json()
 
-        if (!error) {
-            fetchData()
-            setIsDialogOpen(false)
-            setNewBatch({ name: '', code: '' })
+            if (res.ok) {
+                fetchData() // Refresh list
+                setIsDialogOpen(false)
+                setNewBatch({ name: '', code: '' })
+            } else {
+                alert(result.error || "Failed to create batch")
+            }
+        } catch (e) {
+            console.error("Create failed", e)
+            alert("Create failed")
         }
     }
 

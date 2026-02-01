@@ -1,22 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { verifySession } from "@/lib/auth-manual";
+import { supabaseAdmin } from "@/lib/supabase";
+import { cookies } from "next/headers";
 
 const getAuthedClient = async (req: NextRequest) => {
+    // 1. Try Standard Supabase Auth (Bearer Token)
     const authHeader = req.headers.get('Authorization');
     const token = authHeader?.replace('Bearer ', '');
 
-    if (!token) return { error: { message: "Missing Authorization header", status: 401 } };
+    if (token) {
+        const supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            { global: { headers: { Authorization: `Bearer ${token}` } } }
+        );
+        const { data: { user }, error } = await supabase.auth.getUser();
+        if (!error && user) return { supabase, user };
+    }
 
-    const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        { global: { headers: { Authorization: `Bearer ${token}` } } }
-    );
+    // 2. Try Manual Auth Cookie
+    const cookieStore = await cookies();
+    const sessionToken = cookieStore.get("session_token")?.value;
 
-    const { data: { user }, error } = await supabase.auth.getUser();
-    if (error || !user) return { error: { message: "Unauthorized: Invalid token", status: 401 } };
+    if (sessionToken) {
+        const payload = await verifySession(sessionToken);
+        if (payload && payload.user) {
+            return { supabase: supabaseAdmin, user: payload.user, isManual: true };
+        }
+    }
 
-    return { supabase, user };
+    return { error: { message: "Unauthorized", status: 401 } };
 };
 
 export async function GET(req: NextRequest) {
@@ -49,6 +63,19 @@ export async function POST(req: NextRequest) {
 
         if (!name || !code || !courseId) {
             return NextResponse.json({ error: "Name, code, and courseId are required" }, { status: 400 });
+        }
+
+        // Verify Course Ownership if using Manual Auth (Admin Client bypasses RLS)
+        // For Standard Auth, RLS handles it, but check doesn't hurt.
+        const { data: course } = await supabase!
+            .from('courses')
+            .select('user_id')
+            .eq('id', courseId)
+            .single();
+
+        // @ts-ignore
+        if (!course || course.user_id !== user!.id) {
+            return NextResponse.json({ error: "Unauthorized access to this course" }, { status: 403 });
         }
 
         const { data: newBatch, error: createError } = await supabase!
