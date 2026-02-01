@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
                     meeting: meeting,
                     participants: participants || [],
                     summary: { html: summaryHtml }
-                })
+                }) as any
             );
             pdfAttachment = pdfBuffer;
             console.log("PDF Generated. Buffer size:", pdfBuffer.length);
