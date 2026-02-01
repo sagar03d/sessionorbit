@@ -6,19 +6,20 @@ import Link from "next/link"
 export default function PricingPreview() {
     const plans = [
         {
-            name: "Starter",
-            price: "$29",
+            name: "Free Forever",
+            price: "$0",
             period: "/month",
-            description: "Perfect for individual tutors",
+            description: "Perfect for getting started",
             icon: Sparkles,
             features: [
-                "Up to 50 hours/month",
+                "90 min class limit",
                 "AI Lesson Scribe",
                 "Basic analytics",
                 "Email support"
             ],
-            cta: "Start Free Trial",
-            popular: false
+            cta: "Start For Free",
+            popular: false,
+            href: "/signup"
         },
         {
             name: "Professional",
@@ -34,7 +35,8 @@ export default function PricingPreview() {
                 "Custom branding"
             ],
             cta: "Start Free Trial",
-            popular: true
+            popular: true,
+            href: "/signup"
         },
         {
             name: "Agency",
@@ -50,7 +52,8 @@ export default function PricingPreview() {
                 "Custom integrations"
             ],
             cta: "Contact Sales",
-            popular: false
+            popular: false,
+            href: "/contact"
         }
     ]
 
@@ -100,7 +103,7 @@ export default function PricingPreview() {
                                     ))}
                                 </ul>
 
-                                <Link href="/signup" className={`block w-full text-center py-3 rounded-xl font-semibold transition-all ${plan.popular ? 'bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white' : 'bg-white/5 hover:bg-white/10 text-white border border-white/10'}`}>
+                                <Link href={plan.href} className={`block w-full text-center py-3 rounded-xl font-semibold transition-all ${plan.popular ? 'bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white' : 'bg-white/5 hover:bg-white/10 text-white border border-white/10'}`}>
                                     {plan.cta}
                                 </Link>
                             </div>

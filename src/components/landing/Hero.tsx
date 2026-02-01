@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { ArrowRight, Play } from "lucide-react";
 
 export default function Hero() {
@@ -37,14 +38,14 @@ export default function Hero() {
                     </p>
 
                     <div className="flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start">
-                        <button className="h-12 px-8 rounded-full bg-white text-deep-indigo font-bold hover:bg-stellar-white transition-colors flex items-center gap-2 group">
+                        <Link href="/signup" className="h-12 px-8 rounded-full bg-white text-deep-indigo font-bold hover:bg-stellar-white transition-colors flex items-center gap-2 group">
                             Start a Free Class
                             <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
-                        </button>
-                        <button className="h-12 px-8 rounded-full bg-white/5 text-white border border-white/10 hover:bg-white/10 transition-colors flex items-center gap-2 backdrop-blur-sm">
+                        </Link>
+                        <Link href="/#features" className="h-12 px-8 rounded-full bg-white/5 text-white border border-white/10 hover:bg-white/10 transition-colors flex items-center gap-2 backdrop-blur-sm">
                             <Play size={18} className="fill-current" />
                             Watch Demo
-                        </button>
+                        </Link>
                     </div>
                 </div>
 

@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 
 import ScribeDemo from "./ScribeDemo";
 import VoiceSupport from "./VoiceSupport";
@@ -55,7 +56,7 @@ export default function FeaturesGrid() {
                     <h3 className="text-2xl font-bold text-white mb-2">Ready to upgrade?</h3>
                     <p className="text-white/80 mb-6 text-sm">Join 10,000+ teachers on SessionOrbit today.</p>
                     <button className="px-6 py-2 bg-white text-deep-indigo rounded-full font-bold text-sm hover:bg-stellar-white transition-colors">
-                        Get Started Free
+                        <Link href="/signup">Get Started Free</Link>
                     </button>
                 </div>
             </div>
