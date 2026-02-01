@@ -5,6 +5,49 @@ import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, Clock, Users, FileText, Calendar, Download, Play, ShieldAlert, BrainCircuit, Zap, Loader2, Mail } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import dynamic from "next/dynamic"
+
+const PDFPreview = ({ meeting, participants, summary }: any) => {
+    const [url, setUrl] = useState<string | null>(null);
+
+    useEffect(() => {
+        const generatePdf = async () => {
+            try {
+                const { pdf } = await import('@react-pdf/renderer');
+                const SessionReportPDF = (await import('@/components/reports/SessionReportPDF')).default;
+                const blob = await pdf(<SessionReportPDF meeting={meeting} participants={participants} summary={summary} />).toBlob();
+                const blobUrl = URL.createObjectURL(blob);
+                setUrl(blobUrl);
+            } catch (error) {
+                console.error("PDF Preview generation failed", error);
+            }
+        };
+        generatePdf();
+
+        return () => {
+            if (url) URL.revokeObjectURL(url);
+        };
+    }, []); // Run once on mount
+
+    if (!url) {
+        return <div className="h-full w-full flex items-center justify-center bg-neutral-900 text-neutral-500">
+            <Loader2 className="w-8 h-8 animate-spin" />
+        </div>;
+    }
+
+    return (
+        <iframe
+            src={url}
+            className="w-full h-full border-none"
+            title="PDF Preview"
+        />
+    );
+};
+
+const SessionReportPDF = dynamic(
+    () => import("@/components/reports/SessionReportPDF"),
+    { ssr: false }
+);
 
 export default function MeetingDetailsPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params)
@@ -279,41 +322,50 @@ export default function MeetingDetailsPage({ params }: { params: Promise<{ id: s
                             <h2 className="text-xl font-semibold flex items-center gap-2">
                                 <FileText className="w-5 h-5 text-purple-500" /> AI Class Summary
                             </h2>
-                            <Button variant="outline" size="sm" className="h-8 text-xs gap-2" onClick={handleSendEmail} disabled={isSending}>
-                                {isSending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Mail className="w-3 h-3" />}
-                                {isSending ? "Sending..." : "Send to Parent"}
-                            </Button>
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 text-xs gap-2 bg-transparent border-neutral-700 text-neutral-300 hover:bg-neutral-800 hover:text-white"
+                                    onClick={handleSendEmail}
+                                    disabled={isSending}
+                                >
+                                    {isSending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Mail className="w-3 h-3" />}
+                                    {isSending ? "Sending..." : "Send to Parent"}
+                                </Button>
 
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-8 text-xs gap-2"
-                                onClick={async () => {
-                                    try {
-                                        const { pdf } = await import('@react-pdf/renderer');
-                                        const SessionReportPDF = (await import('@/components/reports/SessionReportPDF')).default;
-                                        const blob = await pdf(<SessionReportPDF meeting={meeting} participants={participants} summary={summary} />).toBlob();
-                                        const url = URL.createObjectURL(blob);
-                                        const link = document.createElement('a');
-                                        link.href = url;
-                                        link.download = `SessionOrbit-Report-${meeting.name || 'Session'}.pdf`;
-                                        document.body.appendChild(link);
-                                        link.click();
-                                        document.body.removeChild(link);
-                                        URL.revokeObjectURL(url);
-                                    } catch (err) {
-                                        console.error("PDF Generation failed:", err);
-                                        alert("Failed to generate PDF. Please try again.");
-                                    }
-                                }}
-                            >
-                                <Download className="w-3 h-3" /> PDF
-                            </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 text-xs gap-2 bg-transparent border-neutral-700 text-neutral-300 hover:bg-neutral-800 hover:text-white"
+                                    onClick={async () => {
+                                        try {
+                                            const { pdf } = await import('@react-pdf/renderer');
+                                            const SessionReportPDF = (await import('@/components/reports/SessionReportPDF')).default;
+                                            const blob = await pdf(<SessionReportPDF meeting={meeting} participants={participants} summary={summary} />).toBlob();
+                                            const url = URL.createObjectURL(blob);
+                                            const link = document.createElement('a');
+                                            link.href = url;
+                                            link.download = `SessionOrbit-Report-${meeting.name || 'Session'}.pdf`;
+                                            document.body.appendChild(link);
+                                            link.click();
+                                            document.body.removeChild(link);
+                                            URL.revokeObjectURL(url);
+                                        } catch (err) {
+                                            console.error("PDF Generation failed:", err);
+                                            alert("Failed to generate PDF. Please try again.");
+                                        }
+                                    }}
+                                >
+                                    <Download className="w-3 h-3" /> PDF
+                                </Button>
+                            </div>
                         </div>
-                        <div
-                            className="prose prose-invert max-w-none text-neutral-300 text-sm leading-relaxed"
-                            dangerouslySetInnerHTML={{ __html: summary.summary }}
-                        />
+
+                        <div className="rounded-xl overflow-hidden border border-neutral-800 bg-neutral-900/50 h-[800px]">
+                            {/* Iframe Preview - avoids React-PDF component crashes */}
+                            <PDFPreview meeting={meeting} participants={participants} summary={summary} />
+                        </div>
                     </div>
                 ) : (
                     <div className="p-8 rounded-2xl border border-dashed border-neutral-800 bg-neutral-900/20 flex flex-col items-center justify-center text-center space-y-4">
@@ -424,6 +476,6 @@ export default function MeetingDetailsPage({ params }: { params: Promise<{ id: s
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     )
 }
