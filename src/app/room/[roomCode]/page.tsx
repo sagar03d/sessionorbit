@@ -12,6 +12,7 @@ import {
     useRemoteParticipants,
 } from "@livekit/components-react"
 import "@livekit/components-styles"
+import { BackgroundBlur, VirtualBackground } from "@livekit/track-processors";
 import { Track } from "livekit-client"
 import { Copy, Check, Users, Layout, Video, LogOut, VideoOff, Mic, MicOff, Settings, Wifi, WifiOff, FileText, Image as ImageIcon, Plus, Link as LinkIcon, Globe, X, Captions, Code2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -20,6 +21,7 @@ import Whiteboard, { WhiteboardHandle } from "../../components/Whiteboard"
 import ExcalidrawBoard from "../../components/ExcalidrawBoard"
 import CodeEditor from "../../components/CodeEditor"
 import PreJoinScreen from "../../components/PreJoinScreen"
+import RoomEffects from "./RoomEffects";
 
 // Helper for speech recognition
 const SpeechRecognition = (typeof window !== 'undefined' && ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition)) || null;
@@ -74,6 +76,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
     // Pre-Join State
     const [hasJoinedRoom, setHasJoinedRoom] = useState(false)
     const [preJoinChoices, setPreJoinChoices] = useState<{ mic: boolean, cam: boolean, audioDeviceId?: string, videoDeviceId?: string }>({ mic: true, cam: true })
+    const [bgSettings, setBgSettings] = useState<{ type: 'none' | 'blur' | 'image', imageUrl?: string } | undefined>(undefined);
 
     // Participant & Transcription State
     const [participantDbId, setParticipantDbId] = useState<string | null>(null)
@@ -136,7 +139,28 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
         }
 
         const initMeeting = async () => {
-            const { data: { user } } = await supabase.auth.getUser()
+            // Check session storage for pre-join skip
+            if (typeof window !== 'undefined') {
+                const alreadyJoined = sessionStorage.getItem(`hasJoined_${roomCode}`);
+                if (alreadyJoined) {
+                    console.log("Already joined correctly, skipping prejoin");
+                    setHasJoinedRoom(true);
+                }
+            }
+
+            let { data: { user } } = await supabase.auth.getUser()
+
+            if (!user) {
+                try {
+                    const res = await fetch('/api/auth/me');
+                    if (res.ok) {
+                        const data = await res.json();
+                        user = data.user;
+                    }
+                } catch (e) {
+                    console.error("Manual auth check failed", e);
+                }
+            }
 
             const { data: meetingData, error: meetingError } = await supabase
                 .from('meetings')
@@ -342,8 +366,15 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
         }
     }
 
-    const handlePreJoin = async (enteredName: string, mic: boolean, cam: boolean, audioDeviceId?: string, videoDeviceId?: string) => {
+    const handlePreJoin = async (enteredName: string, mic: boolean, cam: boolean, audioDeviceId?: string, videoDeviceId?: string, bgSettingsChoice?: { type: 'none' | 'blur' | 'image', imageUrl?: string }) => {
         setPreJoinChoices({ mic, cam, audioDeviceId, videoDeviceId })
+        setBgSettings(bgSettingsChoice);
+
+        // Save session flag
+        if (typeof window !== 'undefined') {
+            sessionStorage.setItem(`hasJoined_${roomCode}`, 'true');
+        }
+
         const finalName = enteredName || name || "Guest"
         setName(finalName)
 
@@ -785,6 +816,9 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
                 router.push("/dashboard")
             }}
         >
+            {!isRecorder && (
+                <RoomEffects bgSettings={bgSettings} />
+            )}
             {!isRecorder && (
                 <RoomHeader
                     meetingName={meeting?.name || "Classroom"}

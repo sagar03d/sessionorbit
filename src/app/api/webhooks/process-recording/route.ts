@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@deepgram/sdk";
 import OpenAI from "openai";
 import { Resend } from "resend";
+import { renderToBuffer } from "@react-pdf/renderer";
+import SessionReportPDF from "@/components/reports/SessionReportPDF";
 import { supabaseAdmin } from "@/lib/supabase";
+import React from "react";
 
 export async function POST(req: NextRequest) {
     try {
@@ -114,6 +117,36 @@ export async function POST(req: NextRequest) {
             if (userData?.user?.email) userEmail = userData.user.email;
         }
 
+        // Fetch Participants for PDF
+        const { data: participants } = await supabaseAdmin
+            .from('meeting_participants')
+            .select('*')
+            .eq('meeting_id', roomId);
+
+        // Generate PDF Buffer
+        let pdfAttachment = null;
+        try {
+            console.log("Generating PDF Report...");
+            const pdfBuffer = await renderToBuffer(
+                React.createElement(SessionReportPDF, {
+                    meeting: meeting,
+                    participants: participants || [],
+                    summary: { html: summaryHtml }
+                })
+            );
+            pdfAttachment = pdfBuffer;
+            console.log("PDF Generated. Buffer size:", pdfBuffer.length);
+        } catch (pdfError) {
+            console.error("Failed to generate PDF:", pdfError);
+        }
+
+        const emailAttachments = pdfAttachment ? [
+            {
+                filename: `SessionReport_${meeting?.name?.replace(/\s+/g, '_') || 'Class'}.pdf`,
+                content: pdfAttachment
+            }
+        ] : [];
+
         await resend.emails.send({
             from: 'Session Orbit <updates@sessionorbit.com>', // Verify this domain in Resend
             // or use 'onboarding@resend.dev' for testing
@@ -126,7 +159,8 @@ export async function POST(req: NextRequest) {
                 ${summaryHtml}
                 <br />
                 <p>Full transcription is available in your dashboard.</p>
-            `
+            `,
+            attachments: emailAttachments
         });
 
         return NextResponse.json({ success: true });

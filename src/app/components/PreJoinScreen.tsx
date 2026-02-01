@@ -6,13 +6,14 @@ import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { createLocalVideoTrack, createLocalAudioTrack, LocalVideoTrack, LocalAudioTrack } from "livekit-client"
+import { BackgroundBlur, VirtualBackground } from "@livekit/track-processors";
 import Vapi from "@vapi-ai/web"
 
 
 
 
 interface PreJoinScreenProps {
-    onJoin: (name: string, micEnabled: boolean, camEnabled: boolean, audioDeviceId?: string, videoDeviceId?: string) => void
+    onJoin: (name: string, micEnabled: boolean, camEnabled: boolean, audioDeviceId?: string, videoDeviceId?: string, bgSettings?: { type: 'none' | 'blur' | 'image', imageUrl?: string }) => void
     userDisplayName?: string
     meetingName?: string
     isLoading?: boolean
@@ -28,6 +29,9 @@ export default function PreJoinScreen({ onJoin, userDisplayName, meetingName, is
     const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([])
     const [selectedAudioDeviceId, setSelectedAudioDeviceId] = useState<string>("")
     const [selectedVideoDeviceId, setSelectedVideoDeviceId] = useState<string>("")
+
+    // Background Settings
+    const [bgSettings, setBgSettings] = useState<{ type: 'none' | 'blur' | 'image', imageUrl?: string }>({ type: 'none' });
 
 
 
@@ -110,6 +114,32 @@ export default function PreJoinScreen({ onJoin, userDisplayName, meetingName, is
             mounted = false;
         };
     }, [camEnabled, selectedVideoDeviceId]);
+
+    // Apply Background Processor
+    useEffect(() => {
+        const applyProcessor = async () => {
+            if (!videoTrack || !camEnabled) return;
+
+            try {
+                if (bgSettings.type === 'blur') {
+                    const processor = BackgroundBlur(10);
+                    await videoTrack.setProcessor(processor);
+                } else if (bgSettings.type === 'image' && bgSettings.imageUrl) {
+                    const img = new Image();
+                    img.src = bgSettings.imageUrl;
+                    img.crossOrigin = "anonymous";
+                    await img.decode();
+                    const processor = VirtualBackground(img.src);
+                    await videoTrack.setProcessor(processor);
+                } else {
+                    await videoTrack.setProcessor(undefined as any);
+                }
+            } catch (error) {
+                console.error("Failed to apply background processor:", error);
+            }
+        };
+        applyProcessor();
+    }, [videoTrack, camEnabled, bgSettings]);
 
     // Fetch devices
     useEffect(() => {
@@ -225,7 +255,7 @@ export default function PreJoinScreen({ onJoin, userDisplayName, meetingName, is
             // Stop tracks so the main room can re-acquire them (or we could pass them, but easier to let Room handle it)
             videoTrack?.stop()
             audioTrack?.stop()
-            onJoin(name, micEnabled, camEnabled, selectedAudioDeviceId, selectedVideoDeviceId)
+            onJoin(name, micEnabled, camEnabled, selectedAudioDeviceId, selectedVideoDeviceId, bgSettings)
         }
     }
 
@@ -368,6 +398,56 @@ export default function PreJoinScreen({ onJoin, userDisplayName, meetingName, is
                                                 {selectedVideoDeviceId === device.deviceId && <Check className="w-4 h-4 text-blue-500" />}
                                             </button>
                                         ))}
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
+
+                            {/* Background Controls */}
+                            <div className="flex items-center gap-1 bg-[#3c4043] rounded-full p-1 border border-neutral-700">
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <button className="p-3 rounded-full hover:bg-neutral-600 transition-colors" title="Background Settings">
+                                            <Settings className="w-5 h-5 text-white" />
+                                        </button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-72 p-4 bg-[#202124] border-neutral-700 text-white" align="center">
+                                        <div className="text-sm font-semibold mb-3">Background Effects</div>
+                                        <div className="grid grid-cols-3 gap-2">
+                                            <button
+                                                onClick={() => setBgSettings({ type: 'none' })}
+                                                className={`h-16 rounded-lg border flex flex-col items-center justify-center gap-1 transition-all ${bgSettings.type === 'none' ? 'border-blue-500 bg-blue-500/20' : 'border-neutral-600 hover:border-neutral-500'}`}
+                                            >
+                                                <div className="w-6 h-6 rounded border border-neutral-400"></div>
+                                                <span className="text-[10px]">None</span>
+                                            </button>
+
+                                            <button
+                                                onClick={() => setBgSettings({ type: 'blur' })}
+                                                className={`h-16 rounded-lg border flex flex-col items-center justify-center gap-1 transition-all ${bgSettings.type === 'blur' ? 'border-blue-500 bg-blue-500/20' : 'border-neutral-600 hover:border-neutral-500'}`}
+                                            >
+                                                <div className="w-6 h-6 rounded bg-gradient-to-br from-neutral-400 to-neutral-600 blur-[2px]"></div>
+                                                <span className="text-[10px]">Blur</span>
+                                            </button>
+
+                                            <label className={`h-16 rounded-lg border flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${bgSettings.type === 'image' ? 'border-blue-500 bg-blue-500/20' : 'border-neutral-600 hover:border-neutral-500'}`}>
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    className="hidden"
+                                                    onChange={(e) => {
+                                                        const file = e.target.files?.[0];
+                                                        if (file) {
+                                                            const url = URL.createObjectURL(file);
+                                                            setBgSettings({ type: 'image', imageUrl: url });
+                                                        }
+                                                    }}
+                                                />
+                                                <div className="w-6 h-6 flex items-center justify-center">
+                                                    <div className="text-neutral-300">Img</div>
+                                                </div>
+                                                <span className="text-[10px]">Upload</span>
+                                            </label>
+                                        </div>
                                     </PopoverContent>
                                 </Popover>
                             </div>
