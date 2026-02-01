@@ -95,6 +95,9 @@ export default function Header() {
             <Link href="/pricing" className="text-sm font-medium text-neutral-400 hover:text-white transition-colors">
               Pricing
             </Link>
+            <Link href="/free-whiteboard" className="text-sm font-medium text-neutral-400 hover:text-white transition-colors">
+              Free Whiteboard
+            </Link>
           </nav>
         </div>
 

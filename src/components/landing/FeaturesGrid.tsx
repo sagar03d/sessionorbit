@@ -4,9 +4,14 @@ import ScribeDemo from "./ScribeDemo";
 import VoiceSupport from "./VoiceSupport";
 import BandwidthToggle from "./BandwidthToggle";
 
+import WhiteboardDemo from "./WhiteboardDemo";
+
 export default function FeaturesGrid() {
     return (
         <section className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+
+            <WhiteboardDemo />
+
             <div className="mb-16 text-center">
                 <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
                     Everything you need to teach. <br className="hidden sm:block" />

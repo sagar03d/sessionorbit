@@ -8,7 +8,7 @@ import CommonHeader from "@/components/Header"
 export default function LayoutContent({ children }: { children: React.ReactNode }) {
     const pathname = usePathname()
     const isHomePage = pathname === "/"
-    const isDashboard = pathname.startsWith("/dashboard") || pathname.startsWith("/room")
+    const isDashboard = pathname.startsWith("/dashboard") || pathname.startsWith("/room") || pathname.startsWith("/free-whiteboard")
 
     if (isHomePage) {
         return (
