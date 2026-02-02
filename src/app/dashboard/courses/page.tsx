@@ -81,6 +81,8 @@ export default function CoursesPage() {
     const handleDelete = async (id: string, e: React.MouseEvent) => {
         e.stopPropagation() // Prevent row click
         if (!confirm("Are you sure you want to delete this course?")) return
+
+        const { data: { user } } = await supabase.auth.getUser()
         if (!user) return
 
         try {
