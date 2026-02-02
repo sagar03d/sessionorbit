@@ -16,18 +16,22 @@ const getAuthedClient = async (req: NextRequest) => {
             { global: { headers: { Authorization: `Bearer ${token}` } } }
         );
         const { data: { user }, error } = await supabase.auth.getUser();
-        if (!error && user) return { supabase, user };
+        if (!error && user) return { supabase, user, isManual: false };
     }
 
     // 2. Try Manual Auth Cookie
-    const cookieStore = await cookies();
-    const sessionToken = cookieStore.get("session_token")?.value;
+    try {
+        const cookieStore = await cookies();
+        const sessionToken = cookieStore.get("session_token")?.value;
 
-    if (sessionToken) {
-        const payload = await verifySession(sessionToken);
-        if (payload && payload.user) {
-            return { supabase: supabaseAdmin, user: payload.user, isManual: true };
+        if (sessionToken) {
+            const payload = await verifySession(sessionToken);
+            if (payload && payload.user) {
+                return { supabase: supabaseAdmin, user: payload.user, isManual: true };
+            }
         }
+    } catch (e) {
+        // Ignore cookie errors
     }
 
     return { error: { message: "Unauthorized", status: 401 } };

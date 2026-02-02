@@ -1,33 +1,41 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
+import { verifySession } from "@/lib/auth-manual";
+import { supabaseAdmin } from "@/lib/supabase";
+import { cookies } from "next/headers";
+
 const getAuthedClient = async (req: NextRequest) => {
+    // 1. Try Standard Supabase Auth (Bearer Token)
     const authHeader = req.headers.get('Authorization');
     const token = authHeader?.replace('Bearer ', '');
 
-    if (!token) {
-        return { error: { message: "Missing Authorization header", status: 401 } };
+    if (token) {
+        const supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            { global: { headers: { Authorization: `Bearer ${token}` } } }
+        );
+        const { data: { user }, error } = await supabase.auth.getUser();
+        if (!error && user) return { supabase, user, isManual: false };
     }
 
-    const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-            global: {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
+    // 2. Try Manual Auth Cookie
+    try {
+        const cookieStore = await cookies();
+        const sessionToken = cookieStore.get("session_token")?.value;
+
+        if (sessionToken) {
+            const payload = await verifySession(sessionToken);
+            if (payload && payload.user) {
+                return { supabase: supabaseAdmin, user: payload.user, isManual: true };
             }
         }
-    );
-
-    const { data: { user }, error } = await supabase.auth.getUser();
-
-    if (error || !user) {
-        return { error: { message: "Unauthorized: Invalid token", status: 401 } };
+    } catch (e) {
+        // Ignore cookie errors
     }
 
-    return { supabase, user };
+    return { error: { message: "Unauthorized", status: 401 } };
 };
 
 export async function GET(req: NextRequest) {
