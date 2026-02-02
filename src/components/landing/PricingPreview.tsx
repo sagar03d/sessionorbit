@@ -6,50 +6,48 @@ import Link from "next/link"
 export default function PricingPreview() {
     const plans = [
         {
-            name: "Free Forever",
-            price: "$0",
+            name: "Starter",
+            price: "$9",
             period: "/month",
-            description: "Perfect for getting started",
+            description: "Solo Tutors starting out.",
             icon: Sparkles,
             features: [
-                "90 min class limit",
-                "AI Lesson Scribe",
-                "Basic analytics",
-                "Email support"
+                "1 Tutor Seat",
+                "5 AI Reports / month",
+                "Basic Stats",
+                "24/7 AI Helper"
             ],
-            cta: "Start For Free",
+            cta: "Start Free Trial",
             popular: false,
             href: "/signup"
         },
         {
-            name: "Professional",
+            name: "Pro",
             price: "$79",
             period: "/month",
-            description: "For serious educators",
+            description: "Small-to-Mid Tutoring Agencies.",
             icon: Rocket,
             features: [
-                "Unlimited hours",
-                "All AI features",
-                "Advanced analytics",
-                "Priority support",
-                "Custom branding"
+                "Up to 5 Tutors ($15.80/seat)",
+                "Unlimited Reports",
+                "Deep Analytics Dashboard",
+                "AI Helper + Email Support"
             ],
             cta: "Start Free Trial",
             popular: true,
             href: "/signup"
         },
         {
-            name: "Agency",
+            name: "Enterprise",
             price: "Custom",
             period: "",
-            description: "For tutoring agencies",
+            description: "Large Education Providers.",
             icon: Crown,
             features: [
-                "Everything in Pro",
-                "Multi-tutor management",
-                "White-label option",
-                "Dedicated account manager",
-                "Custom integrations"
+                "Unlimited / Custom Seats",
+                "Unlimited + Custom Templates",
+                "Historical Performance Audits",
+                "Dedicated Account Manager"
             ],
             cta: "Contact Sales",
             popular: false,
@@ -64,7 +62,7 @@ export default function PricingPreview() {
                     Simple, Transparent Pricing
                 </h2>
                 <p className="text-slate-400 max-w-2xl mx-auto">
-                    Start free, upgrade when you're ready. No hidden fees.
+                    Choose the plan that fits your growth.
                 </p>
             </div>
 
