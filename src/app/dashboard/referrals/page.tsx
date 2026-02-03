@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Copy, Gift, CheckCircle, Users, TrendingUp } from "lucide-react"
 
 export default function ReferralPage() {
-    const { profile, loading } = useUser()
+    const { profile, isLoading } = useUser()
     const [copied, setCopied] = useState(false)
 
     // In a real app, this would be the actual domain
@@ -22,7 +22,7 @@ export default function ReferralPage() {
         setTimeout(() => setCopied(false), 2000)
     }
 
-    if (loading) {
+    if (isLoading) {
         return <div className="p-8 text-neutral-400">Loading referral data...</div>
     }
 

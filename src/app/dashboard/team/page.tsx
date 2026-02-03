@@ -27,31 +27,40 @@ export default function TeamPage() {
     const fetchData = async () => {
         if (!profile?.organization_id) return
         setIsLoading(true)
+        try {
+            // Fetch Members
+            const { data: membersData } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('organization_id', profile.organization_id)
 
-        // Fetch Members
-        const { data: membersData } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('organization_id', profile.organization_id)
+            setMembers(membersData || [])
 
-        setMembers(membersData || [])
+            // Fetch Invites
+            const { data: invitesData } = await supabase
+                .from('organization_invites')
+                .select('*')
+                .eq('organization_id', profile.organization_id)
+                .eq('status', 'pending')
 
-        // Fetch Invites
-        const { data: invitesData } = await supabase
-            .from('organization_invites')
-            .select('*')
-            .eq('organization_id', profile.organization_id)
-            .eq('status', 'pending')
-
-        setInvites(invitesData || [])
-        setIsLoading(false)
+            setInvites(invitesData || [])
+        } catch (error) {
+            console.error("Error fetching team data:", error);
+        } finally {
+            setIsLoading(false)
+        }
     }
 
     useEffect(() => {
+        if (isUserLoading) return;
+
         if (profile?.organization_id) {
             fetchData()
+        } else {
+            // If explicit check for organization fails or doesn't exist, stop loading
+            setIsLoading(false)
         }
-    }, [profile])
+    }, [profile, isUserLoading])
 
 
     if (isUserLoading || isLoading) {
@@ -147,8 +156,8 @@ export default function TeamPage() {
                                 </div>
                                 <div className="flex items-center gap-4">
                                     <span className={`px-3 py-1 rounded-full text-xs font-medium border ${member.role === 'owner' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' :
-                                            member.role === 'admin' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' :
-                                                'bg-neutral-800 text-neutral-400 border-neutral-700'
+                                        member.role === 'admin' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' :
+                                            'bg-neutral-800 text-neutral-400 border-neutral-700'
                                         }`}>
                                         {member.role.toUpperCase()}
                                     </span>
