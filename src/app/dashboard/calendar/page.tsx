@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useUser } from "@/hooks/useUser"
 import { supabase } from "@/lib/supabase"
 import { DayPicker } from "react-day-picker"
 import "react-day-picker/style.css"
@@ -36,6 +37,7 @@ interface Schedule {
 
 export default function CalendarPage() {
     const router = useRouter()
+    const { user, isLoading: isUserLoading } = useUser()
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
     const [schedules, setSchedules] = useState<Schedule[]>([])
     const [courses, setCourses] = useState<Course[]>([])
@@ -51,48 +53,56 @@ export default function CalendarPage() {
     const [endTime, setEndTime] = useState("11:00")
 
     const fetchData = async () => {
-        setIsLoading(true)
-        const { data: { user } } = await supabase.auth.getUser()
         if (!user) return
+        setIsLoading(true)
 
-        // Fetch Courses
-        const { data: coursesData } = await supabase
-            .from('courses')
-            .select('*')
-            .order('name')
-        if (coursesData) setCourses(coursesData)
+        try {
+            // Fetch Courses
+            const { data: coursesData } = await supabase
+                .from('courses')
+                .select('*')
+                .order('name')
+            if (coursesData) setCourses(coursesData)
 
-        // Fetch Batches
-        const { data: batchesData } = await supabase
-            .from('batches')
-            .select('*')
-            .order('name')
-        if (batchesData) setBatches(batchesData)
+            // Fetch Batches
+            const { data: batchesData } = await supabase
+                .from('batches')
+                .select('*')
+                .order('name')
+            if (batchesData) setBatches(batchesData)
 
-        // Fetch Schedules
-        // Note: Joining tables to get Course and Batch info
-        const { data: schedulesData } = await supabase
-            .from('class_schedules')
-            .select(`
-                *,
-                batches (
+            // Fetch Schedules
+            // Note: Joining tables to get Course and Batch info
+            const { data: schedulesData } = await supabase
+                .from('class_schedules')
+                .select(`
                     *,
-                    courses (*)
-                )
-            `)
-            .order('start_time', { ascending: true })
+                    batches (
+                        *,
+                        courses (*)
+                    )
+                `)
+                .order('start_time', { ascending: true })
 
-        if (schedulesData) {
-            // Transform or cast data if needed
-            setSchedules(schedulesData as any)
+            if (schedulesData) {
+                // Transform or cast data if needed
+                setSchedules(schedulesData as any)
+            }
+        } catch (error) {
+            console.error("Error fetching calendar data:", error)
+        } finally {
+            setIsLoading(false)
         }
-
-        setIsLoading(false)
     }
 
     useEffect(() => {
-        fetchData()
-    }, [])
+        if (!isUserLoading && user) {
+            fetchData()
+        } else if (!isUserLoading && !user) {
+            // Redirect or handle unauthorized if needed, for now just stop loading
+            setIsLoading(false)
+        }
+    }, [user, isUserLoading])
 
     const handleScheduleClass = async (e: React.FormEvent) => {
         e.preventDefault()

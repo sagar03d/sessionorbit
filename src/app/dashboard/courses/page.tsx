@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useUser } from "@/hooks/useUser"
 import { supabase } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -32,30 +33,39 @@ interface Course {
 
 export default function CoursesPage() {
     const router = useRouter()
+    const { user, isLoading: isUserLoading } = useUser()
     const [courses, setCourses] = useState<Course[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [isDialogOpen, setIsDialogOpen] = useState(false)
     const [newCourse, setNewCourse] = useState({ name: '', code: '' })
 
     const fetchCourses = async () => {
-        setIsLoading(true)
-        const { data: { user } } = await supabase.auth.getUser()
         if (!user) return
+        setIsLoading(true)
 
-        const { data, error } = await supabase
-            .from('courses')
-            .select('*')
-            .order('created_at', { ascending: false })
+        try {
+            const { data, error } = await supabase
+                .from('courses')
+                .select('*')
+                .order('created_at', { ascending: false })
 
-        if (data) {
-            setCourses(data)
+            if (data) {
+                setCourses(data)
+            }
+        } catch (error) {
+            console.error("Error fetching courses:", error)
+        } finally {
+            setIsLoading(false)
         }
-        setIsLoading(false)
     }
 
     useEffect(() => {
-        fetchCourses()
-    }, [])
+        if (!isUserLoading && user) {
+            fetchCourses()
+        } else if (!isUserLoading && !user) {
+            setIsLoading(false)
+        }
+    }, [user, isUserLoading])
 
     const handleCreateWrapper = async () => {
         if (!newCourse.name || !newCourse.code) return alert("All fields are required")

@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useUser } from "@/hooks/useUser"
 import { supabase } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -31,6 +32,7 @@ interface Student {
 }
 
 export default function StudentsPage() {
+    const { user, isLoading: isUserLoading } = useUser()
     const [students, setStudents] = useState<Student[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState("")
@@ -39,25 +41,33 @@ export default function StudentsPage() {
     const [currentStudent, setCurrentStudent] = useState<Partial<Student>>({})
 
     const fetchStudents = async () => {
-        setIsLoading(true)
-        const { data: { user } } = await supabase.auth.getUser()
         if (!user) return
+        setIsLoading(true)
 
-        const { data, error } = await supabase
-            .from('students')
-            .select('*')
-            .eq('user_id', user.id) // Ensure we only fetch this user's students
-            .order('created_at', { ascending: false })
+        try {
+            const { data, error } = await supabase
+                .from('students')
+                .select('*')
+                .eq('user_id', user.id) // Ensure we only fetch this user's students
+                .order('created_at', { ascending: false })
 
-        if (data) {
-            setStudents(data)
+            if (data) {
+                setStudents(data)
+            }
+        } catch (error) {
+            console.error("Error fetching students:", error)
+        } finally {
+            setIsLoading(false)
         }
-        setIsLoading(false)
     }
 
     useEffect(() => {
-        fetchStudents()
-    }, [])
+        if (!isUserLoading && user) {
+            fetchStudents()
+        } else if (!isUserLoading && !user) {
+            setIsLoading(false)
+        }
+    }, [user, isUserLoading])
 
     const handleSave = async () => {
         if (!currentStudent.name) return alert("Name is required")
