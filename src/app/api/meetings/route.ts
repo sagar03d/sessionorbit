@@ -18,6 +18,13 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: "Invalid session" }, { status: 401 });
     }
 
+    // Fetch user profile to get role and organization
+    const { data: profile } = await supabaseAdmin
+        .from('profiles')
+        .select('role, organization_id')
+        .eq('user_id', session.user.id)
+        .single();
+
     const from = parseInt(searchParams.get("from") || "0");
     const to = parseInt(searchParams.get("to") || "9");
     const startDate = searchParams.get("startDate");
@@ -25,8 +32,23 @@ export async function GET(request: Request) {
 
     let query = supabaseAdmin
         .from('meetings')
-        .select('*', { count: 'exact' })
-        .eq('host_id', session.user.id)
+        .select('*, profiles(full_name, email)', { count: 'exact' }); // Join profiles to show who hosted
+
+    // RBAC Logic
+    if (profile?.role === 'owner' || profile?.role === 'admin') {
+        if (profile.organization_id) {
+            // Admin sees all org meetings
+            query = query.eq('organization_id', profile.organization_id);
+        } else {
+            // Fallback for solo admins without org (should have org, but if not, own meetings)
+            query = query.eq('host_id', session.user.id);
+        }
+    } else {
+        // Teachers (or others) see only their own
+        query = query.eq('host_id', session.user.id);
+    }
+
+    query = query
         .order('created_at', { ascending: false })
         .range(from, to);
 

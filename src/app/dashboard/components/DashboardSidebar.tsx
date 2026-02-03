@@ -74,6 +74,26 @@ export default function DashboardSidebar() {
                         </Link>
                     )
                 })}
+                {/* Team Link for Admins / Pro Users */}
+                {(profile?.role === 'admin' || profile?.role === 'owner' || profile?.plan === 'Pro' || profile?.plan === 'pro') && (
+                    <Link
+                        href="/dashboard/team"
+                        className={cn(
+                            "group flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200",
+                            pathname === "/dashboard/team"
+                                ? "bg-neutral-900 text-white shadow-sm"
+                                : "text-neutral-400 hover:bg-neutral-900/50 hover:text-white"
+                        )}
+                    >
+                        <Users
+                            className={cn(
+                                "mr-3 h-5 w-5 flex-shrink-0 transition-colors",
+                                pathname === "/dashboard/team" ? "text-white" : "text-neutral-500 group-hover:text-white"
+                            )}
+                        />
+                        Team
+                    </Link>
+                )}
             </nav>
 
             {/* User Profile Section */}

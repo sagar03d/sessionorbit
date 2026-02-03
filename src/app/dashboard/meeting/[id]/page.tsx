@@ -158,47 +158,29 @@ export default function MeetingDetailsPage({ params }: { params: Promise<{ id: s
 
     useEffect(() => {
         const fetchData = async () => {
-            // Fetch Meeting
-            const { data: meetingData, error: meetingError } = await supabase
-                .from('meetings')
-                .select('*')
-                .eq('id', id)
-                .single()
+            try {
+                const res = await fetch(`/api/meetings/${id}`)
+                if (!res.ok) {
+                    if (res.status === 404) {
+                        console.error("Meeting not found")
+                        setMeeting(null)
+                    } else {
+                        throw new Error("Failed to fetch meeting data")
+                    }
+                    return
+                }
 
-            if (meetingError) {
-                console.error("Error fetching meeting:", meetingError)
-                return
+                const data = await res.json()
+
+                setMeeting(data.meeting)
+                setParticipants(data.participants)
+                setTranscriptions(data.transcriptions)
+                setSummary(data.summary)
+            } catch (error) {
+                console.error("Error fetching meeting data:", error)
+            } finally {
+                setIsLoading(false)
             }
-            setMeeting(meetingData)
-
-            // Fetch Participants
-            const { data: partData } = await supabase
-                .from('meeting_participants')
-                .select('*')
-                .eq('meeting_id', id)
-                .order('joined_at', { ascending: true })
-
-            setParticipants(partData || [])
-
-            // Fetch Transcriptions
-            const { data: transData } = await supabase
-                .from('meeting_transcriptions')
-                .select('*')
-                .eq('meeting_id', id)
-                .order('timestamp', { ascending: true })
-
-            setTranscriptions(transData || [])
-
-            // Fetch Summary
-            const { data: summaryData } = await supabase
-                .from('meeting_summaries')
-                .select('*')
-                .eq('meeting_id', id)
-                .maybeSingle()
-
-            setSummary(summaryData)
-
-            setIsLoading(false)
         }
 
         fetchData()
