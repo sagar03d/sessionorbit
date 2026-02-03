@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 export function useUser() {
     const [user, setUser] = useState<any>(null)
     const [profile, setProfile] = useState<any>(null)
-    const [usage, setUsage] = useState(0)
+    const [usage, setUsage] = useState({ hours: 0, reports: 0 })
     const [isLoading, setIsLoading] = useState(true)
     const router = useRouter()
 
@@ -31,7 +31,7 @@ export function useUser() {
                         if (statsRes.ok) {
                             const stats = await statsRes.json()
                             setProfile(stats.profile)
-                            setUsage(stats.usage)
+                            setUsage(stats.usage || { hours: 0, reports: 0 })
                         }
                     } else {
                         // No user found
@@ -49,9 +49,6 @@ export function useUser() {
     }, [])
 
     const fetchSupabaseData = async (user: any) => {
-        // ... (Existing logic moved here or kept in component? 
-        // Better to keep simple: This hook just returns user/profile/usage)
-
         // Fetch profile
         const { data: profileData } = await supabase
             .from('profiles')
@@ -80,27 +77,38 @@ export function useUser() {
         startOfMonth.setDate(1)
         startOfMonth.setHours(0, 0, 0, 0)
 
-        const { count } = await supabase
+        // 1. Get Meetings for Hours
+        const { data: meetings } = await supabase
             .from('meetings')
-            .select('*', { count: 'exact', head: true })
+            .select('id, duration_minutes')
             .eq('host_id', user.id)
             .gte('created_at', startOfMonth.toISOString())
 
-        setUsage(count || 0)
+        const totalMinutes = meetings?.reduce((acc, m) => acc + (m.duration_minutes || 0), 0) || 0
+        const hoursUsed = totalMinutes / 60
+
+        // 2. Get Reports Count
+        // We need to count summaries for these meetings.
+        // If we can't join easily with RLS, we map IDs.
+        const meetingIds = meetings?.map(m => m.id) || []
+
+        let reportsCount = 0
+        if (meetingIds.length > 0) {
+            const { count } = await supabase
+                .from('meeting_summaries')
+                .select('*', { count: 'exact', head: true })
+                .in('meeting_id', meetingIds)
+
+            reportsCount = count || 0
+        }
+
+        setUsage({ hours: hoursUsed, reports: reportsCount })
     }
 
     const signOut = async () => {
         setIsLoading(true)
-        // Try global sign out
         await supabase.auth.signOut()
-        // Also clear manual cookie (requires API endpoint or simple cookie deletion?)
-        // Since cookie is HttpOnly, we need an API endpoint to delete it.
-        // We haven't created one yet!
-        // I will assume for now we just redirect to login and let the next auth check fail? 
-        // NO, cookie persists.
-        // I NEED `/api/auth/signout`.
         await fetch('/api/auth/signout', { method: 'POST' });
-
         router.push('/login')
         router.refresh()
     }

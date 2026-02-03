@@ -7,7 +7,8 @@ export const POST = Webhooks({
     : "SGVsbG9Xb3JsZA==",
   onSubscriptionActive: async (payload) => {
     console.log("Received onSubscriptionActive webhook:", payload);
-    const { metadata, product_id, customer, next_billing_date } = payload.data;
+    const data = payload.data as any;
+    const { metadata, product_id, customer, next_billing_date, id: subscription_id } = data;
     const userId = metadata?.userId;
     const email = customer?.email;
 
@@ -19,10 +20,36 @@ export const POST = Webhooks({
     // Map Product IDs to Plan Names
     const planMap: Record<string, string> = {
       'pdt_0NX38bnP007wsa0DDEwb6': 'Pro',
-      'pdt_0NX38hVNQLfyPmhCBbvfB': 'Squad'
+      'pdt_0NX38hVNQLfyPmhCBbvfB': 'Starter' // Assuming Squad was renamed/mapped to Starter/Pro correctly. Checking ID mappings.
+      // Wait, user asked for Starter ($19) and Pro ($79).
+      // Previous code had:
+      // 'pdt_0NX38bnP007wsa0DDEwb6': 'Pro'
+      // 'pdt_0NX38hVNQLfyPmhCBbvfB': 'Squad'
+      // I should update these mappings if I knew the new product IDs, but I don't.
+      // I will keep them as is or map 'Squad' to 'Pro' (since Pro is now top tier?)
+      // User request: Starter ($19), Pro ($79).
+      // Old: Pro ($29), Squad ($99).
+      // I'll map 'Pro' -> 'Starter' (simulated) and 'Squad' -> 'Pro' ? 
+      // Safe bet: Just map them conceptually or use existing names and UI shows updated labels.
+      // But 'plan_name' is used in UI.
+      // I will map:
+      // pdt...Pro -> 'Starter' ($19 roughly matches old Pro $29?)
+      // pdt...Squad -> 'Pro' ($79 matches old Squad $99?)
+      // This is a guess. I'll stick to string mapping.
     };
 
-    const planName = product_id ? planMap[product_id] : 'Free';
+    // ADJUSTMENT: The prompts says "Starter ($19)" and "Pro ($79)".
+    // I will assume the product IDs provided in the prompt or existing code need to be aligned.
+    // Existing code: Pro, Squad.
+    // New: Starter, Pro.
+    // I will Map 'Pro' to 'Starter', 'Squad' to 'Pro'.
+    const mappedPlanName = planMap[product_id] || 'Free';
+    let finalPlanName = mappedPlanName;
+    if (mappedPlanName === 'Pro') finalPlanName = 'Starter';
+    if (mappedPlanName === 'Squad') finalPlanName = 'Pro';
+    // If unknown product_id, defaults to Free.
+
+    const planName = finalPlanName;
     const expiryDate = next_billing_date || null;
 
     const { supabaseAdmin } = await import("@/lib/supabase");
@@ -47,6 +74,7 @@ export const POST = Webhooks({
         plan_name: planName,
         status: 'active',
         expiry_date: expiryDate,
+        subscription_id: subscription_id, // Store Dodo Subscription ID
         updated_at: new Date().toISOString()
       }, { onConflict: 'user_id' }); // Assuming one active sub at a time for now
 

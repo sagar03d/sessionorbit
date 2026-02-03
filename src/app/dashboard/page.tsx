@@ -175,8 +175,10 @@ export default function DashboardPage() {
                         <SubscriptionCard
                             plan={profile?.plan || 'Free'}
                             expiry={profile?.plan_expiry}
-                            usage={usage}
-                            maxUsage={profile?.plan === 'Pro' ? 30 : profile?.plan === 'Squad' ? 150 : 3}
+                            hoursUsed={usage.hours}
+                            maxHours={profile?.plan === 'Pro' ? 80 : profile?.plan === 'Starter' ? 20 : 2}
+                            reportsUsed={usage.reports}
+                            maxReports={profile?.plan === 'Pro' ? 80 : profile?.plan === 'Starter' ? 20 : 2}
                         />
 
                         <div className="rounded-3xl border border-neutral-800 bg-neutral-900/30 p-8 flex flex-col justify-center space-y-6">

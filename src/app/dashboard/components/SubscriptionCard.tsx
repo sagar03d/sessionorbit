@@ -11,14 +11,28 @@ interface SubscriptionCardProps {
     maxUsage: number
 }
 
-export default function SubscriptionCard({ plan, expiry, usage, maxUsage }: SubscriptionCardProps) {
+export default function SubscriptionCard({ plan, expiry, hoursUsed, maxHours, reportsUsed, maxReports }: {
+    plan: string
+    expiry?: string
+    hoursUsed: number
+    maxHours: number
+    reportsUsed: number
+    maxReports: number
+}) {
     const router = useRouter()
-    const usagePercentage = Math.min((usage / maxUsage) * 100, 100)
+
+    // Percentage Calcs
+    const hoursPercent = Math.min((hoursUsed / maxHours) * 100, 100)
+    const reportsPercent = Math.min((reportsUsed / maxReports) * 100, 100)
+
+    // Overage Checks
+    const isHoursOverage = hoursUsed > maxHours
+    const isReportsOverage = reportsUsed > maxReports
 
     const colors = {
         Free: "from-blue-500/20 to-indigo-500/20 border-blue-500/30",
-        Pro: "from-amber-500/20 to-orange-500/20 border-amber-500/30",
-        Squad: "from-purple-500/20 to-indigo-500/20 border-purple-500/30"
+        Starter: "from-amber-500/20 to-orange-500/20 border-amber-500/30", // Replaced Pro with Starter colors
+        Pro: "from-purple-500/20 to-indigo-500/20 border-purple-500/30" // Replaced Squad with Pro colors
     }
 
     const currentColors = colors[plan as keyof typeof colors] || colors.Free
@@ -33,7 +47,7 @@ export default function SubscriptionCard({ plan, expiry, usage, maxUsage }: Subs
                         </div>
                         <div>
                             <p className="text-sm text-neutral-400 font-medium">Active Plan</p>
-                            <h3 className="text-xl font-bold text-white">{plan} Orbit</h3>
+                            <h3 className="text-xl font-bold text-white">{plan}</h3>
                         </div>
                     </div>
                     {plan === "Free" && (
@@ -48,15 +62,37 @@ export default function SubscriptionCard({ plan, expiry, usage, maxUsage }: Subs
                     )}
                 </div>
 
+                {/* Hours Usage */}
                 <div className="space-y-2">
                     <div className="flex justify-between text-sm">
-                        <span className="text-neutral-400">Monthly Usage</span>
-                        <span className="text-white font-medium">{usage} / {maxUsage} Classes</span>
+                        <span className="text-neutral-400">Classroom Hours</span>
+                        <span className={`font-medium ${isHoursOverage ? 'text-amber-400' : 'text-white'}`}>
+                            {hoursUsed.toFixed(1)} / {maxHours} Hours
+                        </span>
                     </div>
-                    <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                    <div className="h-2 bg-white/5 rounded-full overflow-hidden relative">
                         <div
-                            className="h-full bg-indigo-500 transition-all duration-500"
-                            style={{ width: `${usagePercentage}%` }}
+                            className={`h-full transition-all duration-500 ${isHoursOverage ? 'bg-amber-500' : 'bg-indigo-500'}`}
+                            style={{ width: `${hoursPercent}%` }}
+                        />
+                    </div>
+                    {isHoursOverage && (
+                        <p className="text-xs text-amber-400 text-right">Overage Active: ${(hoursUsed - maxHours).toFixed(1)} billed</p>
+                    )}
+                </div>
+
+                {/* Reports Usage */}
+                <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                        <span className="text-neutral-400">AI Scribe Reports</span>
+                        <span className={`font-medium ${isReportsOverage ? 'text-amber-400' : 'text-white'}`}>
+                            {reportsUsed} / {maxReports} Reports
+                        </span>
+                    </div>
+                    <div className="h-2 bg-white/5 rounded-full overflow-hidden relative">
+                        <div
+                            className={`h-full transition-all duration-500 ${isReportsOverage ? 'bg-amber-500' : 'bg-purple-500'}`}
+                            style={{ width: `${reportsPercent}%` }}
                         />
                     </div>
                 </div>

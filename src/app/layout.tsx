@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
 import LayoutContent from "./components/LayoutContent";
+import NewsletterPopup from "@/components/marketing/NewsletterPopup";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -33,6 +34,7 @@ export default function RootLayout({
       <body className="bg-black text-white selection:bg-white selection:text-black antialiased min-h-screen flex flex-col">
         <LayoutContent>
           {children}
+          <NewsletterPopup />
           <Analytics />
           <SpeedInsights />
         </LayoutContent>

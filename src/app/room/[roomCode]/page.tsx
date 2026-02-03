@@ -700,18 +700,27 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
             } catch (e) { console.error("Failed to stop recording on end", e) }
         }
 
-        const { error } = await supabase
-            .from('meetings')
-            .update({ ended_at: new Date().toISOString() })
-            .eq('id', meeting.id)
+        // Use Server API to end class (calculates duration & usage)
+        try {
+            const res = await fetch('/api/room/end', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ roomId: meeting.id })
+            });
 
-        if (error) {
-            console.error("Failed to end class", error)
-            alert("Failed to end class. Please try again.")
-            return false
-        } else {
-            router.push("/dashboard")
-            return true
+            if (!res.ok) {
+                const data = await res.json();
+                console.error("Failed to end class API", data);
+                alert("Error ending class: " + (data.error || "Unknown"));
+                return false;
+            } else {
+                router.push("/dashboard");
+                return true;
+            }
+        } catch (e) {
+            console.error("Exception ending class", e);
+            alert("Network error ending class.");
+            return false;
         }
     }
 

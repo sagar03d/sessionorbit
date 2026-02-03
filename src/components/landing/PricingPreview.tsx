@@ -6,52 +6,52 @@ import Link from "next/link"
 export default function PricingPreview() {
     const plans = [
         {
-            name: "Starter",
-            price: "$9",
+            name: "Free",
+            price: "$0",
             period: "/month",
-            description: "Solo Tutors starting out.",
+            description: "For casual tutors.",
             icon: Sparkles,
             features: [
-                "1 Tutor Seat",
-                "5 AI Reports / month",
-                "Basic Stats",
-                "24/7 AI Helper"
+                "2 Hours / month",
+                "2 AI Reports / month",
+                "Basic Tech Support",
+                "Standard Whiteboard"
             ],
-            cta: "Start Free Trial",
+            cta: "Get Started",
             popular: false,
             href: "/signup"
         },
         {
-            name: "Pro",
-            price: "$79",
+            name: "Starter",
+            price: "$19",
             period: "/month",
-            description: "Small-to-Mid Tutoring Agencies.",
+            description: "Serious tutors scaling up.",
             icon: Rocket,
             features: [
-                "Up to 5 Tutors ($15.80/seat)",
-                "Unlimited Reports",
-                "Deep Analytics Dashboard",
-                "AI Helper + Email Support"
+                "20 Hours / month",
+                "20 AI Reports / month",
+                "Overage: $1.25/hr",
+                "Full AI Tech Support"
             ],
             cta: "Start Free Trial",
             popular: true,
             href: "/signup"
         },
         {
-            name: "Enterprise",
-            price: "Custom",
-            period: "",
-            description: "Large Education Providers.",
+            name: "Pro",
+            price: "$79",
+            period: "/month",
+            description: "Agencies & Power Users.",
             icon: Crown,
             features: [
-                "Unlimited / Custom Seats",
-                "Unlimited + Custom Templates",
-                "Historical Performance Audits",
-                "Dedicated Account Manager"
+                "80 Hours / month",
+                "80 AI Reports / month",
+                "Overage: $1.10/hr",
+                "Priority AI Support"
             ],
-            cta: "Contact Sales",
+            cta: "Start Free Trial",
             popular: false,
-            href: "/contact"
+            href: "/signup"
         }
     ]
 
