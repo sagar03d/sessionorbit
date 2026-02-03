@@ -122,5 +122,5 @@ CREATE POLICY "Users can view their own meetings"
     USING (
         host_id = auth.uid()
     );
-
+-- s
 -- Ensure teachers still see their own (likely covered by existing "host_id = auth.uid()" policy, but explicit check doesn't hurt)
