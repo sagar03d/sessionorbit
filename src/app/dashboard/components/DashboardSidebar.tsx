@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation"
 import Link from "next/link"
-import { LayoutDashboard, BookOpen, Users, LogOut, Settings, User as UserIcon, Calendar } from "lucide-react"
+import { LayoutDashboard, BookOpen, Users, LogOut, Settings, User as UserIcon, Calendar, Gift } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { supabase } from "@/lib/supabase"
 import { useEffect, useState } from "react"
@@ -14,6 +14,7 @@ const navigation = [
     { name: "Calendar", href: "/dashboard/calendar", icon: Calendar },
     { name: "My Courses", href: "/dashboard/courses", icon: BookOpen },
     { name: "Students", href: "/dashboard/students", icon: Users },
+    { name: "Referrals", href: "/dashboard/referrals", icon: Gift },
 ]
 
 export default function DashboardSidebar() {
