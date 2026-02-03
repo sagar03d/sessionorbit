@@ -22,12 +22,15 @@ export default function SubscriptionCard({ plan, expiry, hoursUsed, maxHours, re
     const router = useRouter()
 
     // Percentage Calcs
-    const hoursPercent = Math.min((hoursUsed / maxHours) * 100, 100)
-    const reportsPercent = Math.min((reportsUsed / maxReports) * 100, 100)
+    const safeHours = hoursUsed || 0;
+    const safeReports = reportsUsed || 0;
+
+    const hoursPercent = Math.min((safeHours / maxHours) * 100, 100)
+    const reportsPercent = Math.min((safeReports / maxReports) * 100, 100)
 
     // Overage Checks
-    const isHoursOverage = hoursUsed > maxHours
-    const isReportsOverage = reportsUsed > maxReports
+    const isHoursOverage = safeHours > maxHours
+    const isReportsOverage = safeReports > maxReports
 
     const colors = {
         Free: "from-blue-500/20 to-indigo-500/20 border-blue-500/30",
@@ -67,7 +70,7 @@ export default function SubscriptionCard({ plan, expiry, hoursUsed, maxHours, re
                     <div className="flex justify-between text-sm">
                         <span className="text-neutral-400">Classroom Hours</span>
                         <span className={`font-medium ${isHoursOverage ? 'text-amber-400' : 'text-white'}`}>
-                            {hoursUsed.toFixed(1)} / {maxHours} Hours
+                            {safeHours.toFixed(1)} / {maxHours} Hours
                         </span>
                     </div>
                     <div className="h-2 bg-white/5 rounded-full overflow-hidden relative">
@@ -77,7 +80,7 @@ export default function SubscriptionCard({ plan, expiry, hoursUsed, maxHours, re
                         />
                     </div>
                     {isHoursOverage && (
-                        <p className="text-xs text-amber-400 text-right">Overage Active: ${(hoursUsed - maxHours).toFixed(1)} billed</p>
+                        <p className="text-xs text-amber-400 text-right">Overage Active: ${(safeHours - maxHours).toFixed(1)} billed</p>
                     )}
                 </div>
 
