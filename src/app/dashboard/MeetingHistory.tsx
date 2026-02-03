@@ -45,28 +45,27 @@ export default function MeetingHistory({ userId }: { userId: string }) {
         const from = currentPage * ITEMS_PER_PAGE
         const to = from + ITEMS_PER_PAGE - 1
 
-        let query = supabase
-            .from('meetings')
-            .select('*', { count: 'exact' })
-            .eq('host_id', userId)
-            .order('created_at', { ascending: false })
-            .range(from, to)
+        const queryParams = new URLSearchParams({
+            from: from.toString(),
+            to: to.toString()
+        })
 
-        if (startDate) {
-            query = query.gte('created_at', new Date(startDate).toISOString())
-        }
-        if (endDate) {
-            const end = new Date(endDate)
-            end.setHours(23, 59, 59, 999)
-            query = query.lte('created_at', end.toISOString())
-        }
+        if (startDate) queryParams.set("startDate", startDate)
+        if (endDate) queryParams.set("endDate", endDate)
 
-        const { data, error, count } = await query
+        try {
+            const res = await fetch(`/api/meetings?${queryParams.toString()}`)
+            if (!res.ok) throw new Error('Failed to fetch meetings')
 
-        if (!error && data) {
-            const currentTotal = isNewSearch ? data.length : meetings.length + data.length
-            setHasMore(count ? currentTotal < count : data.length === ITEMS_PER_PAGE)
-            setMeetings(prev => isNewSearch ? data : [...prev, ...data])
+            const { data, count } = await res.json()
+
+            if (data) {
+                const currentTotal = isNewSearch ? data.length : meetings.length + data.length
+                setHasMore(count ? currentTotal < count : data.length === ITEMS_PER_PAGE)
+                setMeetings(prev => isNewSearch ? data : [...prev, ...data])
+            }
+        } catch (error) {
+            console.error('Error fetching meetings:', error)
         }
         setIsLoading(false)
     }, [userId, page, startDate, endDate, meetings.length])
