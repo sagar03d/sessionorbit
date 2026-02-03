@@ -17,9 +17,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Check, Sparkles, Mic, Wifi, Eye, Clock, Zap, BarChart, Users, Calendar, BookOpen } from "lucide-react"
+import { useUser } from "@/hooks/useUser"
 
 export default function LoginPage() {
     const router = useRouter()
+    const { user, isLoading: userLoading } = useUser()
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
     const [isLoading, setIsLoading] = useState(false)
@@ -29,14 +31,13 @@ export default function LoginPage() {
     const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
-        const checkSession = async () => {
-            const { data: { session } } = await supabase.auth.getSession()
-            if (session) {
-                router.push("/dashboard")
-            }
+        if (!userLoading && user) {
+            router.replace("/dashboard")
         }
-        checkSession()
-    }, [router])
+    }, [user, userLoading, router])
+
+    // Local session check removed in favor of useUser hook
+
 
     const handleSignIn = async (e: React.FormEvent) => {
         e.preventDefault()
