@@ -1,12 +1,11 @@
-
 "use client"
 
-import { useEffect, useState, use } from "react"
+import { useEffect, useState, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Loader2, CheckCircle, AlertTriangle } from "lucide-react"
 
-export default function JoinPage() {
+function JoinPageContent() {
     const searchParams = useSearchParams()
     const token = searchParams.get('token')
     const router = useRouter()
@@ -103,5 +102,17 @@ export default function JoinPage() {
                 )}
             </div>
         </div>
+    )
+}
+
+export default function JoinPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-black flex items-center justify-center p-4">
+                <Loader2 className="w-8 h-8 animate-spin text-neutral-500" />
+            </div>
+        }>
+            <JoinPageContent />
+        </Suspense>
     )
 }

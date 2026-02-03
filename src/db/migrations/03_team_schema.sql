@@ -116,4 +116,11 @@ CREATE POLICY "Org Admins view all org meetings"
         get_auth_user_role_v2() IN ('owner', 'admin')
     );
 
+DROP POLICY IF EXISTS "Users can view their own meetings" ON public.meetings;
+CREATE POLICY "Users can view their own meetings"
+    ON public.meetings FOR SELECT
+    USING (
+        host_id = auth.uid()
+    );
+
 -- Ensure teachers still see their own (likely covered by existing "host_id = auth.uid()" policy, but explicit check doesn't hurt)
