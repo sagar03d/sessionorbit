@@ -1,4 +1,5 @@
 import Hero from "@/components/landing/Hero";
+import ClassroomPreview from "@/components/landing/ClassroomPreview";
 import FeaturesGrid from "@/components/landing/FeaturesGrid";
 import DetailedFeatures from "@/components/landing/DetailedFeatures";
 import Stats from "@/components/landing/Stats";
@@ -19,6 +20,7 @@ export default function Home() {
 
       <div className="relative z-10">
         <Hero />
+        <ClassroomPreview />
         <Stats />
         <FeaturesGrid />
         <DetailedFeatures />

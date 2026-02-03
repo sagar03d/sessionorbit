@@ -53,7 +53,7 @@ export default function Hero() {
                 <div className="flex-1 w-full max-w-xl lg:max-w-none relative perspective-1000">
                     <div className="relative w-full aspect-[16/9] rounded-2xl overflow-hidden shadow-2xl border border-white/10 group transform transition-transform duration-700 hover:scale-[1.02] hover:rotate-1">
                         <Image
-                            src="/hero-visual.png"
+                            src="/dashboard-preview.png"
                             alt="SessionOrbit Dashboard"
                             fill
                             className="object-cover"
