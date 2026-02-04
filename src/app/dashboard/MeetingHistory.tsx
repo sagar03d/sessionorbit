@@ -45,30 +45,62 @@ export default function MeetingHistory({ userId }: { userId: string }) {
         const from = currentPage * ITEMS_PER_PAGE
         const to = from + ITEMS_PER_PAGE - 1
 
-        const queryParams = new URLSearchParams({
-            from: from.toString(),
-            to: to.toString()
-        })
-
-        if (startDate) queryParams.set("startDate", startDate)
-        if (endDate) queryParams.set("endDate", endDate)
-
         try {
-            const res = await fetch(`/api/meetings?${queryParams.toString()}`)
-            if (!res.ok) throw new Error('Failed to fetch meetings')
+            const { data: { session } } = await supabase.auth.getSession()
 
-            const { data, count } = await res.json()
+            let fetchedData: Meeting[] = []
+            let totalCount: number | null = 0
 
-            if (data) {
-                const currentTotal = isNewSearch ? data.length : meetings.length + data.length
-                setHasMore(count ? currentTotal < count : data.length === ITEMS_PER_PAGE)
-                setMeetings(prev => isNewSearch ? data : [...prev, ...data])
+            if (session) {
+                // Use Supabase Client directly (RLS protected)
+                let query = supabase
+                    .from('meetings')
+                    .select('*', { count: 'exact' })
+                    .order('created_at', { ascending: false })
+                    .range(from, to)
+
+                if (startDate) query = query.gte('created_at', new Date(startDate).toISOString())
+                if (endDate) {
+                    const end = new Date(endDate)
+                    end.setHours(23, 59, 59, 999)
+                    query = query.lte('created_at', end.toISOString())
+                }
+
+                const { data, count, error } = await query
+                if (error) throw error
+
+                fetchedData = data || []
+                totalCount = count
+            } else {
+                // Fallback to API for manual auth (cookie-based)
+                const queryParams = new URLSearchParams({
+                    from: from.toString(),
+                    to: to.toString()
+                })
+
+                if (startDate) queryParams.set("startDate", startDate)
+                if (endDate) queryParams.set("endDate", endDate)
+
+                const res = await fetch(`/api/meetings?${queryParams.toString()}`)
+                if (!res.ok) throw new Error('Failed to fetch meetings')
+
+                const json = await res.json()
+                fetchedData = json.data || []
+                totalCount = json.count
+            }
+
+            if (fetchedData) {
+                const currentTotal = isNewSearch ? fetchedData.length : meetings.length + fetchedData.length
+                setHasMore(totalCount ? currentTotal < totalCount : fetchedData.length === ITEMS_PER_PAGE)
+                setMeetings(prev => isNewSearch ? fetchedData : [...prev, ...fetchedData])
             }
         } catch (error) {
             console.error('Error fetching meetings:', error)
         }
         setIsLoading(false)
     }, [userId, page, startDate, endDate, meetings.length])
+
+
 
     // Handle filter/user resets
     useEffect(() => {
