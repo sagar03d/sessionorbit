@@ -113,5 +113,24 @@ export function useUser() {
         router.refresh()
     }
 
-    return { user, profile, usage, isLoading, signOut }
+    const refreshProfile = async () => {
+        const { data: { user: sbUser } } = await supabase.auth.getUser()
+        if (sbUser) {
+            await fetchSupabaseData(sbUser)
+        } else {
+            // For manual auth, re-fetch from API
+            const res = await fetch('/api/auth/me')
+            const data = await res.json()
+            if (data.user) {
+                const statsRes = await fetch('/api/dashboard/stats')
+                if (statsRes.ok) {
+                    const stats = await statsRes.json()
+                    setProfile(stats.profile)
+                    setUsage(stats.usage || { hours: 0, reports: 0 })
+                }
+            }
+        }
+    }
+
+    return { user, profile, usage, isLoading, signOut, refreshProfile }
 }

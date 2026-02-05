@@ -4,11 +4,12 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import { ChevronDown, Sparkles, Mic, Wifi, Eye } from "lucide-react";
+import { ChevronDown, Sparkles, Mic, Wifi, Eye, Menu, X } from "lucide-react";
 import * as Popover from "@radix-ui/react-popover";
 
 export default function Header() {
   const [session, setSession] = useState<any>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -102,38 +103,84 @@ export default function Header() {
         </div>
 
         <div className="flex items-center gap-6">
-          {session ? (
-            <>
+          {/* Desktop Auth Buttons */}
+          <div className="hidden md:flex items-center gap-6">
+            {session ? (
+              <>
+                <Link
+                  href="/dashboard"
+                  className="text-sm font-medium text-neutral-400 hover:text-white transition-colors flex items-center gap-2"
+                >
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  Mission Control
+                </Link>
+                <Link
+                  href="/dashboard/settings"
+                  className="text-sm font-medium text-neutral-400 hover:text-white transition-colors"
+                >
+                  Settings
+                </Link>
+                <button
+                  onClick={handleSignOut}
+                  className="text-sm font-medium text-neutral-400 hover:text-white transition-colors"
+                >
+                  Logout
+                </button>
+              </>
+            ) : (
               <Link
-                href="/dashboard"
-                className="text-sm font-medium text-neutral-400 hover:text-white transition-colors flex items-center gap-2"
-              >
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                Mission Control
-              </Link>
-              <Link
-                href="/dashboard/settings"
+                href="/login"
                 className="text-sm font-medium text-neutral-400 hover:text-white transition-colors"
               >
-                Settings
+                Login
               </Link>
-              <button
-                onClick={handleSignOut}
-                className="text-sm font-medium text-neutral-400 hover:text-white transition-colors"
-              >
-                Logout
-              </button>
-            </>
-          ) : (
-            <Link
-              href="/login"
-              className="text-sm font-medium text-neutral-400 hover:text-white transition-colors"
-            >
-              Login
-            </Link>
-          )}
+            )}
+          </div>
+
+          {/* Mobile Menu Button */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="md:hidden p-2 text-white hover:bg-white/10 rounded-lg transition-colors"
+          >
+            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
         </div>
       </div>
+
+      {/* Mobile Menu Overlay */}
+      {mobileMenuOpen && (
+        <div className="md:hidden border-t border-neutral-800 bg-black/95 backdrop-blur-md h-screen">
+          <div className="px-6 py-4 space-y-6">
+            <div className="space-y-4">
+              <div className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Features</div>
+              <Link href="/features/ai-lesson-scribe" onClick={() => setMobileMenuOpen(false)} className="block text-neutral-300 hover:text-white text-sm">AI Lesson Scribe</Link>
+              <Link href="/features/ai-help-desk" onClick={() => setMobileMenuOpen(false)} className="block text-neutral-300 hover:text-white text-sm">AI Help Desk</Link>
+              <Link href="/features/smooth-stream" onClick={() => setMobileMenuOpen(false)} className="block text-neutral-300 hover:text-white text-sm">Smooth-Stream</Link>
+              <Link href="/features/focus-orbit" onClick={() => setMobileMenuOpen(false)} className="block text-neutral-300 hover:text-white text-sm">Focus Orbit</Link>
+            </div>
+
+            <div className="h-px bg-neutral-800" />
+
+            <Link href="/pricing" onClick={() => setMobileMenuOpen(false)} className="block text-neutral-300 hover:text-white font-medium">Pricing</Link>
+            <Link href="/free-whiteboard" onClick={() => setMobileMenuOpen(false)} className="block text-neutral-300 hover:text-white font-medium">Free Whiteboard</Link>
+
+            <div className="h-px bg-neutral-800" />
+
+            {session ? (
+              <div className="space-y-4">
+                <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 text-emerald-400 font-medium">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                  Mission Control
+                </Link>
+                <Link href="/dashboard/settings" onClick={() => setMobileMenuOpen(false)} className="block text-neutral-300 hover:text-white font-medium">Settings</Link>
+                <button onClick={() => { setMobileMenuOpen(false); handleSignOut(); }} className="block w-full text-left text-red-400 hover:text-red-300 font-medium">Logout</button>
+              </div>
+            ) : (
+              <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="block text-white bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded-md text-center font-medium">Login</Link>
+            )}
+          </div>
+        </div>
+      )}
     </header>
   );
 }
