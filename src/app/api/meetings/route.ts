@@ -32,7 +32,7 @@ export async function GET(request: Request) {
 
     let query = supabaseAdmin
         .from('meetings')
-        .select('*, profiles(full_name, email)', { count: 'exact' }); // Join profiles to show who hosted
+        .select('*, profiles(full_name)', { count: 'exact' }); // Join profiles to show who hosted
 
     // RBAC Logic
     if (profile?.role === 'owner' || profile?.role === 'admin') {
