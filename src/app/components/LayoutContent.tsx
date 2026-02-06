@@ -3,26 +3,20 @@
 import { usePathname } from "next/navigation"
 import Header from "./Header"
 import Footer from "@/components/Footer"
-import CommonHeader from "@/components/Header"
 
 export default function LayoutContent({ children }: { children: React.ReactNode }) {
     const pathname = usePathname()
-    const isHomePage = pathname === "/"
-    const isDashboard = pathname.startsWith("/dashboard") || pathname.startsWith("/room") || pathname.startsWith("/free-whiteboard")
 
-    if (isHomePage) {
-        return (
-            <>
-                <Header />
-                <main className="grow pt-16">
-                    {children}
-                </main>
-                <Footer />
-            </>
-        )
-    }
+    // Auth/App routes that should NOT have the global header/footer
+    // Note: /courses is likely under /dashboard/courses, so dashboard check covers it.
+    // If /courses exists as top level, add it here.
+    const isAppRoute =
+        pathname.startsWith("/dashboard") ||
+        pathname.startsWith("/teams") ||
+        pathname.startsWith("/room") ||
+        pathname.startsWith("/free-whiteboard")
 
-    if (isDashboard) {
+    if (isAppRoute) {
         return (
             <main className="flex-1">
                 {children}
@@ -30,10 +24,11 @@ export default function LayoutContent({ children }: { children: React.ReactNode 
         )
     }
 
+    // Default Layout (Homepage Header + Content + Footer)
     return (
         <>
-            <CommonHeader />
-            <main className="flex-1">
+            <Header />
+            <main className="grow pt-16">
                 {children}
             </main>
             <Footer />

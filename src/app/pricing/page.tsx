@@ -1,7 +1,6 @@
 "use client"
 
 import { Check, Star, Zap, Building2, HelpCircle, Loader2 } from "lucide-react"
-import Header from "@/app/components/Header"
 import PricingTable from "@/components/pricing/PricingTable"
 import ContactSalesDialog from "@/components/pricing/ContactSalesDialog"
 import { useRouter } from "next/navigation"
@@ -69,7 +68,6 @@ export default function PricingPage() {
 
     return (
         <div className="min-h-screen bg-[#0B0C15] text-white selection:bg-indigo-500/30">
-            <Header />
 
             <div className="relative pt-32 pb-16 overflow-hidden">
                 {/* Background Decor */}
