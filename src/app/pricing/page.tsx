@@ -14,6 +14,8 @@ export default function PricingPage() {
     const [loadingProduct, setLoadingProduct] = useState<string | null>(null)
 
     const handleCheckout = async (productId: string) => {
+        console.log("Checking out with productId:", productId);
+        console.log("Current Config:", CLIENT_PAYMENT_CONFIG);
         setLoadingProduct(productId)
 
         // Save intended plan for immediate activation on return
