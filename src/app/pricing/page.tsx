@@ -21,7 +21,6 @@ export default function PricingPage() {
         // Save intended plan for immediate activation on return
         const planMap: Record<string, string> = {
             [CLIENT_PAYMENT_CONFIG.productIds.pro!]: 'Pro',
-            [CLIENT_PAYMENT_CONFIG.productIds.squad!]: 'Squad'
         };
         const planName = planMap[productId] || 'Free';
         localStorage.setItem('intended_plan', planName);

@@ -23,8 +23,6 @@ export const POST = Webhooks({
     const planMap: Record<string, string> = {
       [PAYMENT_CONFIG.productIds.pro!]: 'Pro',
       [PAYMENT_CONFIG.productIds.starter!]: 'Starter',
-      // Fallback for legacy keys if they differ
-      [PAYMENT_CONFIG.productIds.squad!]: 'Pro'
     };
 
     const planName = planMap[product_id] || 'Free';

@@ -11,11 +11,6 @@ export const CLIENT_PAYMENT_CONFIG = {
             return CLIENT_PAYMENT_CONFIG.env === 'live_mode'
                 ? process.env.NEXT_PUBLIC_DODO_PRODUCT_ID_STARTER_LIVE
                 : process.env.NEXT_PUBLIC_DODO_PRODUCT_ID_STARTER_TEST;
-        },
-        get squad() {
-            return CLIENT_PAYMENT_CONFIG.env === 'live_mode'
-                ? process.env.NEXT_PUBLIC_DODO_PRODUCT_ID_SQUAD_LIVE
-                : process.env.NEXT_PUBLIC_DODO_PRODUCT_ID_SQUAD_TEST;
         }
     }
 };

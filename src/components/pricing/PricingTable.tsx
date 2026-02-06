@@ -13,25 +13,25 @@ const features = [
     {
         category: "Teaching Limits",
         items: [
-            { name: "Classroom Hours", free: "2 Hours / mo", pro: "20 Hours / mo", squad: "80 Hours / mo", tip: "Total duration of hosted sessions per month." },
-            { name: "AI Scribe Reports", free: "2 Reports / mo", pro: "20 Reports / mo", squad: "80 Reports / mo", tip: "Automated lesson summaries and analytics." },
-            { name: "Overage Fee", free: "N/A (Upgrade)", pro: "$1.25 / hour", squad: "$1.10 / hour", tip: "Cost per additional hour after limit is reached." },
-            { name: "Monthly Reset", free: "Every 30 days", pro: "Every 30 days", squad: "Every 30 days", tip: "Usage counters reset at the start of your billing cycle." },
+            { name: "Classroom Hours", free: "2 Hours / mo", starter: "20 Hours / mo", pro: "80 Hours / mo", tip: "Total duration of hosted sessions per month." },
+            { name: "AI Scribe Reports", free: "2 Reports / mo", starter: "20 Reports / mo", pro: "80 Reports / mo", tip: "Automated lesson summaries and analytics." },
+            { name: "Overage Fee", free: "N/A (Upgrade)", starter: "$1.25 / hour", pro: "$1.10 / hour", tip: "Cost per additional hour after limit is reached." },
+            { name: "Monthly Reset", free: "Every 30 days", starter: "Every 30 days", pro: "Every 30 days", tip: "Usage counters reset at the start of your billing cycle." },
         ]
     },
     {
         category: "Features",
         items: [
-            { name: "Interactive Whiteboard", free: true, pro: true, squad: true, tip: "Real-time collaborative canvas." },
-            { name: "Cloud Recording", free: false, pro: "Included", squad: "Included", tip: "Save sessions to the cloud." },
-            { name: "AI Tech Support", free: "Basic", pro: "Full AI Support", squad: "Priority AI Support", tip: "Access to our AI helper for technical issues." },
+            { name: "Interactive Whiteboard", free: true, starter: true, pro: true, tip: "Real-time collaborative canvas." },
+            { name: "Cloud Recording", free: false, starter: "Included", pro: "Included", tip: "Save sessions to the cloud." },
+            { name: "AI Tech Support", free: "Basic", starter: "Full AI Support", pro: "Priority AI Support", tip: "Access to our AI helper for technical issues." },
         ]
     },
     {
         category: "Growth",
         items: [
-            { name: "Custom Branding", free: false, pro: false, squad: true, tip: "Add your logo to the classroom." },
-            { name: "Agency Dashboard", free: false, pro: false, squad: true, tip: "Manage multiple tutors and students." },
+            { name: "Custom Branding", free: false, starter: false, pro: true, tip: "Add your logo to the classroom." },
+            { name: "Agency Dashboard", free: false, starter: false, pro: true, tip: "Manage multiple tutors and students." },
         ]
     }
 ];
@@ -86,12 +86,12 @@ export default function PricingTable() {
 
                                             {/* Starter */}
                                             <td className="p-4 text-primary text-center bg-indigo-500/5">
-                                                <CellContent value={feature.pro} checkColor="text-amber-400" />
+                                                <CellContent value={feature.starter} checkColor="text-amber-400" />
                                             </td>
 
                                             {/* Pro */}
                                             <td className="p-4 text-center bg-purple-500/5">
-                                                <CellContent value={feature.squad} checkColor="text-purple-400" />
+                                                <CellContent value={feature.pro} checkColor="text-purple-400" />
                                             </td>
                                         </tr>
                                     ))}
