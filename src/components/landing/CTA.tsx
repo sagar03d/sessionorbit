@@ -29,7 +29,7 @@ export default function CTA() {
                     </div>
 
                     <p className="text-sm text-white/70 mt-6 font-medium">
-                        ✓ 14-day free trial &nbsp;&nbsp; ✓ No credit card required &nbsp;&nbsp; ✓ Cancel anytime
+                        ✓ 7-day free trial &nbsp;&nbsp; &nbsp;&nbsp; ✓ Cancel anytime
                     </p>
                 </div>
             </div>

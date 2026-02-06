@@ -1,9 +1,69 @@
 "use client"
 
-import { Check, Sparkles, Rocket, Crown } from "lucide-react"
-import Link from "next/link"
+import { Check, Sparkles, Rocket, Crown, Loader2 } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { useState } from "react"
+import { supabase } from "@/lib/supabase"
+import { CLIENT_PAYMENT_CONFIG } from "@/lib/client-payment-config"
 
 export default function PricingPreview() {
+    const router = useRouter()
+    const [loadingProduct, setLoadingProduct] = useState<string | null>(null)
+
+    const handleCheckout = async (productId: string) => {
+        setLoadingProduct(productId)
+
+        // Save intended plan for immediate activation on return
+        const planMap: Record<string, string> = {
+            [CLIENT_PAYMENT_CONFIG.productIds.pro!]: 'Pro',
+            [CLIENT_PAYMENT_CONFIG.productIds.squad!]: 'Squad'
+        };
+        const planName = planMap[productId] || 'Free';
+        localStorage.setItem('intended_plan', planName);
+
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+
+            const response = await fetch('/api/checkout', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    product_cart: [{ product_id: productId, quantity: 1 }],
+                    customer: session?.user ? {
+                        name: session.user.user_metadata?.full_name || session.user.email,
+                        email: session.user.email,
+                    } : undefined,
+                    metadata: {
+                        userId: session?.user?.id
+                    }
+                }),
+            });
+
+            const text = await response.text();
+            let data;
+            try {
+                data = JSON.parse(text);
+            } catch (e) {
+                console.error("Failed to parse JSON:", text);
+                throw new Error(text);
+            }
+
+            if (data.checkout_url) {
+                window.location.href = data.checkout_url;
+            } else {
+                console.error('No checkout URL returned', data);
+                alert("Error: " + (data.message || "Could not create checkout session"));
+            }
+        } catch (error) {
+            console.error('Checkout error:', error);
+            alert("Checkout error. Please check console.");
+        } finally {
+            setLoadingProduct(null)
+        }
+    }
+
     const plans = [
         {
             name: "Free",
@@ -19,7 +79,8 @@ export default function PricingPreview() {
             ],
             cta: "Get Started",
             popular: false,
-            href: "/signup"
+            action: () => router.push('/signup'),
+            productId: null
         },
         {
             name: "Starter",
@@ -35,7 +96,7 @@ export default function PricingPreview() {
             ],
             cta: "Start Free Trial",
             popular: true,
-            href: "/signup"
+            productId: CLIENT_PAYMENT_CONFIG.productIds.starter
         },
         {
             name: "Pro",
@@ -51,7 +112,7 @@ export default function PricingPreview() {
             ],
             cta: "Start Free Trial",
             popular: false,
-            href: "/signup"
+            productId: CLIENT_PAYMENT_CONFIG.productIds.pro
         }
     ]
 
@@ -69,6 +130,8 @@ export default function PricingPreview() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 {plans.map((plan, index) => {
                     const Icon = plan.icon
+                    const isLoading = loadingProduct !== null && loadingProduct === plan.productId;
+
                     return (
                         <div key={index} className={`relative group ${plan.popular ? 'md:-mt-4' : ''}`}>
                             {plan.popular && (
@@ -101,9 +164,20 @@ export default function PricingPreview() {
                                     ))}
                                 </ul>
 
-                                <Link href={plan.href} className={`block w-full text-center py-3 rounded-xl font-semibold transition-all ${plan.popular ? 'bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white' : 'bg-white/5 hover:bg-white/10 text-white border border-white/10'}`}>
+                                <button
+                                    onClick={() => {
+                                        if (plan.productId) {
+                                            handleCheckout(plan.productId);
+                                        } else if (plan.action) {
+                                            plan.action();
+                                        }
+                                    }}
+                                    disabled={isLoading}
+                                    className={`w-full py-3 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 ${plan.popular ? 'bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white' : 'bg-white/5 hover:bg-white/10 text-white border border-white/10'}`}
+                                >
+                                    {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
                                     {plan.cta}
-                                </Link>
+                                </button>
                             </div>
                         </div>
                     )
@@ -111,7 +185,7 @@ export default function PricingPreview() {
             </div>
 
             <p className="text-center text-slate-500 text-sm mt-8">
-                All plans include 14-day free trial. No credit card required.
+                All plans include 7-day free trial.
             </p>
         </section>
     )

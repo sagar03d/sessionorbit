@@ -1,9 +1,10 @@
 
 import { supabaseAdmin } from "@/lib/supabase";
+import { PAYMENT_CONFIG } from "@/lib/payment-config";
 
 // Dodo Payments API Base URL (adjust for production/sandbox)
 const DODO_API_URL = "https://api.dodopayments.com/v1"; // Verify version
-const DODO_API_KEY = process.env.DODO_PAYMENTS_API_KEY;
+const DODO_API_KEY = PAYMENT_CONFIG.apiKey;
 
 export async function checkAndReportOverage(userId: string, addedMinutes: number) {
     if (!DODO_API_KEY) {
