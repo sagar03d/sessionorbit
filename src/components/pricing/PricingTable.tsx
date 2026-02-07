@@ -8,6 +8,9 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { usePricing } from "@/contexts/PricingContext";
+import { Button } from "@/components/ui/button";
+import { Globe } from "lucide-react";
 
 const features = [
     {
@@ -36,10 +39,20 @@ const features = [
     }
 ];
 
+// Helper to get dynamic value
+const getFeatureValue = (feature: any, tier: 'free' | 'starter' | 'pro', prices: any, currency: any) => {
+    if (feature.name === "Overage Fee" && tier !== 'free') {
+        return prices.overage[tier];
+    }
+    return feature[tier];
+}
+
 export default function PricingTable() {
+    const { currency, prices, format } = usePricing();
+
     return (
         <div className="w-full max-w-7xl mx-auto px-4 py-16 sm:px-6 lg:px-8">
-            <div className="text-center mb-12">
+            <div className="text-center mb-12 relative">
                 <h2 className="text-3xl font-bold text-white">Compare Plans</h2>
                 <p className="mt-4 text-slate-400">Find the right teaching power for your needs.</p>
             </div>
@@ -50,8 +63,8 @@ export default function PricingTable() {
                         <tr className="bg-white/5 border-b border-white/10">
                             <th className="p-4 sm:p-6 text-sm font-semibold text-white w-1/3">Feature</th>
                             <th className="p-4 sm:p-6 text-sm font-bold text-indigo-300 text-center w-1/5">Free (Basic)</th>
-                            <th className="p-4 sm:p-6 text-sm font-bold text-amber-300 text-center w-1/5">Starter ($19)</th>
-                            <th className="p-4 sm:p-6 text-sm font-bold text-purple-300 text-center w-1/5">Pro ($79)</th>
+                            <th className="p-4 sm:p-6 text-sm font-bold text-amber-300 text-center w-1/5">Starter ({format(prices.starter.price)})</th>
+                            <th className="p-4 sm:p-6 text-sm font-bold text-purple-300 text-center w-1/5">Pro ({format(prices.pro.price)})</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-white/10 bg-[#0B0C15]">
@@ -86,12 +99,12 @@ export default function PricingTable() {
 
                                             {/* Starter */}
                                             <td className="p-4 text-primary text-center bg-indigo-500/5">
-                                                <CellContent value={feature.starter} checkColor="text-amber-400" />
+                                                <CellContent value={getFeatureValue(feature, 'starter', prices, currency)} checkColor="text-amber-400" />
                                             </td>
 
                                             {/* Pro */}
                                             <td className="p-4 text-center bg-purple-500/5">
-                                                <CellContent value={feature.pro} checkColor="text-purple-400" />
+                                                <CellContent value={getFeatureValue(feature, 'pro', prices, currency)} checkColor="text-purple-400" />
                                             </td>
                                         </tr>
                                     ))}

@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation"
 import Header from "./Header"
 import Footer from "@/components/Footer"
+import { PricingProvider } from "@/contexts/PricingContext"
 
 export default function LayoutContent({ children }: { children: React.ReactNode }) {
     const pathname = usePathname()
@@ -19,7 +20,7 @@ export default function LayoutContent({ children }: { children: React.ReactNode 
     if (isAppRoute) {
         return (
             <main className="flex-1">
-                {children}
+                <PricingProvider>{children}</PricingProvider>
             </main>
         )
     }
@@ -29,7 +30,7 @@ export default function LayoutContent({ children }: { children: React.ReactNode 
         <>
             <Header />
             <main className="grow pt-16">
-                {children}
+                <PricingProvider>{children}</PricingProvider>
             </main>
             <Footer />
         </>

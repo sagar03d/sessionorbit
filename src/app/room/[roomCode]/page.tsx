@@ -13,8 +13,8 @@ import {
 } from "@livekit/components-react"
 import "@livekit/components-styles"
 import { BackgroundBlur, VirtualBackground } from "@livekit/track-processors";
-import { Track } from "livekit-client"
-import { Copy, Check, Users, Layout, Video, LogOut, VideoOff, Mic, MicOff, Settings, Wifi, WifiOff, FileText, Image as ImageIcon, Plus, Link as LinkIcon, Globe, X, Captions, Code2 } from "lucide-react"
+import { Track, ConnectionQuality } from "livekit-client"
+import { Copy, Check, Users, Layout, Video, LogOut, VideoOff, Mic, MicOff, Settings, Wifi, WifiOff, FileText, Image as ImageIcon, Plus, Link as LinkIcon, Globe, X, Captions, Code2, UserPlus, Square, MessageSquare } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import Whiteboard, { WhiteboardHandle } from "../../components/Whiteboard"
@@ -22,6 +22,9 @@ import ExcalidrawBoard from "../../components/ExcalidrawBoard"
 import CodeEditor from "../../components/CodeEditor"
 import PreJoinScreen from "../../components/PreJoinScreen"
 import RoomEffects from "./RoomEffects";
+
+
+import Chat from "@/components/chat/Chat";
 
 // Helper for speech recognition
 const SpeechRecognition = (typeof window !== 'undefined' && ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition)) || null;
@@ -59,6 +62,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
     // Dynamic Tabs State
     const [tabs, setTabs] = useState<Tab[]>([{ id: 'main', type: 'whiteboard', title: 'Whiteboard', boardId: 'main' }])
     const [activeTabId, setActiveTabId] = useState<string>('main')
+    const [sidebarTab, setSidebarTab] = useState<'videos' | 'chat'>('videos')
 
     const searchParams = useSearchParams()
     const recorderToken = searchParams.get("recorder_token")
@@ -788,12 +792,13 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
 
     if (isLoading) {
         return (
-            <div className="flex h-screen items-center justify-center bg-black text-white">
+            <div className="flex h-screen w-screen items-center justify-center bg-black text-white overflow-hidden">
                 <p>Connecting to classroom...</p>
             </div>
         )
     }
 
+    // If joined, render the room
     if (!hasJoinedRoom) {
         return (
             <PreJoinScreen
@@ -828,208 +833,266 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
             {!isRecorder && (
                 <RoomEffects bgSettings={bgSettings} />
             )}
-            {!isRecorder && (
-                <RoomHeader
-                    meetingName={meeting?.name || "Classroom"}
-                    role={role}
-                    isRecording={isRecording}
-                    onToggleRecording={isRecording ? stopRecording : startRecording}
-                    copied={copied}
-                    onCopyInviteLink={copyInviteLink}
-                    onLeave={() => {
-                        if (role === 'participant') {
-                            if (confirm("Are you sure you want to leave this class?")) {
-                                router.push(`/feedback?meeting_id=${meeting?.id}&participant_id=${participantDbId}`)
-                            }
-                        } else {
-                            router.push("/dashboard")
-                        }
-                    }}
-                    onEndClass={handleEndClass}
-                    isLowBandwidth={isLowBandwidth}
-                    onToggleLowBandwidth={setIsLowBandwidth}
-                    isTranscribing={isTranscribing}
-                />
-            )}
 
-            <div className="flex-1 relative bg-white overflow-hidden flex flex-row min-h-0" style={{ height: '-webkit-fill-available' } as React.CSSProperties}>
+            <div className="flex flex-col h-screen w-screen bg-[#0b0c15] text-white overflow-hidden font-sans selection:bg-indigo-500/30">
+                {/* Header */}
+                <div className="h-14 border-b border-white/5 bg-[#0f111a] flex items-center justify-between px-4 z-20 shrink-0">
+                    <div className="flex items-center gap-4">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 p-[1px]">
+                            <div className="w-full h-full rounded-full bg-[#0f111a] flex items-center justify-center">
+                                <span className="text-indigo-400 font-bold text-xs">
+                                    {meeting?.name?.charAt(0) || "C"}
+                                </span>
+                            </div>
+                        </div>
+                        <span className="text-white font-medium text-sm">
+                            {meeting?.name || "Classroom"}
+                        </span>
+
+                        <div className="h-4 w-[1px] bg-white/10 mx-1"></div>
+
+                        {/* {isRecording && (
+                            <div className="px-3 py-1 bg-red-500/10 border border-red-500/20 rounded-md flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+                                <span className="text-red-400 text-xs font-medium">Recording...</span>
+                            </div>
+                        )} */}
+
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={copyInviteLink}
+                                className="flex items-center gap-2 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-md text-slate-300 text-xs transition-colors"
+                            >
+                                {copied ? <Check size={14} className="text-emerald-400" /> : <UserPlus size={14} />}
+                                {copied ? "Copied" : "Invite"}
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        {role === 'host' && (
+                            <button
+                                onClick={isRecording ? stopRecording : startRecording}
+                                className={`flex items-center gap-2 px-3 py-1.5 border rounded-md text-xs transition-colors ${isRecording ? 'bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/20' : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10'}`}
+                            >
+                                <div className={`w-2 h-2 rounded-full ${isRecording ? 'bg-red-500' : 'bg-slate-400'}`} />
+                                {isRecording ? "Stop Rec" : "Record"}
+                            </button>
+                        )}
+
+                        <button className="p-2 text-slate-400 hover:text-white rounded-md hover:bg-white/5 transition-colors">
+                            <Settings size={18} />
+                        </button>
+                        <button
+                            onClick={handleEndClass}
+                            className="p-2 text-red-400 hover:text-red-300 rounded-md hover:bg-red-500/10 transition-colors"
+                            title={role === 'host' ? "End Class" : "Leave Class"}
+                        >
+                            <LogOut size={18} />
+                        </button>
+                    </div>
+                </div>
+
                 <RoomAudioEffects />
                 <RoomTracker participantDbId={participantDbId} />
                 <RemoteMuteHandler />
                 <ActiveRoomManager meetingId={meeting?.id} />
 
-                {/* Main Content Area */}
-                <div className="flex-1 relative bg-white overflow-hidden h-full min-w-0 flex flex-col">
-                    {/* Tabs Bar */}
-                    <div className="h-10 bg-neutral-100 border-b border-neutral-200 flex items-center px-4 gap-2 shrink-0 overflow-x-auto thin-scrollbar z-10">
-                        {tabs.map(tab => (
-                            <div
-                                key={tab.id}
-                                className={`flex items-center gap-2 h-full px-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-colors whitespace-nowrap ${activeTabId === tab.id ? 'border-neutral-900 text-neutral-900' : 'border-transparent text-neutral-500 hover:text-neutral-700'}`}
-                            >
-                                <button
-                                    onClick={() => setActiveTabId(tab.id)}
-                                    className="flex items-center gap-2 h-full"
-                                >
-                                    {tab.type === 'whiteboard' ? <Layout className="w-3.5 h-3.5" /> : <Globe className="w-3.5 h-3.5" />}
-                                    {tab.title}
-                                </button>
-                                {tab.id !== 'main' && role === 'host' && (
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation()
-                                            removeTab(tab.id)
-                                        }}
-                                        className="ml-1 p-0.5 rounded-full hover:bg-neutral-200 text-neutral-400 hover:text-red-500 transition-colors"
-                                        title="Close Tab"
-                                    >
-                                        <X className="w-3 h-3" />
+                <div className="flex-1 flex overflow-hidden">
+                    {/* Main Content Area - Tabs & Canvas */}
+                    <div className="flex-1 flex flex-col relative bg-[#13151f] overflow-hidden">
+
+                        {/* Tabs Bar */}
+                        <div className="h-10 border-b border-white/5 bg-[#0f111a] flex items-end px-2 gap-1 shrink-0">
+                            {/* New Tab Button at Start */}
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <button className="p-2 mb-1 text-slate-500 hover:text-slate-300 hover:bg-white/5 rounded-md transition-colors">
+                                        <Plus size={16} />
                                     </button>
-                                )}
-                            </div>
-                        ))}
-
-                        {/* Plus Button */}
-                        {role === 'host' && (
-                            <div className="relative ml-2">
-                                <Popover>
-                                    <PopoverTrigger asChild>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-48 bg-[#1a1d2d] border-white/10 text-white p-1" align="start">
+                                    <div className="space-y-0.5">
                                         <button
-                                            className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-neutral-200 text-neutral-500 transition-colors"
-                                            title="Add New Tab"
+                                            onClick={() => addNewTabWrapper('whiteboard')}
+                                            className="w-full text-left px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/5 rounded-md flex items-center gap-2"
                                         >
-                                            <Plus className="w-4 h-4" />
+                                            <Square size={14} /> Whiteboard
                                         </button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-48 p-0" align="start">
-                                        <div className="flex flex-col py-1 bg-white rounded-lg">
-                                            <button
-                                                className="w-full px-4 py-2 text-left text-sm hover:bg-neutral-50 flex items-center gap-2 text-neutral-700"
-                                                onClick={() => { fileInputRef.current?.click(); }}
-                                            >
-                                                <ImageIcon className="w-4 h-4" />
-                                                Worksheet (Image)
-                                            </button>
-                                            <button
-                                                className="w-full px-4 py-2 text-left text-sm hover:bg-neutral-50 flex items-center gap-2 text-neutral-700"
-                                                onClick={handleEmbedUrl}
-                                            >
-                                                <LinkIcon className="w-4 h-4" />
-                                                Embed URL
-                                            </button>
-                                            <button
-                                                className="w-full px-4 py-2 text-left text-sm hover:bg-neutral-50 flex items-center gap-2 text-neutral-700 border-t border-neutral-100 mt-1"
-                                                onClick={() => addNewTabWrapper('code')}
-                                            >
-                                                <Code2 className="w-4 h-4" />
-                                                New Code Tab
-                                            </button>
-                                            {/* <button
-                                                className="w-full px-4 py-2 text-left text-sm hover:bg-neutral-50 flex items-center gap-2 text-neutral-700 border-t border-neutral-100 mt-1"
-                                                onClick={() => addNewTabWrapper('excalidraw')}
-                                            >
-                                                <Layout className="w-4 h-4" />
-                                                Infinite Whiteboard
-                                            </button> */}
-                                        </div>
-                                    </PopoverContent>
-                                </Popover>
-                                <input
-                                    type="file"
-                                    ref={fileInputRef}
-                                    className="hidden"
-                                    accept="image/*"
-                                    onChange={handleImageUploadForTab}
-                                />
-                            </div>
-                        )}
-                    </div>
+                                        <button
+                                            onClick={() => addNewTabWrapper('excalidraw')}
+                                            className="w-full text-left px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/5 rounded-md flex items-center gap-2"
+                                        >
+                                            <Globe size={14} /> Infinite Board
+                                        </button>
+                                        <button
+                                            onClick={() => addNewTabWrapper('code')}
+                                            className="w-full text-left px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/5 rounded-md flex items-center gap-2"
+                                        >
+                                            <Code2 size={14} /> Code Editor
+                                        </button>
+                                        <div className="h-[1px] bg-white/10 my-1" />
+                                        <button
+                                            onClick={handleEmbedUrl}
+                                            className="w-full text-left px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/5 rounded-md flex items-center gap-2"
+                                        >
+                                            <LinkIcon size={14} /> Embed Website
+                                        </button>
+                                        <label className="w-full text-left px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/5 rounded-md flex items-center gap-2 cursor-pointer">
+                                            <ImageIcon size={14} />
+                                            <span>Image Board</span>
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                className="hidden"
+                                                onChange={handleImageUploadForTab}
+                                            />
+                                        </label>
+                                    </div>
+                                </PopoverContent>
+                            </Popover>
 
-                    <div className="flex-1 relative w-full h-full">
-                        {tabs.map(tab => {
-                            if (tab.type === 'whiteboard') {
-                                // Render Whiteboard (Hidden if not active to preserve state)
-                                const isVisible = activeTabId === tab.id
-                                return (
-                                    <div
-                                        key={tab.id}
-                                        className="absolute inset-0 w-full h-full"
-                                        style={{ display: isVisible ? 'block' : 'none', visibility: isVisible ? 'visible' : 'hidden' }}
-                                    >
+                            {/* Separator */}
+                            <div className="w-[1px] h-4 bg-white/10 mb-3 mx-1"></div>
+
+                            {/* Tab Items */}
+                            <div className="flex-1 flex overflow-x-auto no-scrollbar">
+                                {tabs.map(tab => {
+                                    const isActive = activeTabId === tab.id
+                                    return (
+                                        <div
+                                            key={tab.id}
+                                            onClick={() => setActiveTabId(tab.id)}
+                                            className={`
+                                                group relative flex items-center gap-2 px-4 py-2 text-xs font-medium cursor-pointer transition-all select-none
+                                                ${isActive
+                                                    ? 'bg-[#13151f] text-white border-t border-x border-white/5 rounded-t-md relative top-[1px] z-10'
+                                                    : 'text-slate-500 hover:text-slate-300 hover:bg-white/5 rounded-t-md'
+                                                }
+                                            `}
+                                        >
+                                            <span className={`
+                                                ${isActive ? 'text-indigo-400' : 'text-slate-600 group-hover:text-slate-500'}
+                                            `}>
+                                                {tab.type === 'whiteboard' && <Square size={12} />}
+                                                {tab.type === 'excalidraw' && <Globe size={12} />}
+                                                {tab.type === 'code' && <Code2 size={12} />}
+                                                {tab.type === 'embed' && <LinkIcon size={12} />}
+                                            </span>
+                                            <span className="max-w-[100px] truncate">{tab.title}</span>
+
+                                            {tab.id !== 'main' && (
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); removeTab(tab.id); }}
+                                                    className={`
+                                                        ml-1 p-0.5 rounded-sm opacity-0 group-hover:opacity-100 transition-opacity
+                                                        ${isActive ? 'hover:bg-white/10 text-slate-400 hover:text-white' : 'hover:bg-white/10 text-slate-600 hover:text-slate-400'}
+                                                    `}
+                                                >
+                                                    <X size={10} />
+                                                </button>
+                                            )}
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Tab Content */}
+                        <div className="flex-1 relative w-full h-full overflow-hidden">
+                            {tabs.map(tab => (
+                                <div
+                                    key={tab.id}
+                                    className="absolute inset-0 w-full h-full"
+                                    style={{
+                                        display: activeTabId === tab.id ? 'block' : 'none',
+                                        zIndex: activeTabId === tab.id ? 10 : 0
+                                    }}
+                                >
+                                    {tab.type === 'whiteboard' && (
                                         <Whiteboard
-                                            ref={(el) => {
-                                                if (el) whiteboardRefs.current[tab.id] = el
+                                            ref={input => {
+                                                if (input) whiteboardRefs.current[tab.id] = input
+                                                else delete whiteboardRefs.current[tab.id]
                                             }}
                                             meetingId={meeting?.id}
-                                            boardId={tab.boardId || 'main'}
-                                            enableUpload={localCanWrite}
+                                            boardId={tab.id || 'main'}
+                                            enableUpload={true}
                                             canWrite={localCanWrite}
                                             initialData={tab.initialData}
                                         />
-                                    </div>
-                                )
-                            } else if (tab.type === 'code') {
-                                // Render Code Editor (Hidden if not active to preserve state)
-                                const isVisible = activeTabId === tab.id
-                                return (
-                                    <div
-                                        key={tab.id}
-                                        className="absolute inset-0 w-full h-full"
-                                        style={{ display: isVisible ? 'block' : 'none', visibility: isVisible ? 'visible' : 'hidden' }}
-                                    >
-                                        <CodeEditor
-                                            meetingId={meeting?.id}
-                                            boardId={tab.boardId || tab.id}
-                                            canWrite={localCanWrite}
-                                            initialData={tab.initialData as any}
-                                        />
-                                    </div>
-                                )
-                            } else if (tab.type === 'excalidraw') {
-                                // Render Excalidraw Board
-                                const isVisible = activeTabId === tab.id
-                                return (
-                                    <div
-                                        key={tab.id}
-                                        className="absolute inset-0 w-full h-full"
-                                        style={{ display: isVisible ? 'block' : 'none', visibility: isVisible ? 'visible' : 'hidden' }}
-                                    >
+                                    )}
+                                    {tab.type === 'excalidraw' && (
                                         <ExcalidrawBoard
                                             meetingId={meeting?.id}
-                                            boardId={tab.boardId || tab.id}
+                                            boardId={tab.id || 'main'}
                                             canWrite={localCanWrite}
-                                            initialData={tab.initialData as any}
+                                            initialData={tab.initialData}
                                         />
-                                    </div>
-                                )
-                            } else if (tab.type === 'embed') {
-                                if (activeTabId !== tab.id) return null
-                                return (
-                                    <div key={tab.id} className="absolute inset-0 w-full h-full bg-neutral-100 flex flex-col">
+                                    )}
+                                    {tab.type === 'code' && (
+                                        <CodeEditor
+                                            meetingId={meeting?.id}
+                                            boardId={tab.id || 'main'}
+                                            initialData={tab.initialData}
+                                            canWrite={localCanWrite}
+                                        />
+                                    )}
+                                    {tab.type === 'embed' && tab.src && (
                                         <iframe
                                             src={tab.src}
-                                            className="w-full h-full border-none"
+                                            className="w-full h-full border-0 bg-white"
                                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                             allowFullScreen
                                         />
-                                    </div>
-                                )
-                            }
-                        })}
-                    </div>
-                </div>
-
-                {/* Video Sidebar */}
-                <div className="hidden sm:flex w-72 border-l border-neutral-800 bg-neutral-900 flex-col shrink-0 h-full z-20 shadow-xl overflow-hidden">
-                    <div className="flex-1 overflow-y-auto thin-scrollbar bg-neutral-950">
-                        <div className="p-4 border-b border-neutral-800 flex justify-between items-center bg-neutral-900 shrink-0">
-                            <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-widest flex items-center gap-2">
-                                <Video className="w-3.5 h-3.5" />
-                                Live Feeds
-                            </h3>
+                                    )}
+                                </div>
+                            ))}
                         </div>
-                        <div className="p-3 space-y-3">
-                            <ParticipantVideos isLowBandwidth={isLowBandwidth} />
+                    </div>
+
+                    {/* Right Sidebar */}
+                    <div className={`w-80 bg-[#0b0c15] border-l border-white/5 flex flex-col shrink-0 transition-all duration-300 ${isLowBandwidth ? 'translate-x-full absolute right-0 h-full z-50' : ''}`}>
+
+                        {/* Sidebar Tabs */}
+                        <div className="flex items-center h-10 border-b border-white/5 bg-[#0f111a]">
+                            <button
+                                onClick={() => setSidebarTab('videos')}
+                                className={`flex-1 h-full text-xs font-semibold tracking-wider flex items-center justify-center gap-2 transition-colors ${sidebarTab === 'videos' ? 'text-indigo-400 bg-[#13151f] border-b-2 border-indigo-500' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'}`}
+                            >
+                                <Users size={14} /> PEOPLE
+                            </button>
+                            <button
+                                onClick={() => setSidebarTab('chat')}
+                                className={`flex-1 h-full text-xs font-semibold tracking-wider flex items-center justify-center gap-2 transition-colors ${sidebarTab === 'chat' ? 'text-indigo-400 bg-[#13151f] border-b-2 border-indigo-500' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'}`}
+                            >
+                                <MessageSquare size={14} /> CHAT
+                            </button>
+                        </div>
+
+                        {/* Sidebar Content */}
+                        <div className="flex-1 overflow-hidden relative">
+                            {/* Video List */}
+                            <div
+                                className="absolute inset-0 w-full h-full overflow-y-auto thin-scrollbar p-2 space-y-2"
+                                style={{
+                                    display: sidebarTab === 'videos' ? 'block' : 'none',
+                                    zIndex: sidebarTab === 'videos' ? 10 : 0
+                                }}
+                            >
+                                <ParticipantVideos isLowBandwidth={isLowBandwidth} />
+                            </div>
+
+                            {/* Chat */}
+                            <div
+                                className="absolute inset-0 w-full h-full"
+                                style={{
+                                    display: sidebarTab === 'chat' ? 'block' : 'none',
+                                    zIndex: sidebarTab === 'chat' ? 10 : 0
+                                }}
+                            >
+                                <Chat />
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1038,95 +1101,71 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
     )
 }
 
+function NetworkIndicator({ participant }: { participant: any }) {
+    const [quality, setQuality] = useState(participant.connectionQuality)
+
+    useEffect(() => {
+        const onQualityChanged = (q: any) => setQuality(q)
+        participant.on('connectionQualityChanged', onQualityChanged)
+        return () => { participant.off('connectionQualityChanged', onQualityChanged) }
+    }, [participant])
+
+    if (quality === ConnectionQuality.Excellent || quality === ConnectionQuality.Good) {
+        return <Wifi className="w-4 h-4 text-green-500" />
+    } else if (quality === ConnectionQuality.Poor) {
+        return <Wifi className="w-4 h-4 text-yellow-500" />
+    }
+    return <WifiOff className="w-4 h-4 text-red-500" />
+}
+
+
+
 function VideoTile({ track, isLowBandwidth }: { track: any, isLowBandwidth: boolean }) {
     const { localParticipant } = useLocalParticipant()
     const participant = track.participant
     const isLocal = participant.identity === localParticipant.identity
 
+    // Metadata parsing
     const [metadata, setMetadata] = useState<any>({})
-
     useEffect(() => {
         try {
             if (participant.metadata) {
-                const parsed = JSON.parse(participant.metadata)
-                console.log(`[VideoTile] ${participant.identity} role:`, parsed.role)
-                setMetadata(parsed)
+                setMetadata(JSON.parse(participant.metadata))
             }
-        } catch (e) {
-            // Support legacy metadata format if any
-            setMetadata({ role: participant.metadata })
-        }
+        } catch (e) { }
     }, [participant.metadata])
 
-    // Distraction Detection
-    useEffect(() => {
-        if (!isLocal) return;
-
-        const handleVisibilityChange = () => {
-            const isDistracted = document.visibilityState === 'hidden';
-            try {
-                const currentMetadata = JSON.parse(localParticipant.metadata || '{}');
-                localParticipant.setMetadata(JSON.stringify({
-                    ...currentMetadata,
-                    isDistracted
-                }));
-            } catch (e) {
-                console.error("Failed to update distraction metadata", e);
-            }
-        };
-
-        document.addEventListener('visibilitychange', handleVisibilityChange);
-        // Set initial state if needed
-        handleVisibilityChange();
-
-        return () => {
-            document.removeEventListener('visibilitychange', handleVisibilityChange);
-            // Reset state when unmounting
-            try {
-                const currentMetadata = JSON.parse(localParticipant.metadata || '{}');
-                localParticipant.setMetadata(JSON.stringify({
-                    ...currentMetadata,
-                    isDistracted: false
-                }));
-            } catch (e) { }
-        };
-    }, [isLocal, localParticipant]);
-
+    // Role
     const role = metadata.role || 'participant'
 
     const toggleMic = async () => {
         if (isLocal) {
-            await localParticipant.setMicrophoneEnabled(!localParticipant.isMicrophoneEnabled)
+            if (localParticipant.isMicrophoneEnabled) {
+                await localParticipant.setMicrophoneEnabled(false)
+            } else {
+                await localParticipant.setMicrophoneEnabled(true)
+            }
         }
     }
 
     const toggleCam = async () => {
         if (isLocal) {
-            await localParticipant.setCameraEnabled(!localParticipant.isCameraEnabled)
+            if (localParticipant.isCameraEnabled) {
+                await localParticipant.setCameraEnabled(false)
+            } else {
+                await localParticipant.setCameraEnabled(true)
+            }
         }
     }
 
+    // Explicitly check for camera track
+    const camPublication = participant.getTrackPublication(Track.Source.Camera)
+    const isCamEnabled = camPublication && camPublication.isSubscribed && !camPublication.isMuted
+
     return (
         <div className="relative aspect-video bg-neutral-800 rounded-lg overflow-hidden border border-neutral-700 shadow-xl group">
-            {/* Distraction Alert */}
-            {metadata.isDistracted && (
-                <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/60 backdrop-blur-md transition-all duration-500">
-                    <div className="bg-red-500/20 p-3 rounded-full mb-3 animate-pulse border border-red-500/30">
-                        <X className="w-8 h-8 text-red-500" />
-                    </div>
-                    <div className="text-center px-4">
-                        <h3 className="text-lg font-black text-white uppercase tracking-tighter mb-0.5 select-none animate-bounce">
-                            Distracted!
-                        </h3>
-                        <p className="text-neutral-400 text-[10px] font-bold uppercase tracking-widest opacity-80 select-none">
-                            Tab switched
-                        </p>
-                    </div>
-                </div>
-            )}
-
-            {/* Mirroring local video */}
-            {!isLowBandwidth && participant.isCameraEnabled ? (
+            {/* Mirroring local video or Remote Video */}
+            {!isLowBandwidth && isCamEnabled ? (
                 <VideoTrack
                     trackRef={track}
                     className="w-full h-full object-cover -scale-x-100"
@@ -1153,6 +1192,11 @@ function VideoTile({ track, isLowBandwidth }: { track: any, isLowBandwidth: bool
                 <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider backdrop-blur-md shadow-lg border ${role === 'host' ? 'bg-indigo-600/80 text-white border-indigo-400/50' : 'bg-black/60 text-neutral-300 border-white/10'}`}>
                     {role === 'host' ? 'Teacher' : 'Student'}
                 </span>
+            </div>
+
+            {/* Network Indicator (Top Right) */}
+            <div className="absolute top-2 right-2 z-10">
+                <NetworkIndicator participant={participant} />
             </div>
 
             {/* In-feed Controls (Visible on hover if local) */}
@@ -1381,7 +1425,7 @@ function RoomHeader({
                             className={`flex items-center gap-2 text-xs font-semibold py-1.5 px-3 rounded transition-colors border ${isRecording ? 'bg-red-500/20 text-red-500 border-red-500/20' : 'bg-white/10 text-white border-white/5'} ${role === 'host' ? (isRecording ? 'hover:bg-red-500/30 cursor-pointer' : 'hover:bg-white/20 cursor-pointer') : 'cursor-default opacity-100 pointer-events-none'}`}
                         >
                             <div className={`w-2 h-2 rounded-full ${isRecording ? 'bg-red-500 animate-pulse' : 'bg-white'}`} />
-                            <span className="hidden sm:inline">{isRecording ? 'Recording...' : 'Record'}</span>
+                            {/* <span className="hidden sm:inline">{isRecording ? 'Recording...' : 'Record'}</span> */}
                         </button>
                     )}
                     {role === "host" && (

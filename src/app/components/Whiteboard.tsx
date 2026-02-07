@@ -78,7 +78,7 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({ meetingId, b
     const [bgImageObj, setBgImageObj] = useState<HTMLImageElement | null>(null)
 
     const [selectedTool, setSelectedTool] = useState<ElementType | 'hand' | 'select'>('pencil')
-    const [color, setColor] = useState('#000000')
+    const [color, setColor] = useState('#ffffff')
     const [width, setWidth] = useState(4)
     const [camera, setCamera] = useState({ x: 0, y: 0, z: 1 })
     const [editingId, setEditingId] = useState<string | null>(null)

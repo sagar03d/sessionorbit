@@ -159,13 +159,28 @@ export default function MeetingDetailsPage({ params }: { params: Promise<{ id: s
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const res = await fetch(`/api/meetings/${id}`)
+                const { data: { session } } = await supabase.auth.getSession();
+                const headers: HeadersInit = {};
+                if (session?.access_token) {
+                    headers['Authorization'] = `Bearer ${session.access_token}`;
+                }
+
+                const res = await fetch(`/api/meetings/${id}`, { headers })
                 if (!res.ok) {
+                    const errorData = await res.json().catch(() => ({}))
+                    console.error("Fetch error:", res.status, errorData)
+
                     if (res.status === 404) {
-                        console.error("Meeting not found")
-                        setMeeting(null)
+                        setMeeting(null) // truly not found
+                    } else if (res.status === 401) {
+                        router.push('/login?next=/dashboard/meeting/' + id)
+                        return
+                    } else if (res.status === 403) {
+                        alert("You do not have permission to view this meeting.")
+                        router.push('/dashboard')
+                        return
                     } else {
-                        throw new Error("Failed to fetch meeting data")
+                        throw new Error(errorData.error || "Failed to fetch meeting data")
                     }
                     return
                 }
@@ -176,7 +191,7 @@ export default function MeetingDetailsPage({ params }: { params: Promise<{ id: s
                 setParticipants(data.participants)
                 setTranscriptions(data.transcriptions)
                 setSummary(data.summary)
-            } catch (error) {
+            } catch (error: any) {
                 console.error("Error fetching meeting data:", error)
             } finally {
                 setIsLoading(false)

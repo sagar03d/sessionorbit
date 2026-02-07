@@ -5,9 +5,13 @@ import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { CLIENT_PAYMENT_CONFIG } from "@/lib/client-payment-config"
+import { usePricing } from "@/contexts/PricingContext"
+import { Button } from "@/components/ui/button"
+import { Globe } from "lucide-react"
 
 export default function PricingPreview() {
     const router = useRouter()
+    const { prices, format } = usePricing()
     const [loadingProduct, setLoadingProduct] = useState<string | null>(null)
 
     const handleCheckout = async (productId: string) => {
@@ -66,7 +70,7 @@ export default function PricingPreview() {
     const plans = [
         {
             name: "Free",
-            price: "$0",
+            price: format(0),
             period: "/month",
             description: "For casual tutors.",
             icon: Sparkles,
@@ -83,32 +87,22 @@ export default function PricingPreview() {
         },
         {
             name: "Starter",
-            price: "$19",
+            price: format(prices.starter.price),
             period: "/month",
-            description: "Serious tutors scaling up.",
+            description: prices.starter.description,
             icon: Rocket,
-            features: [
-                "20 Hours / month",
-                "20 AI Reports / month",
-                "Overage: $1.25/hr",
-                "Full AI Tech Support"
-            ],
+            features: prices.starter.features,
             cta: "Start Free Trial",
             popular: true,
             productId: CLIENT_PAYMENT_CONFIG.productIds.starter
         },
         {
             name: "Pro",
-            price: "$79",
+            price: format(prices.pro.price),
             period: "/month",
-            description: "Agencies & Power Users.",
+            description: prices.pro.description,
             icon: Crown,
-            features: [
-                "80 Hours / month",
-                "80 AI Reports / month",
-                "Overage: $1.10/hr",
-                "Priority AI Support"
-            ],
+            features: prices.pro.features,
             cta: "Start Free Trial",
             popular: false,
             productId: CLIENT_PAYMENT_CONFIG.productIds.pro
@@ -124,6 +118,7 @@ export default function PricingPreview() {
                 <p className="text-slate-400 max-w-2xl mx-auto">
                     Choose the plan that fits your growth.
                 </p>
+
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">

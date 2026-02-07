@@ -9,13 +9,30 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const cookieStore = await cookies();
     const token = cookieStore.get("session_token")?.value;
 
-    if (!token) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    let userId: string | null = null;
+
+    // 1. Try Manual Auth Cookie
+    if (token) {
+        const session = await verifySession(token);
+        if (session && session.user) {
+            userId = session.user.id;
+        }
     }
 
-    const session = await verifySession(token);
-    if (!session || !session.user) {
-        return NextResponse.json({ error: "Invalid session" }, { status: 401 });
+    // 2. Try Supabase Auth Header (Bearer)
+    if (!userId) {
+        const authHeader = request.headers.get('Authorization');
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            const sbToken = authHeader.split(' ')[1];
+            const { data: { user }, error } = await supabaseAdmin.auth.getUser(sbToken);
+            if (!error && user) {
+                userId = user.id;
+            }
+        }
+    }
+
+    if (!userId) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     try {
@@ -32,7 +49,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         }
 
         // Verify ownership (optional but recommended)
-        if (meetingRes.data.host_id !== session.user.id) {
+        if (meetingRes.data.host_id !== userId) {
             return NextResponse.json({ error: "Unauthorized access to meeting" }, { status: 403 });
         }
 

@@ -17,7 +17,7 @@ const navigation = [
     { name: "Referrals", href: "/dashboard/referrals", icon: Gift },
 ]
 
-export default function DashboardSidebar() {
+export default function DashboardSidebar({ onSidebarClose }: { onSidebarClose?: () => void }) {
     const pathname = usePathname()
     const router = useRouter()
     const { profile, signOut } = useUser()
@@ -58,6 +58,7 @@ export default function DashboardSidebar() {
                         <Link
                             key={item.name}
                             href={item.href}
+                            onClick={onSidebarClose}
                             className={cn(
                                 "group flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200",
                                 isActive
@@ -79,6 +80,7 @@ export default function DashboardSidebar() {
                 {(profile?.role === 'admin' || profile?.role === 'owner' || profile?.plan === 'Pro' || profile?.plan === 'pro') && (
                     <Link
                         href="/teams"
+                        onClick={onSidebarClose}
                         className={cn(
                             "group flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200",
                             pathname === "/teams"
@@ -117,7 +119,10 @@ export default function DashboardSidebar() {
                     <Button
                         variant="ghost"
                         className="w-full justify-start text-neutral-400 hover:text-white hover:bg-neutral-900/50 h-9 px-2"
-                        onClick={() => router.push('/dashboard/settings')}
+                        onClick={() => {
+                            router.push('/dashboard/settings')
+                            onSidebarClose?.()
+                        }}
                     >
                         <Settings className="mr-2 h-4 w-4" />
                         Settings

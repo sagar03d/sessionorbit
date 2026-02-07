@@ -1,13 +1,18 @@
+"use client"
+
 import DashboardSidebar from "./components/DashboardSidebar"
 import { Menu } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { useState } from "react"
 
 export default function DashboardLayout({
     children,
 }: {
     children: React.ReactNode
 }) {
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+
     return (
         <div className="flex h-screen bg-black overflow-hidden">
             {/* Desktop Sidebar */}
@@ -18,21 +23,21 @@ export default function DashboardLayout({
             {/* Main Content */}
             <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
                 {/* Mobile Header */}
-                <div className="md:hidden flex items-center justify-between p-4 border-b border-neutral-800 bg-black">
+                <div className="md:hidden sticky top-0 z-40 flex items-center justify-between p-4 border-b border-neutral-800 bg-black">
                     <div className="flex items-center gap-2">
                         <div className="orbit-container w-6 h-6">
                             <div className="orbiting-dot" />
                         </div>
                         <span className="font-bold text-white">SessionOrbit</span>
                     </div>
-                    <Sheet>
+                    <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                         <SheetTrigger asChild>
                             <Button variant="ghost" size="icon" className="text-neutral-400 hover:text-white">
                                 <Menu className="h-6 w-6" />
                             </Button>
                         </SheetTrigger>
                         <SheetContent side="left" className="p-0 border-r border-neutral-800 bg-black w-72">
-                            <DashboardSidebar />
+                            <DashboardSidebar onSidebarClose={() => setIsMobileMenuOpen(false)} />
                         </SheetContent>
                     </Sheet>
                 </div>

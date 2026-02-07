@@ -8,9 +8,13 @@ import { useState } from "react"
 import { supabase } from "@/lib/supabase"
 
 import { CLIENT_PAYMENT_CONFIG } from "@/lib/client-payment-config"
+import { usePricing } from "@/contexts/PricingContext"
+import { Button } from "@/components/ui/button"
+import { Globe } from "lucide-react"
 
 export default function PricingPage() {
     const router = useRouter()
+    const { prices, format } = usePricing()
     const [loadingProduct, setLoadingProduct] = useState<string | null>(null)
 
     const handleCheckout = async (productId: string) => {
@@ -82,6 +86,7 @@ export default function PricingPage() {
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-sm text-indigo-300 font-medium backdrop-blur-sm mb-6">
                         <span>SessionOrbit Pricing Model</span>
                     </div>
+
                     <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-6">
                         Plan for <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">Maximum Impact</span>
                     </h1>
@@ -108,7 +113,7 @@ export default function PricingPage() {
                             </div>
 
                             <div className="mb-6">
-                                <span className="text-4xl font-bold text-white">$0</span>
+                                <span className="text-4xl font-bold text-white">{format(0)}</span>
                                 <span className="text-slate-400">/month</span>
                             </div>
 
@@ -147,22 +152,17 @@ export default function PricingPage() {
                                 </div>
                                 <div>
                                     <h3 className="text-xl font-bold text-white">Starter</h3>
-                                    <p className="text-sm text-slate-400">Serious tutors scaling up.</p>
+                                    <p className="text-sm text-slate-400">{prices.starter.description}</p>
                                 </div>
                             </div>
 
                             <div className="mb-6">
-                                <span className="text-4xl font-bold text-white">$19</span>
+                                <span className="text-4xl font-bold text-white">{format(prices.starter.price)}</span>
                                 <span className="text-slate-400">/month</span>
                             </div>
 
                             <ul className="space-y-3 mb-8">
-                                {[
-                                    "20 Hours / month",
-                                    "20 AI Reports / month",
-                                    "Overage: $1.25/hr",
-                                    "Full AI Tech Support"
-                                ].map((feature, i) => (
+                                {prices.starter.features.map((feature, i) => (
                                     <li key={i} className="flex items-start gap-3 text-sm">
                                         <Check className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
                                         <span className="text-slate-300">{feature}</span>
@@ -190,22 +190,17 @@ export default function PricingPage() {
                                 </div>
                                 <div>
                                     <h3 className="text-xl font-bold text-white">Pro</h3>
-                                    <p className="text-sm text-slate-400">Agencies & Power Users.</p>
+                                    <p className="text-sm text-slate-400">{prices.pro.description}</p>
                                 </div>
                             </div>
 
                             <div className="mb-6">
-                                <span className="text-4xl font-bold text-white">$79</span>
+                                <span className="text-4xl font-bold text-white">{format(prices.pro.price)}</span>
                                 <span className="text-slate-400">/month</span>
                             </div>
 
                             <ul className="space-y-3 mb-8">
-                                {[
-                                    "80 Hours / month",
-                                    "80 AI Reports / month",
-                                    "Overage: $1.10/hr",
-                                    "Priority AI Support"
-                                ].map((feature, i) => (
+                                {prices.pro.features.map((feature, i) => (
                                     <li key={i} className="flex items-start gap-3 text-sm">
                                         <Check className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
                                         <span className="text-slate-300">{feature}</span>
