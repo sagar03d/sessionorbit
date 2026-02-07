@@ -11,14 +11,14 @@ export default function ModernHero() {
 
             {/* Hiring Badge */}
             <Link
-                href="/careers"
+                href="#"
                 className="relative z-10 mb-8 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-sm font-medium hover:bg-indigo-500/20 transition-colors"
             >
                 <span className="flex h-2 w-2 relative">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
                 </span>
-                We're hiring! Join our team
+                New: AI-Powered Lesson Reports
                 <ArrowRight className="w-4 h-4" />
             </Link>
 
@@ -50,6 +50,6 @@ export default function ModernHero() {
                     Watch a demo
                 </Link>
             </div>
-        </div>
+        </div >
     );
 }

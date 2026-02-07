@@ -1,5 +1,7 @@
 "use client"
 
+import { useState } from "react"
+import { useSearchParams } from "next/navigation"
 import { Mail, MapPin, Phone, Send } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -68,37 +70,7 @@ export default function ContactPage() {
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <form className="space-y-6">
-                                    <div className="grid sm:grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <label htmlFor="first-name" className="text-sm font-medium text-slate-300">First Name</label>
-                                            <Input id="first-name" placeholder="John" className="bg-slate-800 border-slate-700" />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label htmlFor="last-name" className="text-sm font-medium text-slate-300">Last Name</label>
-                                            <Input id="last-name" placeholder="Doe" className="bg-slate-800 border-slate-700" />
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <label htmlFor="email" className="text-sm font-medium text-slate-300">Email</label>
-                                        <Input id="email" type="email" placeholder="john@example.com" className="bg-slate-800 border-slate-700" />
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <label htmlFor="message" className="text-sm font-medium text-slate-300">Message</label>
-                                        <Textarea
-                                            id="message"
-                                            placeholder="Tell us about your inquiry..."
-                                            className="min-h-[150px] bg-slate-800 border-slate-700"
-                                        />
-                                    </div>
-
-                                    <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white">
-                                        <Send className="w-4 h-4 mr-2" />
-                                        SendMessage
-                                    </Button>
-                                </form>
+                                <ContactForm />
                             </CardContent>
                         </Card>
                     </div>
@@ -106,4 +78,91 @@ export default function ContactPage() {
             </div>
         </div>
     )
+}
+
+function ContactForm() {
+    const [loading, setLoading] = useState(false);
+    const [success, setSuccess] = useState(false);
+    const searchParams = useSearchParams();
+    const type = searchParams.get('type') || 'contact';
+
+    async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+        e.preventDefault();
+        setLoading(true);
+        const formData = new FormData(e.currentTarget);
+        const data = {
+            name: `${formData.get('firstName')} ${formData.get('lastName')}`,
+            email: formData.get('email'),
+            message: formData.get('message'),
+            type: type
+        };
+
+        try {
+            const res = await fetch('/api/contact', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if (res.ok) {
+                setSuccess(true);
+            } else {
+                alert('Failed to send message.');
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Error sending message.');
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    if (success) {
+        return (
+            <div className="text-center py-12">
+                <div className="mx-auto w-12 h-12 bg-green-500/10 rounded-full flex items-center justify-center mb-4">
+                    <Send className="w-6 h-6 text-green-500" />
+                </div>
+                <h3 className="text-xl font-bold mb-2">Message Sent!</h3>
+                <p className="text-slate-400">We'll get back to you shortly.</p>
+                <Button variant="outline" className="mt-6" onClick={() => setSuccess(false)}>Send another</Button>
+            </div>
+        );
+    }
+
+    return (
+        <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <label htmlFor="first-name" className="text-sm font-medium text-slate-300">First Name</label>
+                    <Input name="firstName" id="first-name" placeholder="John" className="bg-slate-800 border-slate-700" required />
+                </div>
+                <div className="space-y-2">
+                    <label htmlFor="last-name" className="text-sm font-medium text-slate-300">Last Name</label>
+                    <Input name="lastName" id="last-name" placeholder="Doe" className="bg-slate-800 border-slate-700" required />
+                </div>
+            </div>
+
+            <div className="space-y-2">
+                <label htmlFor="email" className="text-sm font-medium text-slate-300">Email</label>
+                <Input name="email" id="email" type="email" placeholder="john@example.com" className="bg-slate-800 border-slate-700" required />
+            </div>
+
+            <div className="space-y-2">
+                <label htmlFor="message" className="text-sm font-medium text-slate-300">Message</label>
+                <Textarea
+                    name="message"
+                    id="message"
+                    placeholder={type === 'support' ? "Describe your issue..." : "Tell us about your inquiry..."}
+                    className="min-h-[150px] bg-slate-800 border-slate-700"
+                    required
+                />
+            </div>
+
+            <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white" disabled={loading}>
+                {loading ? <span className="animate-spin mr-2">⏳</span> : <Send className="w-4 h-4 mr-2" />}
+                {type === 'support' ? 'Submit Ticket' : 'Send Message'}
+            </Button>
+        </form>
+    );
 }

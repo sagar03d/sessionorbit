@@ -149,11 +149,11 @@ export default function LoginPage() {
     ]
 
     return (
-        <div className="min-h-screen bg-[#0B0C15] text-white pt-16">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="h-screen bg-[#0B0C15] text-white overflow-hidden">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center">
                 <div className="grid lg:grid-cols-2 gap-12 items-center">
                     {/* Left Side - Features Showcase */}
-                    <div className="hidden lg:block space-y-8">
+                    <div className="hidden lg:block space-y-8 overflow-y-auto max-h-[calc(100vh-8rem)] pr-4">
                         <div>
                             <h2 className="text-3xl font-bold mb-3">Teaching Reimagined</h2>
                             <p className="text-xl text-slate-400">Powerful tools to enhance your virtual classroom</p>
@@ -210,7 +210,7 @@ export default function LoginPage() {
                     </div>
 
                     {/* Right Side - Form */}
-                    <div className="flex items-center justify-center">
+                    <div className="flex items-center justify-center overflow-hidden">
                         <div className="w-full max-w-md space-y-6">
                             <div className="text-center lg:text-left">
                                 <h1 className="text-3xl font-bold mb-2">Welcome back</h1>

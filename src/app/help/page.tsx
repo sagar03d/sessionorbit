@@ -76,10 +76,8 @@ export default function HelpPage() {
                         Our support team is available 24/7 to assist you with any technical issues or implementation questions.
                     </p>
                     <div className="flex justify-center gap-4">
-                        <Button className="bg-white text-black hover:bg-slate-200">
-                            Chat with Support
-                        </Button>
-                        <Button variant="outline" className="border-white/10 text-white hover:bg-white/10">
+                        {/* Chat removed as per request */}
+                        <Button className="bg-white text-black hover:bg-slate-200" onClick={() => window.location.href = '/contact?type=support'}>
                             Submit a Ticket
                         </Button>
                     </div>

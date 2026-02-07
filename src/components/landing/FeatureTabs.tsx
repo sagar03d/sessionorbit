@@ -127,21 +127,42 @@ export default function FeatureTabs() {
 
                             {/* SVG Drawing */}
                             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                <svg width="800" height="600" viewBox="0 0 800 600" className="w-full h-full text-blue-500 stroke-current" fill="none" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                    {/* Circle 1 */}
-                                    <circle cx="300" cy="300" r="180" />
-                                    {/* Circle 2 */}
-                                    <circle cx="500" cy="300" r="180" />
+                                <svg width="800" height="600" viewBox="0 0 800 600" className="w-full h-full text-blue-500 stroke-current" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    {/* Center Node */}
+                                    <rect x="350" y="275" width="100" height="50" rx="10" className="fill-indigo-500/20 stroke-indigo-500" />
+                                    <text x="400" y="305" textAnchor="middle" className="fill-white text-xs font-medium stroke-none">Lesson Plan</text>
 
-                                    {/* Hatching in Intersection (Manual Approximation for visuals) */}
-                                    <path d="M 400 200 L 460 200" strokeOpacity="0.5" />
-                                    <path d="M 390 230 L 470 230" strokeOpacity="0.5" />
-                                    <path d="M 380 260 L 480 260" strokeOpacity="0.5" />
-                                    <path d="M 375 290 L 485 290" strokeOpacity="0.5" />
-                                    <path d="M 375 320 L 485 320" strokeOpacity="0.5" />
-                                    <path d="M 380 350 L 480 350" strokeOpacity="0.5" />
-                                    <path d="M 390 380 L 470 380" strokeOpacity="0.5" />
-                                    <path d="M 400 410 L 460 410" strokeOpacity="0.5" />
+                                    {/* Branches */}
+                                    <path d="M 400 275 L 400 225" />
+                                    <path d="M 400 325 L 400 375" />
+                                    <path d="M 350 300 L 300 300" />
+                                    <path d="M 450 300 L 500 300" />
+
+                                    {/* Sub Nodes Top */}
+                                    <rect x="350" y="175" width="100" height="50" rx="10" className="fill-purple-500/20 stroke-purple-500" />
+                                    <text x="400" y="205" textAnchor="middle" className="fill-slate-300 text-[10px] stroke-none">Objective</text>
+
+                                    {/* Sub Nodes Bottom */}
+                                    <rect x="350" y="375" width="100" height="50" rx="10" className="fill-blue-500/20 stroke-blue-500" />
+                                    <text x="400" y="405" textAnchor="middle" className="fill-slate-300 text-[10px] stroke-none">Assessment</text>
+
+                                    {/* Sub Nodes Left */}
+                                    <rect x="200" y="275" width="100" height="50" rx="10" className="fill-emerald-500/20 stroke-emerald-500" />
+                                    <text x="250" y="305" textAnchor="middle" className="fill-slate-300 text-[10px] stroke-none">Materials</text>
+
+                                    {/* Sub Nodes Right */}
+                                    <rect x="500" y="275" width="100" height="50" rx="10" className="fill-amber-500/20 stroke-amber-500" />
+                                    <text x="550" y="305" textAnchor="middle" className="fill-slate-300 text-[10px] stroke-none">Activities</text>
+
+                                    {/* Connections to Sub-Sub Nodes (Visual flair) */}
+                                    <path d="M 400 175 L 350 125" strokeOpacity="0.5" strokeDasharray="4 4" />
+                                    <circle cx="350" cy="125" r="5" className="fill-slate-700 stroke-slate-500" />
+
+                                    <path d="M 400 175 L 450 125" strokeOpacity="0.5" strokeDasharray="4 4" />
+                                    <circle cx="450" cy="125" r="5" className="fill-slate-700 stroke-slate-500" />
+
+                                    <path d="M 550 325 L 600 375" strokeOpacity="0.5" strokeDasharray="4 4" />
+                                    <rect x="580" y="360" width="40" height="30" rx="5" className="fill-slate-800 stroke-slate-600" />
                                 </svg>
                             </div>
                         </div>

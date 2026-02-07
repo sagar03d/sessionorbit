@@ -40,10 +40,10 @@ export default function NewsletterPopup() {
         setIsSubmitting(true)
 
         try {
-            const res = await fetch("/api/newsletter", {
+            const res = await fetch("/api/contact", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email })
+                body: JSON.stringify({ email, type: 'newsletter', name: 'Newsletter Subscriber', message: 'User requested to join the newsletter.' })
             })
 
             if (res.ok) {
