@@ -1,3 +1,5 @@
+"use client"
+
 import { Search, Book, MessageCircle, FileText, Zap, Laptop } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"

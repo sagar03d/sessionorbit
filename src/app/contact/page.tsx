@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import { Mail, MapPin, Phone, Send } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -70,7 +70,9 @@ export default function ContactPage() {
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <ContactForm />
+                                <Suspense fallback={<div className="text-center py-12 text-slate-400">Loading form...</div>}>
+                                    <ContactForm />
+                                </Suspense>
                             </CardContent>
                         </Card>
                     </div>
