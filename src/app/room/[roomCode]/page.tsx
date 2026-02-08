@@ -25,6 +25,7 @@ import RoomEffects from "./RoomEffects";
 
 
 import Chat from "@/components/chat/Chat";
+import { toast, Toaster } from 'sonner';
 
 // Helper for speech recognition
 const SpeechRecognition = (typeof window !== 'undefined' && ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition)) || null;
@@ -110,7 +111,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
                 .single()
 
             if (initialData?.ended_at) {
-                alert("This class has ended.")
+                toast.info("This class has ended.")
                 router.push("/dashboard")
                 return
             }
@@ -128,7 +129,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
                 }, (payload) => {
                     const newData = payload.new as any
                     if (newData.ended_at) {
-                        alert("The host has ended this class.")
+                        toast.warning("The host has ended this class.")
                         router.push("/dashboard")
                         return
                     }
@@ -310,7 +311,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
                     console.error("[SpeechRecognition] Error:", event.error);
                     if (event.error === 'not-allowed') {
                         shouldRestart = false;
-                        alert("Speech recognition permission denied. Please allow microphone access for captions.");
+                        toast.error("Speech recognition permission denied. Please allow microphone access for captions.");
                     }
                 };
 
@@ -554,7 +555,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
 
         if (error) {
             console.error("Failed to add tab", error)
-            alert("Failed to save tab. You might not have permission.")
+            toast.error("Failed to save tab. You might not have permission.")
             // Revert state?
             setTabs(tabs) // Revert to old
             setActiveTabId(activeTabId)
@@ -592,7 +593,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
 
         if (error) {
             console.error("Failed to remove tab", error)
-            alert("Failed to close tab.")
+            toast.error("Failed to close tab.")
             setTabs(tabs)
             setActiveTabId(activeTabId)
         }
@@ -716,7 +717,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
             if (!res.ok) {
                 const data = await res.json();
                 console.error("Failed to end class API", data);
-                alert("Error ending class: " + (data.error || "Unknown"));
+                toast.error("Error ending class: " + (data.error || "Unknown"));
                 return false;
             } else {
                 router.push("/dashboard");
@@ -724,7 +725,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
             }
         } catch (e) {
             console.error("Exception ending class", e);
-            alert("Network error ending class.");
+            toast.error("Network error ending class.");
             return false;
         }
     }
@@ -751,7 +752,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
             const data = await res.json();
             if (!res.ok) {
                 console.error("Failed to start cloud recording", data);
-                alert("Failed to start cloud recording: " + (data.error || "Unknown error"));
+                toast.error("Failed to start cloud recording: " + (data.error || "Unknown error"));
                 setIsRecording(false);
             } else {
                 console.log("Cloud recording started:", data.egressId);
@@ -759,7 +760,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
         } catch (err) {
             console.error("Error starting recording:", err);
             setIsRecording(false);
-            alert("Network error starting recording");
+            toast.error("Network error starting recording");
         }
     };
 
@@ -780,14 +781,14 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
             const data = await res.json();
             if (res.ok) {
                 setIsRecording(false);
-                alert("Recording stopped. It will be processed shortly.");
+                toast.success("Recording stopped. It will be processed shortly.");
             } else {
                 console.error("Failed to stop recording", data);
-                alert("Failed to stop recording: " + data.error);
+                toast.error("Failed to stop recording: " + data.error);
             }
         } catch (e) {
             console.error(e);
-            alert("Error stopping recording");
+            toast.error("Error stopping recording");
         }
     };
 
@@ -834,6 +835,9 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
             {!isRecorder && (
                 <RoomEffects bgSettings={bgSettings} />
             )}
+
+            {/* Toast Notifications */}
+            <Toaster position="top-center" theme="dark" richColors />
 
             <div className="flex flex-col h-screen w-screen bg-[#0b0c15] text-white overflow-hidden font-sans selection:bg-indigo-500/30">
                 {/* Header */}
@@ -1412,7 +1416,7 @@ function RoomHeader({
             }
         } catch (e) {
             console.error("Error toggling NC", e);
-            alert("Failed to toggle noise cancellation. It might not be supported by your device.");
+            toast.error("Failed to toggle noise cancellation. It might not be supported by your device.");
             setNoiseCancellationEnabled(!enable);
         } finally {
             setIsProcessingNC(false);
@@ -1656,7 +1660,7 @@ function ActiveRoomManager({ meetingId }: { meetingId: string | undefined }) {
 
             if (data.type === 'room-terminated') {
                 console.log("[ActiveRoomManager] Room terminated by host")
-                alert("The host has ended this class.")
+                toast.warning("The host has ended this class.")
                 router.push("/dashboard")
             } else if (data.type === 'participant-left-cleanup') {
                 console.log("[ActiveRoomManager] Received participant-left signal, triggering refresh")
