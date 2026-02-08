@@ -273,6 +273,60 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
         }
     }, [roomCode, router]) // Removed 'name' from dep array to avoid re-init loops? Careful.
 
+    // Auto-start recording when host joins
+    useEffect(() => {
+        const autoStartRecording = async () => {
+            // Only auto-start if:
+            // 1. User has joined the room
+            // 2. User is the host
+            // 3. Meeting exists
+            // 4. Recording is not already active
+            // 5. Not a recorder session
+            if (!hasJoinedRoom || role !== 'host' || !meeting || isRecording || isRecorder) {
+                return;
+            }
+
+            // Check if recording already started (egress_id exists in DB)
+            const { data: meetingData } = await supabase
+                .from('meetings')
+                .select('egress_id')
+                .eq('id', meeting.id)
+                .single();
+
+            if (meetingData?.egress_id) {
+                // Recording already active, just update local state
+                setIsRecording(true);
+                return;
+            }
+
+            // Start recording automatically
+            console.log('[Auto-Record] Starting automatic recording for meeting:', meeting.id);
+            try {
+                setIsRecording(true);
+                const res = await fetch('/api/room/record', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ roomId: meeting.id, action: 'START' })
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    console.error('[Auto-Record] Failed to start recording', data);
+                    toast.error('Failed to start automatic recording: ' + (data.error || 'Unknown error'));
+                    setIsRecording(false);
+                } else {
+                    console.log('[Auto-Record] Recording started successfully:', data.egressId);
+                    toast.success('Recording started automatically');
+                }
+            } catch (err) {
+                console.error('[Auto-Record] Error starting recording:', err);
+                setIsRecording(false);
+                toast.error('Network error starting automatic recording');
+            }
+        };
+
+        autoStartRecording();
+    }, [hasJoinedRoom, role, meeting, isRecording, isRecorder]);
+
     // Dedicated Effect for Speech Recognition Lifecycle
     useEffect(() => {
         if (!hasJoinedRoom || !SpeechRecognition || !isTranscribing || isRecorder) return;
@@ -885,13 +939,10 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
 
                     <div className="flex items-center gap-3">
                         {role === 'host' && (
-                            <button
-                                onClick={isRecording ? stopRecording : startRecording}
-                                className={`flex items-center gap-2 px-3 py-1.5 border rounded-md text-xs transition-colors ${isRecording ? 'bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/20' : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10'}`}
-                            >
-                                <div className={`w-2 h-2 rounded-full ${isRecording ? 'bg-red-500' : 'bg-slate-400'}`} />
-                                <span className="hidden sm:inline">{isRecording ? "Stop Rec" : "Record"}</span>
-                            </button>
+                            <div className={`flex items-center gap-2 px-3 py-1.5 border rounded-md text-xs ${isRecording ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-white/5 border-white/10 text-slate-300'}`}>
+                                <div className={`w-2 h-2 rounded-full ${isRecording ? 'bg-red-500 animate-pulse' : 'bg-slate-400'}`} />
+                                <span className="hidden sm:inline">{isRecording ? "Recording..." : "Not Recording"}</span>
+                            </div>
                         )}
 
                         <button className="p-2 text-slate-400 hover:text-white rounded-md hover:bg-white/5 transition-colors">
