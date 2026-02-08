@@ -65,6 +65,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
     const [activeTabId, setActiveTabId] = useState<string>('main')
     const [sidebarTab, setSidebarTab] = useState<'videos' | 'chat'>('videos')
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
+    const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null)
 
     const searchParams = useSearchParams()
     const recorderToken = searchParams.get("recorder_token")
@@ -394,14 +395,6 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
         };
     }, [hasJoinedRoom, isTranscribing]);
 
-    // Auto-start recording for host
-    useEffect(() => {
-        if (hasJoinedRoom && role === 'host' && !isRecording && meeting?.id) {
-            console.log("Auto-starting recording for host...");
-            startRecording();
-        }
-    }, [hasJoinedRoom, role, meeting?.id]);
-
 
     const fetchToken = async (roomId: string, displayName: string, userRole: string, avatarUrl?: string, identity?: string) => {
         setIsJoining(true)
@@ -618,7 +611,28 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
 
     const removeTab = async (tabId: string) => {
         if (!meeting || tabId === 'main') return
-        if (!confirm("Are you sure you want to close this tab?")) return
+        // Simple confirmation using toast message
+        toast.warning("Tab close requested. Click again to confirm.", {
+            id: `confirm-close-${tabId}`,
+            action: {
+                label: 'Close Tab',
+                onClick: async () => {
+                    const newTabs = tabs.filter(t => t.id !== tabId)
+                    const nextActiveId = activeTabId === tabId ? (newTabs[newTabs.length - 1]?.id || 'main') : activeTabId
+                    setTabs(newTabs)
+                    setActiveTabId(nextActiveId)
+
+                    const { error } = await supabase.from('meeting_tabs').delete().eq('id', tabId)
+                    if (error) {
+                        console.error("Failed to remove tab", error)
+                        toast.error("Failed to close tab.")
+                        setTabs(tabs)
+                        setActiveTabId(activeTabId)
+                    }
+                }
+            }
+        });
+        return
 
         const newTabs = tabs.filter(t => t.id !== tabId)
         const nextActiveId = activeTabId === tabId ? (newTabs[newTabs.length - 1]?.id || 'main') : activeTabId
@@ -747,7 +761,47 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
 
     const handleEndClass = async () => {
         if (!meeting || role !== 'host') return false
-        if (!confirm("Are you sure you want to end this class for everyone?")) return false
+        // Simple confirmation using toast message
+        toast.warning("End class requested. Click button to confirm.", {
+            id: 'confirm-end-class',
+            duration: 10000,
+            action: {
+                label: 'End Class',
+                onClick: async () => {
+                    // Stop recording if active
+                    if (isRecording) {
+                        try {
+                            await fetch('/api/room/record', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ roomId: meeting.id, action: 'STOP' })
+                            });
+                        } catch (e) { console.error("Failed to stop recording on end", e) }
+                    }
+
+                    // Use Server API to end class
+                    try {
+                        const res = await fetch('/api/room/end', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ roomId: meeting.id })
+                        });
+
+                        if (!res.ok) {
+                            const data = await res.json();
+                            console.error("Failed to end class API", data);
+                            toast.error("Error ending class: " + (data.error || "Unknown"));
+                        } else {
+                            router.push("/dashboard");
+                        }
+                    } catch (e) {
+                        console.error("Exception ending class", e);
+                        toast.error("Network error ending class.");
+                    }
+                }
+            }
+        });
+        return false
 
         // Stop recording if active
         if (isRecording) {

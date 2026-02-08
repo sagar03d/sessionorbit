@@ -34,12 +34,17 @@ export async function POST(req: NextRequest) {
             const egressInfo = event.egressInfo as any;
             if (egressInfo?.file?.location) {
                 const roomId = egressInfo.roomName;
+                console.log(`[Webhook] Recording Processing Start for Room ${roomId}`);
+                console.log(`[Webhook] Raw LiveKit URL: ${egressInfo.file.location}`);
+
                 let fileUrl = egressInfo.file.location;
 
                 // LiveKit might return just the filename/key for S3
                 // If it's not a full URL, we need to construct the Supabase Storage Public URL
                 if (!fileUrl.startsWith('http')) {
                     const S3_BUCKET = process.env.S3_BUCKET || "class-recordings";
+                    console.log(`[Webhook] Constructing URL for bucket: ${S3_BUCKET}, file: ${fileUrl}`);
+
                     const { data } = supabaseAdmin
                         .storage
                         .from(S3_BUCKET)
@@ -47,19 +52,28 @@ export async function POST(req: NextRequest) {
 
                     if (data?.publicUrl) {
                         fileUrl = data.publicUrl;
+                        console.log(`[Webhook] Generated Public URL: ${fileUrl}`);
+                    } else {
+                        console.error(`[Webhook] Failed to generate public URL`);
                     }
                 }
 
-                console.log(`Recording available for Room ${roomId}: ${fileUrl}`);
+                console.log(`[Webhook] Final Recording URL for DB: ${fileUrl}`);
 
                 // Update meeting with recording URL
-                await supabaseAdmin
+                const { error: updateError } = await supabaseAdmin
                     .from("meetings")
                     .update({
                         recording_url: fileUrl,
                         egress_id: null // Clear egress_id as it's finished
                     })
                     .eq("id", roomId);
+
+                if (updateError) {
+                    console.error(`[Webhook] DB Update Failed:`, updateError);
+                } else {
+                    console.log(`[Webhook] DB Updated Successfully for Room ${roomId}`);
+                }
 
                 // Proactively trigger processing
                 console.log(`Triggering processing for Room ${roomId} with URL: ${fileUrl}`);

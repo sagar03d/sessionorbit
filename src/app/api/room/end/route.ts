@@ -36,19 +36,26 @@ export async function POST(req: NextRequest) {
         const durationMs = now.getTime() - created.getTime();
         const durationMinutes = Math.max(1, Math.ceil(durationMs / 60000)); // Minimum 1 min, round up.
 
+        console.log(`[EndClass] Marking meeting ${roomId} as ended`);
+
         // 3. Update Meeting
-        const { error: updateError } = await supabaseAdmin
+        const { data: updatedMeeting, error } = await supabaseAdmin
             .from('meetings')
             .update({
-                ended_at: now.toISOString(),
+                ended_at: new Date().toISOString(),
                 duration_minutes: durationMinutes,
                 is_active: false
             })
-            .eq('id', roomId);
+            .eq('id', roomId)
+            .select()
+            .single();
 
-        if (updateError) {
-            throw updateError;
+        if (error) {
+            console.error("[EndClass] Database Update Error:", error);
+            throw error;
         }
+
+        console.log(`[EndClass] Meeting updated successfully:`, updatedMeeting);
 
         // 4. Check & Report Overage (Async - don't block response?)
         // Better to await it to catch errors, swift response is less critical than reliability here.

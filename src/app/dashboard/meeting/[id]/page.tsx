@@ -105,6 +105,33 @@ export default function MeetingDetailsPage({ params }: { params: Promise<{ id: s
         }
     }
 
+    const [isCheckingStatus, setIsCheckingStatus] = useState(false);
+    const handleCheckStatus = async () => {
+        setIsCheckingStatus(true);
+        try {
+            const res = await fetch(`/api/webhooks/check-status?meetingId=${id}`);
+            const data = await res.json();
+            console.log("Check Status Result:", data);
+
+            if (data.webhookReceived && data.recordingUrl) {
+                // Update local state if recovered
+                setMeeting((prev: any) => ({
+                    ...prev,
+                    recording_url: data.recordingUrl,
+                    egress_id: null
+                }));
+                alert("Recording recovered successfully!");
+            } else {
+                alert("Status: " + data.message);
+            }
+        } catch (err) {
+            console.error("Failed to check status", err);
+            alert("Failed to check status");
+        } finally {
+            setIsCheckingStatus(false);
+        }
+    };
+
     const handleDownloadPDF = () => {
         const summaryContent = summary?.summary || "";
 
@@ -200,6 +227,15 @@ export default function MeetingDetailsPage({ params }: { params: Promise<{ id: s
 
         fetchData()
     }, [id])
+
+    useEffect(() => {
+        if (meeting) {
+            console.log('[MeetingDebug] ID:', id);
+            console.log('[MeetingDebug] Recording URL:', meeting.recording_url);
+            console.log('[MeetingDebug] Egress ID:', meeting.egress_id);
+            console.log('[MeetingDebug] Full Object:', meeting);
+        }
+    }, [meeting, id]);
 
     if (isLoading) {
         return (
@@ -319,9 +355,18 @@ export default function MeetingDetailsPage({ params }: { params: Promise<{ id: s
                         <div className="w-12 h-12 rounded-full bg-neutral-800 flex items-center justify-center text-neutral-500">
                             <Clock className="w-6 h-6 animate-spin" />
                         </div>
-                        <div className="space-y-1">
-                            <h2 className="text-sm font-bold text-neutral-300 uppercase tracking-widest">Processing Recording</h2>
-                            <p className="text-neutral-500 text-xs">We're finalizing the class video. Please check back in a few minutes.</p>
+                        <div className="space-y-2">
+                            <h2 className="text-lg font-bold text-white tracking-tight">Processing Recording...</h2>
+                            <p className="text-neutral-500 text-sm max-w-xs mx-auto">The recording is currently being processed. This usually takes a few minutes.</p>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleCheckStatus}
+                                disabled={isCheckingStatus}
+                                className="mt-4 border-neutral-700 text-neutral-300 hover:text-white"
+                            >
+                                {isCheckingStatus ? "Checking..." : "Check Status (If Stuck)"}
+                            </Button>
                         </div>
                     </div>
                 )}
