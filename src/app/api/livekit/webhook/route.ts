@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
         }
 
         if (event.event === "egress_updated" || event.event === "egress_ended") {
-            const egressInfo = event.egressInfo as any;
+            let egressInfo = event.egressInfo as any;
 
             console.log(`[Webhook] Event: ${event.event}. Details:`, {
                 egressId: egressInfo?.egressId,
