@@ -72,10 +72,39 @@ export default function TeamPage() {
     }
 
     if (!profile?.organization_id) {
+        const isPro = profile?.plan?.toLowerCase() === 'pro' || profile?.plan?.toLowerCase() === 'enterprise'
+
         return (
-            <div className="p-12 text-center text-white">
-                <h2 className="text-xl font-bold">No Organization Found</h2>
-                <p className="text-neutral-400">You are not part of an organization yet.</p>
+            <div className="min-h-screen bg-[#0B0C15] text-white p-12">
+                <div className="max-w-2xl mx-auto text-center">
+                    <div className="w-16 h-16 rounded-full bg-indigo-500/10 flex items-center justify-center mx-auto mb-6">
+                        <Users className="w-8 h-8 text-indigo-400" />
+                    </div>
+                    <h2 className="text-2xl font-bold mb-3">No Organization Found</h2>
+                    <p className="text-slate-400 mb-8">
+                        {isPro
+                            ? "You don't have an organization yet. Create one to start inviting team members."
+                            : "Team management is available on Pro and Enterprise plans."
+                        }
+                    </p>
+
+                    {isPro ? (
+                        <Button
+                            onClick={() => router.push('/dashboard/settings?tab=organization')}
+                            className="bg-indigo-600 hover:bg-indigo-700"
+                        >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Create Organization
+                        </Button>
+                    ) : (
+                        <Button
+                            onClick={() => router.push('/pricing')}
+                            className="bg-indigo-600 hover:bg-indigo-700"
+                        >
+                            View Plans
+                        </Button>
+                    )}
+                </div>
             </div>
         )
     }

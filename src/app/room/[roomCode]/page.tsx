@@ -63,6 +63,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
     const [tabs, setTabs] = useState<Tab[]>([{ id: 'main', type: 'whiteboard', title: 'Whiteboard', boardId: 'main' }])
     const [activeTabId, setActiveTabId] = useState<string>('main')
     const [sidebarTab, setSidebarTab] = useState<'videos' | 'chat'>('videos')
+    const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
 
     const searchParams = useSearchParams()
     const recorderToken = searchParams.get("recorder_token")
@@ -273,7 +274,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
 
     // Dedicated Effect for Speech Recognition Lifecycle
     useEffect(() => {
-        if (!hasJoinedRoom || !SpeechRecognition || !isTranscribing) return;
+        if (!hasJoinedRoom || !SpeechRecognition || !isTranscribing || isRecorder) return;
 
         let recognition: any = null;
         let shouldRestart = true;
@@ -859,12 +860,21 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
                         )} */}
 
                         <div className="flex items-center gap-2">
+                            {/* Mobile Sidebar Toggle */}
+                            <button
+                                onClick={() => setIsMobileSidebarOpen(true)}
+                                className="lg:hidden p-2 text-slate-400 hover:text-white rounded-md hover:bg-white/5 transition-colors"
+                                title="Open Sidebar"
+                            >
+                                <Users size={18} />
+                            </button>
+
                             <button
                                 onClick={copyInviteLink}
                                 className="flex items-center gap-2 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-md text-slate-300 text-xs transition-colors"
                             >
                                 {copied ? <Check size={14} className="text-emerald-400" /> : <UserPlus size={14} />}
-                                {copied ? "Copied" : "Invite"}
+                                <span className="hidden sm:inline">{copied ? "Copied" : "Invite"}</span>
                             </button>
                         </div>
                     </div>
@@ -876,7 +886,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
                                 className={`flex items-center gap-2 px-3 py-1.5 border rounded-md text-xs transition-colors ${isRecording ? 'bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/20' : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10'}`}
                             >
                                 <div className={`w-2 h-2 rounded-full ${isRecording ? 'bg-red-500' : 'bg-slate-400'}`} />
-                                {isRecording ? "Stop Rec" : "Record"}
+                                <span className="hidden sm:inline">{isRecording ? "Stop Rec" : "Record"}</span>
                             </button>
                         )}
 
@@ -956,7 +966,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
                             <div className="w-[1px] h-4 bg-white/10 mb-3 mx-1"></div>
 
                             {/* Tab Items */}
-                            <div className="flex-1 flex overflow-x-auto no-scrollbar">
+                            <div className="flex-1 flex overflow-x-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
                                 {tabs.map(tab => {
                                     const isActive = activeTabId === tab.id
                                     return (
@@ -1052,7 +1062,20 @@ export default function RoomPage({ params }: { params: Promise<{ roomCode: strin
                     </div>
 
                     {/* Right Sidebar */}
-                    <div className={`w-80 bg-[#0b0c15] border-l border-white/5 flex flex-col shrink-0 transition-all duration-300 ${isLowBandwidth ? 'translate-x-full absolute right-0 h-full z-50' : ''}`}>
+                    <div className={`
+                        w-80 bg-[#0b0c15] border-l border-white/5 flex flex-col shrink-0 transition-all duration-300
+                        lg:relative lg:translate-x-0
+                        ${isMobileSidebarOpen ? 'fixed inset-y-0 right-0 z-50 translate-x-0' : 'fixed translate-x-full lg:translate-x-0'}
+                        ${isLowBandwidth ? 'translate-x-full absolute right-0 h-full z-50' : ''}
+                    `}>
+
+                        {/* Mobile Close Button */}
+                        <button
+                            onClick={() => setIsMobileSidebarOpen(false)}
+                            className="lg:hidden absolute top-2 left-2 p-2 text-slate-400 hover:text-white rounded-md hover:bg-white/10 transition-colors z-10"
+                        >
+                            <X size={18} />
+                        </button>
 
                         {/* Sidebar Tabs */}
                         <div className="flex items-center h-10 border-b border-white/5 bg-[#0f111a]">
