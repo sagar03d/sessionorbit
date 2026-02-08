@@ -33,8 +33,10 @@ export async function POST(req: NextRequest) {
         if (event.event === "egress_updated" || event.event === "egress_ended") {
             const egressInfo = event.egressInfo as any;
             if (egressInfo?.file?.location) {
+                const egressId = egressInfo.egressId;
                 const roomId = egressInfo.roomName;
-                console.log(`[Webhook] Recording Processing Start for Room ${roomId}`);
+
+                console.log(`[Webhook] Recording Processing Start. Egress: ${egressId}, Room: ${roomId}`);
                 console.log(`[Webhook] Raw LiveKit URL: ${egressInfo.file.location}`);
 
                 let fileUrl = egressInfo.file.location;
@@ -60,30 +62,46 @@ export async function POST(req: NextRequest) {
 
                 console.log(`[Webhook] Final Recording URL for DB: ${fileUrl}`);
 
-                // Update meeting with recording URL
-                const { error: updateError } = await supabaseAdmin
+                // Update meeting with recording URL using EGRESS_ID first (more reliable)
+                let updateBuilder = supabaseAdmin
                     .from("meetings")
                     .update({
                         recording_url: fileUrl,
                         egress_id: null // Clear egress_id as it's finished
-                    })
-                    .eq("id", roomId);
+                    });
+
+                // Use egress_id for lookup if available, otherwise fall back to roomId
+                if (egressId) {
+                    // Update by egress_id
+                    updateBuilder = updateBuilder.eq("egress_id", egressId);
+                } else if (roomId) {
+                    // Fallback to room ID
+                    updateBuilder = updateBuilder.eq("id", roomId);
+                } else {
+                    console.error("[Webhook] No valid identifier (egress_id or roomId) to update meeting");
+                    return NextResponse.json({ processed: false, error: "No identifier" });
+                }
+
+                const { error: updateError } = await updateBuilder;
 
                 if (updateError) {
                     console.error(`[Webhook] DB Update Failed:`, updateError);
+                    // Retry with roomId if egress_id failed?
                 } else {
-                    console.log(`[Webhook] DB Updated Successfully for Room ${roomId}`);
+                    console.log(`[Webhook] DB Updated Successfully for Egress ${egressId}`);
                 }
 
-                // Proactively trigger processing
-                console.log(`Triggering processing for Room ${roomId} with URL: ${fileUrl}`);
-                fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/webhooks/process-recording`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ roomId, fileUrl })
-                }).catch(err => {
-                    console.error("Failed to trigger process-recording:", err);
-                });
+                // Proactively trigger processing (if we have a roomId, otherwise we can't trigger downstream easily)
+                if (roomId) {
+                    console.log(`Triggering processing for Room ${roomId} with URL: ${fileUrl}`);
+                    fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/webhooks/process-recording`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ roomId, fileUrl })
+                    }).catch(err => {
+                        console.error("Failed to trigger process-recording:", err);
+                    });
+                }
             }
         }
 
