@@ -20,7 +20,7 @@ export default function Footer() {
           <div className="flex items-center gap-8 text-sm text-neutral-500">
             <a href="#" className="hover:text-white transition-colors">Privacy</a>
             <a href="#" className="hover:text-white transition-colors">Terms</a>
-            <a href="#" className="hover:text-white transition-colors">Contact</a>
+            {/* <a href="#" className="hover:text-white transition-colors">Contact</a> */}
           </div>
         </div>
       </div>

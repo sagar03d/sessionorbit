@@ -9,7 +9,7 @@ export default function Footer() {
             { name: 'About', href: '/about' },
             // { name: 'Careers', href: '/careers' },
             { name: 'Blog', href: '/blog' },
-            { name: 'Contact', href: '/contact' },
+            // { name: 'Contact', href: '/contact' },
         ],
         Resources: [
             { name: 'Documentation', href: '/docs' },
@@ -47,13 +47,13 @@ export default function Footer() {
                             Empowering educators with advanced AI tools for seamless online teaching and student engagement.
                         </p>
                         <div className="flex gap-4">
-                            <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-white transition-colors">
+                            <a href="https://twitter.com/sessionorbit" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-white transition-colors">
                                 <Twitter className="w-5 h-5" />
                             </a>
                             <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-white transition-colors">
                                 <Github className="w-5 h-5" />
                             </a>
-                            <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-white transition-colors">
+                            <a href="https://www.linkedin.com/company/sessionorbit" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-white transition-colors">
                                 <Linkedin className="w-5 h-5" />
                             </a>
                         </div>
