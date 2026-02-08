@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { WebhookReceiver } from "livekit-server-sdk";
+import { WebhookReceiver, EgressClient } from "livekit-server-sdk";
 import { supabaseAdmin } from "@/lib/supabase";
 
 const receiver = new WebhookReceiver(
@@ -40,6 +40,37 @@ export async function POST(req: NextRequest) {
                 fileLocation: egressInfo?.file?.location,
                 roomName: egressInfo?.roomName
             });
+
+            // Fallback: If file location is missing but status is COMPLETE/3, fetch from LiveKit Client
+            // Also check for fileResults (protobuf structure)
+            const fileResults = egressInfo.fileResults || egressInfo.file_results;
+            if (!egressInfo?.file?.location && fileResults?.[0]?.location) {
+                console.log(`[Webhook] Found location in fileResults[0]: ${fileResults[0].location}`);
+                egressInfo.file = fileResults[0];
+            }
+
+            if (!egressInfo?.file?.location && (egressInfo?.status === 3 || egressInfo?.status === 'EGRESS_COMPLETE') && egressInfo?.egressId) {
+                console.log(`[Webhook] File location missing. Fetching details from LiveKit Client for ${egressInfo.egressId}...`);
+                try {
+                    const client = new EgressClient(
+                        process.env.NEXT_PUBLIC_LIVEKIT_URL || "",
+                        process.env.LIVEKIT_API_KEY,
+                        process.env.LIVEKIT_API_SECRET
+                    );
+                    const list = await client.listEgress({ egressId: egressInfo.egressId });
+                    if (list.length > 0) {
+                        const fetchedInfo = list[0] as any;
+                        if (fetchedInfo?.file?.location) {
+                            egressInfo = fetchedInfo;
+                            console.log(`[Webhook] Successfully fetched Egress Info. Location: ${egressInfo.file.location}`);
+                        } else {
+                            console.log(`[Webhook] Fetched Info but still no file location.`);
+                        }
+                    }
+                } catch (err) {
+                    console.error("[Webhook] Failed to fetch egress info from client", err);
+                }
+            }
 
             if (egressInfo?.file?.location) {
                 const egressId = egressInfo.egressId;
