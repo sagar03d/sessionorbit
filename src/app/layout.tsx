@@ -3,6 +3,7 @@ import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
 import LayoutContent from "./components/LayoutContent";
 import NewsletterPopup from "@/components/marketing/NewsletterPopup";
+import { PostHogProvider } from "@/providers/PostHogProvider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -33,10 +34,12 @@ export default function RootLayout({
     <html lang="en" className={`dark ${inter.variable} ${outfit.variable}`}>
       <body className="bg-black text-white selection:bg-white selection:text-black antialiased min-h-screen flex flex-col">
         <LayoutContent>
-          {children}
-          <NewsletterPopup />
-          <Analytics />
-          <SpeedInsights />
+          <PostHogProvider>
+            {children}
+            <NewsletterPopup />
+            <Analytics />
+            <SpeedInsights />
+          </PostHogProvider>
         </LayoutContent>
       </body>
     </html>
