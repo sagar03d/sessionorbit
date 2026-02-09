@@ -25,29 +25,7 @@ import {
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
-// --- Types ---
-interface Point {
-    x: number
-    y: number
-    pressure?: number
-}
-
-type ElementType = 'pencil' | 'highlighter' | 'eraser' | 'rect' | 'circle' | 'triangle' | 'text' | 'sticky' | 'image';
-
-interface WhiteboardElement {
-    id: string
-    type: ElementType
-    points?: Point[]
-    x: number
-    y: number
-    endX?: number
-    endY?: number
-    color: string
-    strokeWidth: number
-    text?: string
-    opacity?: number
-    image?: HTMLImageElement
-}
+import { hitTest, ElementType, WhiteboardElement, ERASER_CURSOR_URL } from '@/utils/whiteboard-utils'
 
 interface WhiteboardDemoProps {
     variant?: 'demo' | 'full'
@@ -128,7 +106,8 @@ export default function WhiteboardDemo({ variant = 'demo' }: WhiteboardDemoProps
                 if (!element.points || element.points.length === 0) return
 
                 if (element.type === 'eraser') {
-                    ctx.strokeStyle = '#1e293b' // Match background
+                    // This shouldn't happen with new eraser logic, but keeping for safety
+                    ctx.strokeStyle = '#1e293b'
                     ctx.fillStyle = '#1e293b'
                 }
 
@@ -244,6 +223,38 @@ export default function WhiteboardDemo({ variant = 'demo' }: WhiteboardDemoProps
 
         if (selectedTool === 'hand') return
 
+        if (selectedTool === 'select' || selectedTool === 'text') {
+            // Check if we clicked on an existing text/sticky to edit
+            for (let i = elements.length - 1; i >= 0; i--) {
+                const el = elements[i];
+                if ((el.type === 'text' || el.type === 'sticky') && hitTest(el, x, y, camera.z)) {
+                    setEditingId(el.id);
+                    // Ensure focus
+                    setTimeout(() => {
+                        if (textareaRef.current) {
+                            textareaRef.current.focus()
+                            const len = textareaRef.current.value.length
+                            textareaRef.current.setSelectionRange(len, len)
+                        }
+                    }, 50);
+                    return;
+                }
+            }
+        }
+
+        if (selectedTool === 'select') return
+
+        if (selectedTool === 'eraser') {
+            const elToDelete = elements.find(el => hitTest(el, x, y, camera.z))
+            if (elToDelete) {
+                setElements(prev => prev.filter(el => el.id !== elToDelete.id))
+                // Note: We're not tracking history for eraser clicks in this simple demo logic effectively, 
+                // but we could add to history here if needed.
+                setHistory(prev => [...prev, elements])
+            }
+            return
+        }
+
         const id = Math.random().toString(36).substring(7)
         let type = selectedTool as ElementType
 
@@ -259,7 +270,7 @@ export default function WhiteboardDemo({ variant = 'demo' }: WhiteboardDemoProps
             endY: y,
             color,
             strokeWidth: width,
-            points: ['pencil', 'highlighter', 'eraser'].includes(type) ? [{ x, y, pressure: e.pressure }] : undefined,
+            points: ['pencil', 'highlighter'].includes(type) ? [{ x, y, pressure: e.pressure }] : undefined,
             opacity: type === 'highlighter' ? 0.4 : 1,
             text: ""
         }
@@ -267,6 +278,12 @@ export default function WhiteboardDemo({ variant = 'demo' }: WhiteboardDemoProps
         if (type === 'text' || type === 'sticky') {
             setElements(prev => [...prev, newElement])
             setEditingId(id)
+            // Ensure focus after a short delay
+            setTimeout(() => {
+                if (textareaRef.current) {
+                    textareaRef.current.focus()
+                }
+            }, 50)
             // Note: Keeping selectedTool as 'text'/'sticky' so user can add multiple easily if they want
         } else {
             setCurrentElement(newElement)
@@ -286,11 +303,19 @@ export default function WhiteboardDemo({ variant = 'demo' }: WhiteboardDemoProps
             return
         }
 
-        if (!currentElement) return
-
         const screenX = e.clientX - rect.left
         const screenY = e.clientY - rect.top
         const { x, y } = screenToWorld(screenX, screenY)
+
+        if (selectedTool === 'eraser' && e.buttons === 1) {
+            const elToDelete = elements.find(el => hitTest(el, x, y, camera.z))
+            if (elToDelete) {
+                setElements(prev => prev.filter(el => el.id !== elToDelete.id))
+            }
+            return
+        }
+
+        if (!currentElement) return
 
         if (currentElement.points) {
             setCurrentElement({
@@ -307,6 +332,8 @@ export default function WhiteboardDemo({ variant = 'demo' }: WhiteboardDemoProps
     }
 
     const handlePointerUp = (e: React.PointerEvent) => {
+        if (selectedTool === 'eraser') return
+
         if (currentElement) {
             const newElements = [...elements, currentElement]
             setHistory([...history, elements])
@@ -512,7 +539,9 @@ export default function WhiteboardDemo({ variant = 'demo' }: WhiteboardDemoProps
             boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
             zIndex: 100,
             outline: 'none',
-            fontFamily: 'sans-serif'
+            fontFamily: 'sans-serif',
+            whiteSpace: 'pre-wrap',
+            overflow: 'hidden'
         }
     }
 
@@ -581,43 +610,43 @@ export default function WhiteboardDemo({ variant = 'demo' }: WhiteboardDemoProps
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 sm:top-4 sm:left-1/2 sm:-translate-x-1/2 sm:translate-y-0 flex flex-col sm:flex-row items-center gap-1 bg-[#0f172a]/95 p-1.5 rounded-2xl shadow-2xl border border-white/10 z-30 transition-all duration-300 backdrop-blur-md">
 
                     <div className="flex flex-col sm:flex-row items-center gap-1 px-1 border-b sm:border-b-0 sm:border-r border-white/10 pb-1 sm:pb-0">
-                        <button onClick={() => setSelectedTool('select')} className={`p-2 rounded-lg ${selectedTool === 'select' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`}>
+                        <button onClick={() => setSelectedTool('select')} className={`p-2 rounded-lg ${selectedTool === 'select' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`} title="Select / Edit">
                             <MousePointer2 className="w-4 h-4" />
                         </button>
-                        <button onClick={() => setSelectedTool('hand')} className={`p-2 rounded-lg ${selectedTool === 'hand' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`}>
+                        <button onClick={() => setSelectedTool('hand')} className={`p-2 rounded-lg ${selectedTool === 'hand' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`} title="Pan Tool">
                             <Hand className="w-4 h-4" />
                         </button>
                     </div>
 
                     <div className="flex flex-col sm:flex-row items-center gap-1 px-1 border-b sm:border-b-0 sm:border-r border-white/10 py-1 sm:py-0">
-                        <button onClick={() => setSelectedTool('pencil')} className={`p-2 rounded-lg ${selectedTool === 'pencil' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`}>
+                        <button onClick={() => setSelectedTool('pencil')} className={`p-2 rounded-lg ${selectedTool === 'pencil' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`} title="Pencil">
                             <Pencil className="w-4 h-4" />
                         </button>
-                        <button onClick={() => setSelectedTool('highlighter')} className={`p-2 rounded-lg ${selectedTool === 'highlighter' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`}>
+                        <button onClick={() => setSelectedTool('highlighter')} className={`p-2 rounded-lg ${selectedTool === 'highlighter' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`} title="Highlighter">
                             <Highlighter className="w-4 h-4" />
                         </button>
-                        <button onClick={() => setSelectedTool('eraser')} className={`p-2 rounded-lg ${selectedTool === 'eraser' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`}>
+                        <button onClick={() => setSelectedTool('eraser')} className={`p-2 rounded-lg ${selectedTool === 'eraser' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`} title="Eraser">
                             <Eraser className="w-4 h-4" />
                         </button>
                     </div>
 
                     <div className="flex flex-col sm:flex-row items-center gap-1 px-1 border-b sm:border-b-0 sm:border-r border-white/10 py-1 sm:py-0 hidden sm:flex">
-                        <button onClick={() => setSelectedTool('rect')} className={`p-2 rounded-lg ${selectedTool === 'rect' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`}>
+                        <button onClick={() => setSelectedTool('rect')} className={`p-2 rounded-lg ${selectedTool === 'rect' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`} title="Rectangle">
                             <Square className="w-4 h-4" />
                         </button>
-                        <button onClick={() => setSelectedTool('circle')} className={`p-2 rounded-lg ${selectedTool === 'circle' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`}>
+                        <button onClick={() => setSelectedTool('circle')} className={`p-2 rounded-lg ${selectedTool === 'circle' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`} title="Circle">
                             <Circle className="w-4 h-4" />
                         </button>
-                        <button onClick={() => setSelectedTool('triangle')} className={`p-2 rounded-lg ${selectedTool === 'triangle' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`}>
+                        <button onClick={() => setSelectedTool('triangle')} className={`p-2 rounded-lg ${selectedTool === 'triangle' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`} title="Triangle">
                             <Triangle className="w-4 h-4" />
                         </button>
                     </div>
 
                     <div className="flex flex-col sm:flex-row items-center gap-1 px-1 border-b sm:border-b-0 sm:border-r border-white/10 py-1 sm:py-0">
-                        <button onClick={() => setSelectedTool('text')} className={`p-2 rounded-lg ${selectedTool === 'text' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`}>
+                        <button onClick={() => setSelectedTool('text')} className={`p-2 rounded-lg ${selectedTool === 'text' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`} title="Text">
                             <TypeIcon className="w-4 h-4" />
                         </button>
-                        <button onClick={() => setSelectedTool('sticky')} className={`p-2 rounded-lg ${selectedTool === 'sticky' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`}>
+                        <button onClick={() => setSelectedTool('sticky')} className={`p-2 rounded-lg ${selectedTool === 'sticky' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`} title="Sticky Note">
                             <StickyNote className="w-4 h-4" />
                         </button>
                     </div>
@@ -669,7 +698,10 @@ export default function WhiteboardDemo({ variant = 'demo' }: WhiteboardDemoProps
                     onPointerUp={handlePointerUp}
                     onPointerLeave={handlePointerUp}
                     onWheel={handleWheel}
-                    className={`w-full h-full block touch-none ${selectedTool === 'hand' ? 'cursor-grab active:cursor-grabbing' : 'cursor-crosshair'}`}
+                    className={`w-full h-full block touch-none ${selectedTool === 'hand' ? 'cursor-grab active:cursor-grabbing' : selectedTool === 'eraser' ? '' : 'cursor-crosshair'}`}
+                    style={{
+                        cursor: selectedTool === 'eraser' ? ERASER_CURSOR_URL : undefined
+                    }}
                 />
 
                 {/* Text Editing Overlay */}
