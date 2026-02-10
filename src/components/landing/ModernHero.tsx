@@ -2,12 +2,19 @@
 
 import Link from "next/link";
 import { ArrowRight, Play, Check } from "lucide-react";
+import { OrbitGraphic } from "../illustrations/OrbitGraphic";
 
 export default function ModernHero() {
     return (
         <div className="relative w-full pt-32 pb-20 flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 bg-slate-950 overflow-hidden">
             {/* Background Ambience */}
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/20 via-slate-950/50 to-slate-950 pointer-events-none" />
+
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[800px] max-w-7xl opacity-40 pointer-events-none overflow-hidden">
+                <OrbitGraphic className="absolute top-[-100px] right-[-100px] w-[600px] h-[600px] text-orbit-cyan/20 animate-spin-slow" />
+                <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-orbit-cyan/10 rounded-full blur-[120px] animate-pulse" style={{ animationDuration: '4s' }} />
+                <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-deep-indigo/10 rounded-full blur-[120px] animate-pulse" style={{ animationDuration: '7s' }} />
+            </div>
 
             {/* Hiring Badge */}
             <Link
@@ -24,7 +31,7 @@ export default function ModernHero() {
 
             {/* Main Heading */}
             <h1 className="relative z-10 max-w-5xl text-center text-5xl sm:text-6xl lg:text-7xl font-semibold tracking-tight text-white mb-6 leading-[1.1]">
-                Stop Managing. Start Teaching. 🚀 <br />
+                Teach Without <br /> Tech Headaches. 🚀 <br />
                 {/* <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-white to-indigo-300">
                     feedback platform
                 </span> */}

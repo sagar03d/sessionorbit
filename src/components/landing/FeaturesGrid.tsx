@@ -6,6 +6,7 @@ import VoiceSupport from "./VoiceSupport";
 import BandwidthToggle from "./BandwidthToggle";
 
 import WhiteboardDemo from "./WhiteboardDemo";
+import { TeachingGraphic } from "../illustrations/TeachingGraphic";
 
 export default function FeaturesGrid() {
     return (
@@ -33,20 +34,16 @@ export default function FeaturesGrid() {
                 {/* Medium Feature - Bandwidth */}
                 <BandwidthToggle />
 
-                {/* Feature 4 - Placeholder/Decor (Optional) */}
+                {/* Feature 4 - Instant Replay */}
                 <div className="relative group overflow-hidden rounded-3xl bg-slate-900/50 border border-white/10 p-6 backdrop-blur-xl transition-all hover:border-orbit-cyan/30">
                     <div className="absolute inset-0 bg-gradient-to-br from-deep-indigo/5 to-orbit-cyan/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <div className="h-full flex flex-col justify-between">
+                    <div className="h-full flex flex-col justify-between relative z-10">
                         <div>
                             <h3 className="text-lg font-medium text-white mb-1">Instant Replay</h3>
                             <p className="text-sm text-slate-400">Classes recorded in HD, searchable by transcript.</p>
                         </div>
-                        <div className="mt-4 flex gap-1 items-end h-12 opacity-50">
-                            <div className="w-2 bg-deep-indigo h-[60%] rounded-t-sm" />
-                            <div className="w-2 bg-deep-indigo h-[40%] rounded-t-sm" />
-                            <div className="w-2 bg-deep-indigo h-[80%] rounded-t-sm" />
-                            <div className="w-2 bg-deep-indigo h-[30%] rounded-t-sm" />
-                            <div className="w-2 bg-deep-indigo h-[50%] rounded-t-sm" />
+                        <div className="mt-4 flex-1 min-h-[120px] relative">
+                            <TeachingGraphic className="w-full h-full object-contain opacity-80 group-hover:opacity-100 transition-opacity" />
                         </div>
                     </div>
                 </div>

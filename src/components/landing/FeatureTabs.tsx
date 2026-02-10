@@ -37,8 +37,12 @@ export default function FeatureTabs() {
                 <div className="h-14 border-b border-white/5 bg-[#0f111a] flex items-center justify-between px-4 z-20">
                     <div className="flex items-center gap-4">
                         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 p-[1px]">
-                            <div className="w-full h-full rounded-full bg-[#0f111a] flex items-center justify-center">
-                                <span className="text-indigo-400 font-bold text-xs">M</span>
+                            <div className="w-full h-full rounded-full bg-[#0f111a] flex items-center justify-center overflow-hidden">
+                                <img
+                                    src="https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=100&h=100&fit=crop&crop=faces"
+                                    alt="Teacher"
+                                    className="w-full h-full object-cover"
+                                />
                             </div>
                         </div>
                         <span className="text-white font-medium text-sm">Peter Tabichi&apos;s Class</span>
@@ -175,64 +179,72 @@ export default function FeatureTabs() {
                             <Video size={14} /> LIVE FEEDS
                         </div>
 
-                        <div className="p-4">
-                            <div className="relative aspect-video rounded-lg bg-[#1a1d2d] border border-white/5 overflow-hidden group">
+                        <div className="p-4 space-y-4">
+                            <div className="relative aspect-video rounded-lg bg-[#1a1d2d] border border-white/5 overflow-hidden group shadow-lg">
                                 {/* Feed Badge */}
-                                <div className="absolute top-3 left-3 px-2 py-0.5 bg-indigo-500 rounded text-[10px] font-bold text-white z-10">
+                                <div className="absolute top-3 left-3 px-2 py-0.5 bg-indigo-500 rounded text-[10px] font-bold text-white z-20">
                                     Teacher
                                 </div>
 
-                                {/* Feed Content */}
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                    <div className="w-16 h-16 rounded-full bg-indigo-600 flex items-center justify-center text-xl font-bold text-white shadow-lg">
-                                        PT
-                                    </div>
+                                {/* Feed Content - Image as Video */}
+                                <div className="absolute inset-0">
+                                    <img
+                                        src="https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=500&h=300&fit=crop"
+                                        alt="Teacher Video Feed"
+                                        className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity"
+                                    />
+                                    {/* Overlay Gradient for Text readability */}
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80" />
                                 </div>
 
                                 {/* Audio Indicator */}
-                                <div className="absolute bottom-3 right-3 p-1.5 bg-black/50 rounded-full text-white/50 backdrop-blur-sm">
-                                    <MicOff size={14} />
+                                <div className="absolute bottom-3 right-3 p-1.5 bg-green-500/90 rounded-full text-white backdrop-blur-sm z-20 shadow-sm animate-pulse">
+                                    <Mic size={14} />
                                 </div>
 
                                 {/* Name Label */}
-                                <div className="absolute bottom-3 left-3 text-xs text-slate-400 font-medium">
+                                <div className="absolute bottom-3 left-3 text-xs text-white font-medium z-20 text-shadow-sm">
                                     Peter Tabichi
                                 </div>
 
                                 {/* Hover Overlay */}
-                                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                    <div className="p-2 bg-black/50 rounded-full backdrop-blur-sm text-white hover:bg-indigo-500 transition-colors cursor-pointer">
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-30">
+                                    <div className="p-2 bg-black/60 rounded-full backdrop-blur-md text-white hover:bg-indigo-500 transition-colors cursor-pointer border border-white/10">
                                         <MoreHorizontal size={16} />
                                     </div>
                                 </div>
                             </div>
-                            <br />
-                            <div className="relative aspect-video rounded-lg bg-[#1a1d2d] border border-white/5 overflow-hidden group">
+
+                            <div className="relative aspect-video rounded-lg bg-[#1a1d2d] border border-white/5 overflow-hidden group shadow-lg">
                                 {/* Feed Badge */}
-                                <div className="absolute top-3 left-3 px-2 py-0.5 bg-indigo-500 rounded text-[10px] font-bold text-white z-10">
+                                <div className="absolute top-3 left-3 px-2 py-0.5 bg-indigo-500 rounded text-[10px] font-bold text-white z-20">
                                     Student
                                 </div>
 
-                                {/* Feed Content */}
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                    <div className="w-16 h-16 rounded-full bg-indigo-600 flex items-center justify-center text-xl font-bold text-white shadow-lg">
-                                        J
-                                    </div>
+                                {/* Feed Content - Image as Video */}
+                                <div className="absolute inset-0">
+                                    <img
+                                        src="https://images.unsplash.com/photo-1540479859555-17af45c78602?w=500&h=300&fit=crop"
+                                        alt="Student Video Feed"
+                                        className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity"
+                                    />
+                                    {/* Overlay Gradient for Text readability */}
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80" />
                                 </div>
 
                                 {/* Audio Indicator */}
-                                <div className="absolute bottom-3 right-3 p-1.5 bg-black/50 rounded-full text-white/50 backdrop-blur-sm">
+                                <div className="absolute bottom-3 right-3 p-1.5 bg-black/50 rounded-full text-white/50 backdrop-blur-sm z-20">
                                     <MicOff size={14} />
                                 </div>
 
                                 {/* Name Label */}
-                                <div className="absolute bottom-3 left-3 text-xs text-slate-400 font-medium">
+                                <div className="absolute bottom-3 left-3 text-xs text-white font-medium z-20 text-shadow-sm">
                                     John
                                 </div>
 
                                 {/* Hover Overlay */}
-                                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                    <div className="p-2 bg-black/50 rounded-full backdrop-blur-sm text-white hover:bg-indigo-500 transition-colors cursor-pointer">
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-30">
+                                    <div className="p-2 bg-black/60 rounded-full backdrop-blur-md text-white hover:bg-indigo-500 transition-colors cursor-pointer border border-white/10">
                                         <MoreHorizontal size={16} />
                                     </div>
                                 </div>

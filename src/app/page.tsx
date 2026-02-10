@@ -32,7 +32,9 @@ export default function Home() {
           <DetailedFeatures />
           <Testimonials />
           <PricingPreview />
-          <FAQ />
+        </div>
+        <FAQ />
+        <div className="pb-20">
           <CTA />
         </div>
       </div>

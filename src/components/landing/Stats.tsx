@@ -1,29 +1,29 @@
 "use client"
 
-import { FileText, Wifi, BrainCircuit, CheckCircle2 } from "lucide-react"
+import { ReportVector, TechVector, PrepVector, GradingVector } from "../illustrations/StatsVectors"
 
 export default function Stats() {
     const stats = [
         {
-            icon: FileText,
+            icon: ReportVector,
             value: "45 mins",
             label: "Saved per Report",
             color: "indigo"
         },
         {
-            icon: Wifi,
+            icon: TechVector,
             value: "10 mins",
             label: "Saved on Tech Issues",
             color: "purple"
         },
         {
-            icon: BrainCircuit,
+            icon: PrepVector,
             value: "1 hr",
             label: "Saved on Lesson Prep",
             color: "emerald"
         },
         {
-            icon: CheckCircle2,
+            icon: GradingVector,
             value: "30 mins",
             label: "Saved on Grading",
             color: "amber"
@@ -45,10 +45,16 @@ export default function Stats() {
                     const colorClass = colorClasses[stat.color as keyof typeof colorClasses]
 
                     return (
-                        <div key={index} className={`relative group bg-gradient-to-br ${colorClass} border rounded-2xl p-6 backdrop-blur-xl transition-all hover:scale-105`}>
-                            <Icon className="w-8 h-8 mb-4 opacity-50" />
-                            <div className="text-3xl md:text-4xl font-bold text-white mb-1">{stat.value}</div>
-                            <div className="text-sm text-slate-400">{stat.label}</div>
+                        <div key={index} className={`relative group bg-gradient-to-br ${colorClass} border rounded-2xl p-6 backdrop-blur-xl transition-all hover:scale-105 duration-300`}>
+                            <div className="mb-4 relative">
+                                <div className="absolute inset-0 bg-white/5 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+                                <Icon className="w-12 h-12 relative z-10 drop-shadow-lg" />
+                            </div>
+                            <div className="text-3xl md:text-4xl font-bold text-white mb-1 tracking-tight">{stat.value}</div>
+                            <div className="text-sm text-slate-400 font-medium">{stat.label}</div>
+
+                            {/* Decorative corner accent */}
+                            <div className="absolute top-2 right-2 w-16 h-16 bg-white/5 rounded-full blur-2xl pointer-events-none opacity-0 group-hover:opacity-50 transition-opacity" />
                         </div>
                     )
                 })}

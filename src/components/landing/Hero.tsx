@@ -3,13 +3,16 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Play } from "lucide-react";
+import { OrbitGraphic } from "../illustrations/OrbitGraphic";
 
 export default function Hero() {
     return (
         <div className="relative w-full min-h-[90vh] flex flex-col items-center justify-center pt-24 px-4 sm:px-6 lg:px-8 overflow-hidden bg-[#0B0C15]">
             {/* Starfield / Deep Navy Ambience */}
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-indigo-950/40 via-[#0B0C15] to-[#0B0C15]" />
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[600px] max-w-7xl">
+
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[800px] max-w-7xl opacity-40 pointer-events-none overflow-hidden">
+                <OrbitGraphic className="absolute top-[-100px] right-[-100px] w-[600px] h-[600px] text-orbit-cyan/20 animate-spin-slow" />
                 <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-orbit-cyan/10 rounded-full blur-[120px] animate-pulse" style={{ animationDuration: '4s' }} />
                 <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-deep-indigo/10 rounded-full blur-[120px] animate-pulse" style={{ animationDuration: '7s' }} />
             </div>
