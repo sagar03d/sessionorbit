@@ -26,7 +26,6 @@ export default function CTA() {
                     <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto font-medium">
                         Join thousands of educators who've already upgraded to SessionOrbit. Start your free trial today—no credit card required.
                     </p>
-                    {/* lkj÷  */}
                     <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
                         <Link
                             href="/signup"
