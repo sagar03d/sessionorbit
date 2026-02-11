@@ -38,10 +38,13 @@ export default function FeatureTabs() {
                     <div className="flex items-center gap-4">
                         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 p-[1px]">
                             <div className="w-full h-full rounded-full bg-[#0f111a] flex items-center justify-center overflow-hidden">
-                                <img
-                                    src="/images/teacher1.png"
-                                    alt="Teacher"
+                                <video
+                                    src="/videos/teacher-vid.mp4"
                                     className="w-full h-full object-cover"
+                                    autoPlay
+                                    loop
+                                    muted
+                                    playsInline
                                 />
                             </div>
                         </div>
@@ -188,10 +191,13 @@ export default function FeatureTabs() {
 
                                 {/* Feed Content - Image as Video */}
                                 <div className="absolute inset-0">
-                                    <img
-                                        src="/images/teacher1.png"
-                                        alt="Teacher Video Feed"
+                                    <video
+                                        src="/videos/teacher-vid.mp4"
                                         className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity"
+                                        autoPlay
+                                        loop
+                                        muted
+                                        playsInline
                                     />
                                     {/* Overlay Gradient for Text readability */}
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80" />
@@ -223,10 +229,13 @@ export default function FeatureTabs() {
 
                                 {/* Feed Content - Image as Video */}
                                 <div className="absolute inset-0">
-                                    <img
-                                        src="/images/student2.jpg"
-                                        alt="Student Video Feed"
+                                    <video
+                                        src="/videos/student-vid.mp4"
                                         className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity"
+                                        autoPlay
+                                        loop
+                                        muted
+                                        playsInline
                                     />
                                     {/* Overlay Gradient for Text readability */}
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80" />

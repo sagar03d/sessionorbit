@@ -7,21 +7,37 @@ import { OrbitGraphic } from "../illustrations/OrbitGraphic";
 
 export default function Hero() {
     return (
-        <div className="relative w-full min-h-[90vh] flex flex-col items-center justify-center pt-24 px-4 sm:px-6 lg:px-8 overflow-hidden bg-[#0B0C15]">
-            {/* Starfield / Deep Navy Ambience */}
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-indigo-950/40 via-[#0B0C15] to-[#0B0C15]" />
+        <div className="relative w-full min-h-[90vh] flex flex-col items-center justify-center pt-24 px-4 sm:px-6 lg:px-8 overflow-hidden bg-cosmos-dark">
+
+            {/* --- NEW BACKGROUND LAYER --- */}
+
+            {/* 1. Base Gradient with Aurora Effect */}
+            <div className="absolute inset-0 bg-cosmos-dark overflow-hidden pointer-events-none">
+                <div
+                    className="absolute -top-[50%] -left-[50%] w-[200%] h-[200%] animate-aurora opacity-30"
+                    style={{
+                        backgroundImage: 'conic-gradient(from 0deg at 50% 50%, #0B0C15 0deg, #6366F1 60deg, #0B0C15 120deg, #00EAFF 180deg, #0B0C15 240deg, #6366F1 300deg, #0B0C15 360deg)',
+                        filter: 'blur(80px)',
+                    }}
+                />
+            </div>
+
+            {/* 2. Grid Pattern Overlay */}
+            <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))] opacity-20 pointer-events-none" />
+
+            {/* 3. Deep Vignette & Starfield Simulation */}
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_transparent_0%,_#0B0C15_100%)] opacity-80 pointer-events-none" />
+
 
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[800px] max-w-7xl opacity-40 pointer-events-none overflow-hidden">
                 <OrbitGraphic className="absolute top-[-100px] right-[-100px] w-[600px] h-[600px] text-orbit-cyan/20 animate-spin-slow" />
-                <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-orbit-cyan/10 rounded-full blur-[120px] animate-pulse" style={{ animationDuration: '4s' }} />
-                <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-deep-indigo/10 rounded-full blur-[120px] animate-pulse" style={{ animationDuration: '7s' }} />
             </div>
 
             <div className="relative z-10 w-full max-w-7xl flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
 
                 {/* Copy */}
                 <div className="flex-1 text-center lg:text-left space-y-8">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-sm text-orbit-cyan font-medium backdrop-blur-sm">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-sm text-orbit-cyan font-medium backdrop-blur-sm shadow-[0_0_15px_rgba(0,234,255,0.3)]">
                         <span className="relative flex h-2 w-2">
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orbit-cyan/75"></span>
                             <span className="relative inline-flex rounded-full h-2 w-2 bg-orbit-cyan"></span>
@@ -41,7 +57,7 @@ export default function Hero() {
                     </p>
 
                     <div className="flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start">
-                        <Link href="/signup" className="h-12 px-8 rounded-full bg-white text-deep-indigo font-bold hover:bg-stellar-white transition-colors flex items-center gap-2 group">
+                        <Link href="/signup" className="h-12 px-8 rounded-full bg-white text-deep-indigo font-bold hover:bg-stellar-white transition-all hover:scale-105 shadow-[0_0_20px_rgba(255,255,255,0.3)] flex items-center gap-2 group">
                             Start a Free Class
                             <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
                         </Link>

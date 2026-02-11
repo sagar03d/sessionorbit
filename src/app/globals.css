@@ -70,6 +70,17 @@
 
   --bg-brand-gradient: linear-gradient(to right, var(--color-deep-indigo), var(--color-orbit-cyan));
   --bg-growth-gradient: linear-gradient(to right, var(--color-orbit-cyan), var(--color-growth-lime));
+
+  --animate-aurora: aurora 60s linear infinite;
+
+  @keyframes aurora {
+    from {
+      background-position: 50% 50%, 50% 50%;
+    }
+    to {
+      background-position: 350% 50%, 350% 50%;
+    }
+  }
 }
 
 :root {

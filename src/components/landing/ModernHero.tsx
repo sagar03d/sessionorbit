@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { ArrowRight, Play, Check } from "lucide-react";
-import { OrbitGraphic } from "../illustrations/OrbitGraphic";
 
 export default function ModernHero() {
     return (
@@ -10,8 +9,10 @@ export default function ModernHero() {
             {/* Background Ambience */}
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/20 via-slate-950/50 to-slate-950 pointer-events-none" />
 
+            {/* Grid Pattern Overlay */}
+            <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))] opacity-20 pointer-events-none" />
+
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[800px] max-w-7xl opacity-40 pointer-events-none overflow-hidden">
-                <OrbitGraphic className="absolute top-[-100px] right-[-100px] w-[600px] h-[600px] text-orbit-cyan/20 animate-spin-slow" />
                 <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-orbit-cyan/10 rounded-full blur-[120px] animate-pulse" style={{ animationDuration: '4s' }} />
                 <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-deep-indigo/10 rounded-full blur-[120px] animate-pulse" style={{ animationDuration: '7s' }} />
             </div>
@@ -48,14 +49,14 @@ export default function ModernHero() {
                     href="/signup"
                     className="h-12 px-8 rounded-lg bg-white text-slate-950 font-semibold hover:bg-slate-200 transition-colors flex items-center justify-center"
                 >
-                    Get started - free
+                    Get started - FREE
                 </Link>
-                <Link
+                {/* <Link
                     href="/demo"
                     className="h-12 px-8 rounded-lg bg-white/5 border border-white/10 text-white font-medium hover:bg-white/10 transition-colors flex items-center gap-2 justify-center backdrop-blur-sm"
                 >
                     Watch a demo
-                </Link>
+                </Link> */}
             </div>
         </div >
     );
