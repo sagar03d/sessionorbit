@@ -7,8 +7,8 @@ import { useEffect } from "react";
 import { Suspense } from "react";
 
 if (typeof window !== "undefined") {
-    // Only initialize if the key is present
-    if (process.env.NEXT_PUBLIC_POSTHOG_KEY) {
+    // Only initialize if the key is present and not on localhost
+    if (process.env.NEXT_PUBLIC_POSTHOG_KEY && typeof window !== "undefined" && !window.location.host.includes("localhost") && !window.location.host.includes("127.0.0.1")) {
         posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY, {
             api_host:
                 process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com",

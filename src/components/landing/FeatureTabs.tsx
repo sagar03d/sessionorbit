@@ -39,13 +39,13 @@ export default function FeatureTabs() {
                         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 p-[1px]">
                             <div className="w-full h-full rounded-full bg-[#0f111a] flex items-center justify-center overflow-hidden">
                                 <img
-                                    src="https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=100&h=100&fit=crop&crop=faces"
+                                    src="/images/teacher1.png"
                                     alt="Teacher"
                                     className="w-full h-full object-cover"
                                 />
                             </div>
                         </div>
-                        <span className="text-white font-medium text-sm">Peter Tabichi&apos;s Class</span>
+                        <span className="text-white font-medium text-sm">Elara Verve&apos;s Class</span>
 
                         <div className="h-4 w-[1px] bg-white/10 mx-1"></div>
 
@@ -189,7 +189,7 @@ export default function FeatureTabs() {
                                 {/* Feed Content - Image as Video */}
                                 <div className="absolute inset-0">
                                     <img
-                                        src="https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=500&h=300&fit=crop"
+                                        src="/images/teacher1.png"
                                         alt="Teacher Video Feed"
                                         className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity"
                                     />
@@ -204,7 +204,7 @@ export default function FeatureTabs() {
 
                                 {/* Name Label */}
                                 <div className="absolute bottom-3 left-3 text-xs text-white font-medium z-20 text-shadow-sm">
-                                    Peter Tabichi
+                                    Elara Verve
                                 </div>
 
                                 {/* Hover Overlay */}
@@ -224,7 +224,7 @@ export default function FeatureTabs() {
                                 {/* Feed Content - Image as Video */}
                                 <div className="absolute inset-0">
                                     <img
-                                        src="https://images.unsplash.com/photo-1540479859555-17af45c78602?w=500&h=300&fit=crop"
+                                        src="/images/student2.jpg"
                                         alt="Student Video Feed"
                                         className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity"
                                     />
@@ -239,7 +239,7 @@ export default function FeatureTabs() {
 
                                 {/* Name Label */}
                                 <div className="absolute bottom-3 left-3 text-xs text-white font-medium z-20 text-shadow-sm">
-                                    John
+                                    Lyra
                                 </div>
 
                                 {/* Hover Overlay */}
