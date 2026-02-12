@@ -1,4 +1,3 @@
-import ModernHero from "@/components/landing/ModernHero";
 import FeatureTabs from "@/components/landing/FeatureTabs";
 import FeaturesGrid from "@/components/landing/FeaturesGrid";
 import DetailedFeatures from "@/components/landing/DetailedFeatures";
@@ -22,8 +21,9 @@ export default function Home() {
       </div>
 
       <div className="relative z-10">
-        <ModernHero />
-        <FeatureTabs />
+        <div className="pt-20">
+          <FeatureTabs />
+        </div>
 
         {/* Existing Content styled to match */}
         <div className="space-y-20 pb-20">

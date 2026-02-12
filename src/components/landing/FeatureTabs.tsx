@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useState, useRef, useEffect } from "react";
 import {
     Mic,
     Settings,
@@ -27,16 +28,67 @@ import {
 } from "lucide-react";
 
 export default function FeatureTabs() {
+    const [offset, setOffset] = useState({ x: 0, y: 0 });
+    const [isDragging, setIsDragging] = useState(false);
+    const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+    const [scrollProgress, setScrollProgress] = useState(0);
+    const whiteboardRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            const scrollY = window.scrollY;
+            const maxScroll = 600; // Progress reaches 1 within 600px of scroll
+            const progress = Math.min(scrollY / maxScroll, 1);
+            setScrollProgress(progress);
+        };
+
+        window.addEventListener("scroll", handleScroll);
+        return () => window.removeEventListener("scroll", handleScroll);
+    }, []);
+
+    const handleMouseDown = (e: React.MouseEvent) => {
+        setIsDragging(true);
+        setDragStart({ x: e.clientX - offset.x, y: e.clientY - offset.y });
+    };
+
+    const handleMouseMove = (e: React.MouseEvent) => {
+        if (!isDragging) return;
+        setOffset({
+            x: e.clientX - dragStart.x,
+            y: e.clientY - dragStart.y
+        });
+    };
+
+    const handleMouseUp = () => {
+        setIsDragging(false);
+    };
+
+    // Touch support
+    const handleTouchStart = (e: React.TouchEvent) => {
+        const touch = e.touches[0];
+        setIsDragging(true);
+        setDragStart({ x: touch.clientX - offset.x, y: touch.clientY - offset.y });
+    };
+
+    const handleTouchMove = (e: React.TouchEvent) => {
+        if (!isDragging) return;
+        const touch = e.touches[0];
+        setOffset({
+            x: touch.clientX - dragStart.x,
+            y: touch.clientY - dragStart.y
+        });
+    };
+
     return (
         <div className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-32">
 
             {/* Main Interface Container */}
-            <div className="relative w-full rounded-xl bg-[#0f111a] border border-white/10 shadow-2xl overflow-hidden min-h-[700px] flex flex-col font-sans">
+            <div className="relative w-full rounded-xl bg-[#0f111a] border border-white/10 shadow-2xl overflow-hidden min-h-[500px] sm:min-h-[700px] flex flex-col font-sans">
 
                 {/* Top Header */}
-                <div className="h-14 border-b border-white/5 bg-[#0f111a] flex items-center justify-between px-4 z-20">
-                    <div className="flex items-center gap-4">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 p-[1px]">
+                <div className="h-14 border-b border-white/5 bg-[#0f111a] flex items-center justify-between px-2 sm:px-4 z-20">
+                    <div className="flex items-center gap-2 sm:gap-4 overflow-hidden">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 p-[1px] shrink-0">
                             <div className="w-full h-full rounded-full bg-[#0f111a] flex items-center justify-center overflow-hidden">
                                 <video
                                     src="/videos/teacher-vid.mp4"
@@ -48,31 +100,31 @@ export default function FeatureTabs() {
                                 />
                             </div>
                         </div>
-                        <span className="text-white font-medium text-sm">Elara Verve&apos;s Class</span>
+                        <span className="text-white font-medium text-xs sm:text-sm truncate max-w-[100px] sm:max-w-none">Elara&apos;s Class</span>
 
-                        <div className="h-4 w-[1px] bg-white/10 mx-1"></div>
+                        <div className="h-4 w-[1px] bg-white/10 mx-0.5 sm:mx-1 shrink-0"></div>
 
-                        <div className="px-3 py-1 bg-red-500/10 border border-red-500/20 rounded-md flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
-                            <span className="text-red-400 text-xs font-medium">Recording...</span>
+                        <div className="px-2 sm:px-3 py-1 bg-red-500/10 border border-red-500/20 rounded-md flex items-center gap-1.5 sm:gap-2 shrink-0">
+                            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-red-500 animate-pulse"></div>
+                            <span className="text-red-400 text-[10px] sm:text-xs font-medium">REC</span>
                         </div>
 
-                        <button className="flex items-center gap-2 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-md text-slate-300 text-xs transition-colors">
+                        <button className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-md text-slate-300 text-xs transition-colors shrink-0">
                             <UserPlus size={14} />
                             Invite
                         </button>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                        <button className="flex items-center gap-2 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-md text-slate-300 text-xs transition-colors">
-                            <Save size={14} />
-                            SAVE DATA
+                    <div className="flex items-center gap-1.5 sm:gap-3">
+                        <button className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-md text-slate-300 text-[10px] sm:text-xs transition-colors">
+                            <Save size={14} className="sm:w-[14px] w-3" />
+                            <span className="hidden xs:inline">SAVE</span>
                         </button>
-                        <button className="p-2 text-slate-400 hover:text-white rounded-md hover:bg-white/5 transition-colors">
-                            <Settings size={18} />
+                        <button className="p-1.5 sm:p-2 text-slate-400 hover:text-white rounded-md hover:bg-white/5 transition-colors">
+                            <Settings size={18} className="sm:w-[18px] w-4" />
                         </button>
-                        <button className="p-2 text-red-400 hover:text-red-300 rounded-md hover:bg-red-500/10 transition-colors">
-                            <LogOut size={18} />
+                        <button className="p-1.5 sm:p-2 text-red-400 hover:text-red-300 rounded-md hover:bg-red-500/10 transition-colors">
+                            <LogOut size={18} className="sm:w-[18px] w-4" />
                         </button>
                     </div>
                 </div>
@@ -81,103 +133,129 @@ export default function FeatureTabs() {
                 <div className="flex-1 flex overflow-hidden">
 
                     {/* Main Canvas Area */}
-                    <div className="flex-1 flex flex-col relative bg-[#13151f]">
+                    <div className="flex-1 flex flex-col relative bg-[#13151f] overflow-hidden">
                         {/* Canvas Tabs */}
                         <div className="h-10 border-b border-white/5 bg-[#0f111a] flex items-end px-2">
-                            <button className="px-4 py-2 bg-[#13151f] text-white text-xs font-medium rounded-t-md border-t border-x border-white/5 relative top-[1px]">
+                            <button className="px-3 sm:px-4 py-2 bg-[#13151f] text-white text-[10px] sm:text-xs font-medium rounded-t-md border-t border-x border-white/5 relative top-[1px]">
                                 <div className="flex items-center gap-2">
                                     <span className="w-3 h-3 text-slate-400"><Square size={12} /></span>
                                     Whiteboard
                                 </div>
                             </button>
-                            <button className="px-3 py-2 text-slate-500 hover:text-slate-300 transition-colors">
+                            <button className="px-2 sm:px-3 py-2 text-slate-500 hover:text-slate-300 transition-colors">
                                 <Plus size={16} />
                             </button>
                         </div>
 
-                        {/* Toolbar */}
-                        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-30 bg-[#1a1d2d] border border-white/10 rounded-lg p-1.5 flex items-center gap-1 shadow-xl">
+                        {/* Toolbar - Responsively scrollable on mobile */}
+                        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-30 bg-[#1a1d2d]/90 backdrop-blur-md border border-white/10 rounded-lg p-1 sm:p-1.5 flex items-center gap-0.5 sm:gap-1 shadow-xl max-w-[95%] overflow-x-auto no-scrollbar">
                             <ToolButton icon={MousePointer2} />
-                            <ToolButton icon={Hand} />
-                            <ToolButton icon={Pen} active />
+                            <ToolButton icon={Hand} active={isDragging} />
+                            <ToolButton icon={Pen} />
                             <ToolButton icon={Eraser} />
-                            <div className="w-[1px] h-6 bg-white/10 mx-1"></div>
+                            <div className="hidden sm:block w-[1px] h-6 bg-white/10 mx-1 shrink-0"></div>
                             <ToolButton icon={Square} />
                             <ToolButton icon={Circle} />
                             <ToolButton icon={Triangle} />
-                            <div className="w-[1px] h-6 bg-white/10 mx-1"></div>
+                            <div className="hidden xs:block w-[1px] h-6 bg-white/10 mx-1 shrink-0"></div>
                             <ToolButton icon={Type} />
                             <ToolButton icon={StickyNote} />
-                            <div className="w-[1px] h-6 bg-white/10 mx-1"></div>
-                            <ToolButton icon={Undo2} />
-                            <ToolButton icon={Redo2} />
-                            <div className="w-[1px] h-6 bg-white/10 mx-1"></div>
-                            <button className="p-1.5 hover:bg-white/5 rounded-md text-slate-400 hover:text-white"><Minus size={14} /></button>
-                            <span className="text-[10px] text-slate-400 w-8 text-center">100%</span>
-                            <button className="p-1.5 hover:bg-white/5 rounded-md text-slate-400 hover:text-white"><Plus size={14} /></button>
-                            <div className="w-[1px] h-6 bg-white/10 mx-1"></div>
-                            <div className="flex items-center gap-1.5 px-1">
-                                <div className="w-4 h-4 rounded-full bg-black border border-white/20 cursor-pointer"></div>
-                                <div className="w-4 h-4 rounded-full bg-red-500 cursor-pointer"></div>
-                                <div className="w-4 h-4 rounded-full bg-green-500 cursor-pointer"></div>
-                                <div className="w-4 h-4 rounded-full bg-blue-500 ring-1 ring-white ring-offset-1 ring-offset-[#1a1d2d] cursor-pointer"></div>
+                            <div className="hidden sm:block w-[1px] h-6 bg-white/10 mx-1 shrink-0"></div>
+                            <ToolButton icon={Undo2} className="hidden xs:flex" />
+                            <ToolButton icon={Redo2} className="hidden xs:flex" />
+                            <div className="w-[1px] h-6 bg-white/10 mx-1 shrink-0"></div>
+                            <button className="p-1 sm:p-1.5 hover:bg-white/5 rounded-md text-slate-400 hover:text-white shrink-0"><Minus size={14} /></button>
+                            <span className="text-[9px] sm:text-[10px] text-slate-400 w-6 sm:w-8 text-center shrink-0">100%</span>
+                            <button className="p-1 sm:p-1.5 hover:bg-white/5 rounded-md text-slate-400 hover:text-white shrink-0"><Plus size={14} /></button>
+                            <div className="hidden sm:block w-[1px] h-6 bg-white/10 mx-1 shrink-0"></div>
+                            <div className="flex items-center gap-1 sm:gap-1.5 px-1 shrink-0">
+                                <div className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-black border border-white/20 cursor-pointer"></div>
+                                <div className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-red-500 cursor-pointer"></div>
+                                <div className="hidden xs:block w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-green-500 cursor-pointer"></div>
+                                <div className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-blue-500 ring-1 ring-white ring-offset-1 ring-offset-[#1a1d2d] cursor-pointer"></div>
                             </div>
-                            <div className="w-[1px] h-6 bg-white/10 mx-1"></div>
-                            <button className="p-1.5 hover:bg-white/5 rounded-md text-slate-400 hover:text-white"><Trash2 size={16} /></button>
-                            <button className="p-1.5 hover:bg-white/5 rounded-md text-slate-400 hover:text-white"><Download size={16} /></button>
+                            <div className="w-[1px] h-6 bg-white/10 mx-1 shrink-0"></div>
+                            <button className="p-1 sm:p-1.5 hover:bg-white/5 rounded-md text-slate-400 hover:text-white shrink-0"><Trash2 size={16} /></button>
                         </div>
 
-                        {/* Canvas Content (Venn Diagram) */}
-                        <div className="flex-1 w-full h-full relative overflow-hidden">
+                        {/* Canvas Content */}
+                        <div
+                            ref={whiteboardRef}
+                            className="flex-1 w-full h-full relative overflow-hidden cursor-grab active:cursor-grabbing touch-none"
+                            onMouseDown={handleMouseDown}
+                            onMouseMove={handleMouseMove}
+                            onMouseUp={handleMouseUp}
+                            onMouseLeave={handleMouseUp}
+                            onTouchStart={handleTouchStart}
+                            onTouchMove={handleTouchMove}
+                            onTouchEnd={handleMouseUp}
+                        >
                             {/* Grid Background */}
-                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.05)_1px,_transparent_1px)] bg-[size:24px_24px]"></div>
+                            <div
+                                className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.05)_1px,_transparent_1px)] bg-[size:24px_24px]"
+                                style={{
+                                    backgroundPosition: `${offset.x % 24}px ${offset.y % 24}px`
+                                }}
+                            ></div>
 
-                            {/* SVG Drawing */}
-                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                <svg width="800" height="600" viewBox="0 0 800 600" className="w-full h-full text-blue-500 stroke-current" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    {/* Center Node */}
-                                    <rect x="350" y="275" width="100" height="50" rx="10" className="fill-indigo-500/20 stroke-indigo-500" />
-                                    <text x="400" y="305" textAnchor="middle" className="fill-white text-xs font-medium stroke-none">Lesson Plan</text>
+                            {/* Tagline Content */}
+                            <div
+                                className="absolute inset-0 flex items-center justify-center pointer-events-none transition-transform duration-75"
+                                style={{
+                                    transform: `translate(${offset.x}px, ${offset.y}px)`
+                                }}
+                            >
+                                <div className="text-center px-4 relative">
+                                    <h2 className="text-2xl sm:text-5xl md:text-6xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-300 via-white to-purple-300 mb-4 select-none leading-tight">
+                                        Teach Without <br /> Tech Headaches. 🚀
+                                    </h2>
+                                    <p className="text-slate-400 text-sm sm:text-xl max-w-xl mx-auto select-none opacity-80 px-2">
+                                        Reclaim your time with AI-powered tutoring tools.
+                                    </p>
 
-                                    {/* Branches */}
-                                    <path d="M 400 275 L 400 225" />
-                                    <path d="M 400 325 L 400 375" />
-                                    <path d="M 350 300 L 300 300" />
-                                    <path d="M 450 300 L 500 300" />
-
-                                    {/* Sub Nodes Top */}
-                                    <rect x="350" y="175" width="100" height="50" rx="10" className="fill-purple-500/20 stroke-purple-500" />
-                                    <text x="400" y="205" textAnchor="middle" className="fill-slate-300 text-[10px] stroke-none">Objective</text>
-
-                                    {/* Sub Nodes Bottom */}
-                                    <rect x="350" y="375" width="100" height="50" rx="10" className="fill-blue-500/20 stroke-blue-500" />
-                                    <text x="400" y="405" textAnchor="middle" className="fill-slate-300 text-[10px] stroke-none">Assessment</text>
-
-                                    {/* Sub Nodes Left */}
-                                    <rect x="200" y="275" width="100" height="50" rx="10" className="fill-emerald-500/20 stroke-emerald-500" />
-                                    <text x="250" y="305" textAnchor="middle" className="fill-slate-300 text-[10px] stroke-none">Materials</text>
-
-                                    {/* Sub Nodes Right */}
-                                    <rect x="500" y="275" width="100" height="50" rx="10" className="fill-amber-500/20 stroke-amber-500" />
-                                    <text x="550" y="305" textAnchor="middle" className="fill-slate-300 text-[10px] stroke-none">Activities</text>
-
-                                    {/* Connections to Sub-Sub Nodes (Visual flair) */}
-                                    <path d="M 400 175 L 350 125" strokeOpacity="0.5" strokeDasharray="4 4" />
-                                    <circle cx="350" cy="125" r="5" className="fill-slate-700 stroke-slate-500" />
-
-                                    <path d="M 400 175 L 450 125" strokeOpacity="0.5" strokeDasharray="4 4" />
-                                    <circle cx="450" cy="125" r="5" className="fill-slate-700 stroke-slate-500" />
-
-                                    <path d="M 550 325 L 600 375" strokeOpacity="0.5" strokeDasharray="4 4" />
-                                    <rect x="580" y="360" width="40" height="30" rx="5" className="fill-slate-800 stroke-slate-600" />
-                                </svg>
+                                    {/* Drawing Overlay */}
+                                    <svg className="absolute top-0 left-0 w-full h-full -z-10 overflow-visible" viewBox="0 0 400 200">
+                                        {/* Squiggly Underline */}
+                                        <path
+                                            d="M 50 140 Q 150 160 250 140 T 350 150"
+                                            fill="none"
+                                            stroke="url(#grad1)"
+                                            strokeWidth="3"
+                                            strokeLinecap="round"
+                                            strokeDasharray="400"
+                                            strokeDashoffset={400 - (scrollProgress * 400)}
+                                            className="opacity-60"
+                                        />
+                                        {/* Sparkle */}
+                                        <path
+                                            d="M 360 40 L 370 20 L 380 40 L 400 50 L 380 60 L 370 80 L 360 60 L 340 50 Z"
+                                            fill="url(#grad2)"
+                                            className="transition-all duration-300"
+                                            style={{
+                                                transformOrigin: '370px 50px',
+                                                transform: `scale(${scrollProgress})`,
+                                                opacity: scrollProgress
+                                            }}
+                                        />
+                                        <defs>
+                                            <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="0%">
+                                                <stop offset="0%" style={{ stopColor: '#6366f1', stopOpacity: 1 }} />
+                                                <stop offset="100%" style={{ stopColor: '#a855f7', stopOpacity: 1 }} />
+                                            </linearGradient>
+                                            <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="0%">
+                                                <stop offset="0%" style={{ stopColor: '#fde047', stopOpacity: 1 }} />
+                                                <stop offset="100%" style={{ stopColor: '#fbbf24', stopOpacity: 1 }} />
+                                            </linearGradient>
+                                        </defs>
+                                    </svg>
+                                </div>
                             </div>
                         </div>
 
                     </div>
 
-                    {/* Right Sidebar */}
-                    <div className="w-80 bg-[#0b0c15] border-l border-white/5 flex flex-col">
+                    {/* Right Sidebar - Hidden on mobile/tablet */}
+                    <div className="hidden lg:flex w-80 bg-[#0b0c15] border-l border-white/5 flex-col">
                         <div className="h-10 flex items-center px-4 border-b border-white/5 text-slate-400 text-xs font-semibold tracking-wider gap-2">
                             <Video size={14} /> LIVE FEEDS
                         </div>
@@ -269,15 +347,15 @@ export default function FeatureTabs() {
     );
 }
 
-function ToolButton({ icon: Icon, active = false }: { icon: any, active?: boolean }) {
+function ToolButton({ icon: Icon, active = false, className = "" }: { icon: any, active?: boolean, className?: string }) {
     return (
         <button
-            className={`p-2 rounded-md transition-all ${active
+            className={`p-1.5 sm:p-2 rounded-md transition-all shrink-0 ${active
                 ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/25'
                 : 'text-slate-400 hover:text-white hover:bg-white/5'
-                }`}
+                } ${className}`}
         >
-            <Icon size={18} />
+            <Icon size={18} className="sm:w-[18px] w-4" />
         </button>
     );
 }
