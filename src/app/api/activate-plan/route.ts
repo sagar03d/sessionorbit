@@ -1,13 +1,8 @@
-import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY!
-
-// Private admin client
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
+import { getSupabaseAdmin } from '@/lib/supabase-server'
 
 export async function POST(req: Request) {
+    const supabaseAdmin = getSupabaseAdmin()
     try {
         const { paymentId, planName } = await req.json()
 
