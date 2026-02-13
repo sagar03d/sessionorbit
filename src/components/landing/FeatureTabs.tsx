@@ -209,7 +209,7 @@ export default function FeatureTabs() {
                                 }}
                             >
                                 <div className="text-center px-4 relative">
-                                    <h2 className="text-xl sm:text-6xl md:text-7xl font-bold font-handwriting bg-clip-text text-transparent bg-gradient-to-r from-indigo-300 via-white to-purple-300 mb-2 sm:mb-4 select-none leading-tight">
+                                    <h2 className="text-xl sm:text-6xl md:text-7xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-300 via-white to-purple-300 mb-2 sm:mb-4 select-none leading-tight">
                                         Teach Without <br /> Tech Headaches. 🚀
                                     </h2>
                                     <p className="text-slate-400 text-sm sm:text-xl max-w-xl mx-auto select-none opacity-80 px-2">
