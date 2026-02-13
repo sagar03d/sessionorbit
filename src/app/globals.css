@@ -68,6 +68,8 @@
   --color-cosmos-dark: #0B0C15;
   --color-stellar-white: #F8FAFC;
 
+  --font-handwriting: var(--font-caveat), cursive;
+
   --bg-brand-gradient: linear-gradient(to right, var(--color-deep-indigo), var(--color-orbit-cyan));
   --bg-growth-gradient: linear-gradient(to right, var(--color-orbit-cyan), var(--color-growth-lime));
 
@@ -77,6 +79,7 @@
     from {
       background-position: 50% 50%, 50% 50%;
     }
+
     to {
       background-position: 350% 50%, 350% 50%;
     }
@@ -206,4 +209,39 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+  animation: float 3s ease-in-out infinite;
+  animation-delay: 1.5s;
+}
+
+@keyframes infinite-grid {
+  from {
+    background-position: 0 0;
+  }
+
+  to {
+    background-position: 24px 24px;
+  }
+}
+
+.animate-infinite-grid {
+  animation: infinite-grid 20s linear infinite;
 }

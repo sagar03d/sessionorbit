@@ -6,6 +6,7 @@ import Testimonials from "@/components/landing/Testimonials";
 import PricingPreview from "@/components/landing/PricingPreview";
 import FAQ from "@/components/landing/FAQ";
 import CTA from "@/components/landing/CTA";
+import WhiteboardDemo from "@/components/landing/WhiteboardDemo";
 
 export default function Home() {
   return (
@@ -29,6 +30,9 @@ export default function Home() {
         <div className="space-y-20 pb-20">
           <Stats />
           <FeaturesGrid />
+          <section id="whiteboard">
+            <WhiteboardDemo variant="demo" />
+          </section>
           <DetailedFeatures />
           <Testimonials />
           <PricingPreview />

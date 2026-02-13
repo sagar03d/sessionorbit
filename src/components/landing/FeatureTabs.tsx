@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
     Mic,
     Settings,
@@ -24,10 +25,12 @@ import {
     Download,
     Video,
     MicOff,
-    MoreHorizontal
+    MoreHorizontal,
+    ChevronRight
 } from "lucide-react";
 
 export default function FeatureTabs() {
+    const router = useRouter();
     const [offset, setOffset] = useState({ x: 0, y: 0 });
     const [isDragging, setIsDragging] = useState(false);
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
@@ -192,7 +195,7 @@ export default function FeatureTabs() {
                         >
                             {/* Grid Background */}
                             <div
-                                className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.05)_1px,_transparent_1px)] bg-[size:24px_24px]"
+                                className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.05)_1px,_transparent_1px)] bg-[size:24px_24px] animate-infinite-grid"
                                 style={{
                                     backgroundPosition: `${offset.x % 24}px ${offset.y % 24}px`
                                 }}
@@ -206,47 +209,135 @@ export default function FeatureTabs() {
                                 }}
                             >
                                 <div className="text-center px-4 relative">
-                                    <h2 className="text-2xl sm:text-5xl md:text-6xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-300 via-white to-purple-300 mb-4 select-none leading-tight">
+                                    <h2 className="text-2xl sm:text-5xl md:text-6xl font-bold font-handwriting bg-clip-text text-transparent bg-gradient-to-r from-indigo-300 via-white to-purple-300 mb-4 select-none leading-tight">
                                         Teach Without <br /> Tech Headaches. 🚀
                                     </h2>
                                     <p className="text-slate-400 text-sm sm:text-xl max-w-xl mx-auto select-none opacity-80 px-2">
                                         Reclaim your time with AI-powered tutoring tools.
                                     </p>
 
-                                    {/* Drawing Overlay */}
-                                    <svg className="absolute top-0 left-0 w-full h-full -z-10 overflow-visible" viewBox="0 0 400 200">
-                                        {/* Squiggly Underline */}
+                                    <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center items-center pointer-events-auto">
+                                        <button
+                                            onMouseDown={(e) => e.stopPropagation()}
+                                            onClick={() => router.push('/signup')}
+                                            className="px-8 py-3.5 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold rounded-full shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:scale-105 transition-all flex items-center gap-2 group"
+                                        >
+                                            Get Started Free
+                                            <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                                        </button>
+                                        <button
+                                            onMouseDown={(e) => e.stopPropagation()}
+                                            onClick={() => document.getElementById('whiteboard')?.scrollIntoView({ behavior: 'smooth' })}
+                                            className="px-8 py-3.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-semibold rounded-full backdrop-blur-md transition-all flex items-center gap-2 group"
+                                        >
+                                            Experience Whiteboard
+                                            <MousePointer2 size={18} />
+                                        </button>
+                                    </div>
+
+                                    {/* Content Islands - Discoverable when dragging */}
+
+                                    {/* Week 5 Header - Top Left */}
+                                    <div className="absolute top-[-400px] left-[-500px] pointer-events-none select-none">
+                                        <h3 className="font-handwriting text-5xl text-white/40 border-b-2 border-white/10 pb-2 px-6 italic rotate-[-2deg]">Week 5</h3>
+                                    </div>
+
+                                    {/* Math/Andreas Island - Top Middle */}
+                                    <div className="absolute top-[-600px] left-[300px] pointer-events-none select-none text-slate-500 font-handwriting text-left min-w-[300px]">
+                                        <div className="flex flex-col gap-1">
+                                            <p className="text-orange-500/60 text-2xl mb-2">Prof. Sandra Smith</p>
+                                            <p className="text-lg opacity-40 flex items-center gap-2 text-white/50">
+                                                <ChevronRight size={14} /> Andreas
+                                            </p>
+                                            <p className="text-lg opacity-40">LM = 5/6 GM</p>
+                                            <p className="text-lg opacity-40">NV = (348 + 5√143) / 36(72 + √143)</p>
+                                            <svg className="w-48 h-20 opacity-20 -mt-8" viewBox="0 0 200 80">
+                                                <path d="M 10 70 Q 100 0 190 70" fill="none" stroke="white" strokeWidth="2" strokeDasharray="5,5" />
+                                            </svg>
+                                        </div>
+                                    </div>
+
+                                    {/* Dynamic Vector/Graph Island - Right */}
+                                    <div className="absolute top-[-100px] left-[700px] pointer-events-none select-none">
+                                        <svg width="400" height="400" viewBox="0 0 400 400" className="opacity-30">
+                                            {/* Axes */}
+                                            <path d="M 50 350 L 50 50 M 50 350 L 350 350" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" />
+                                            {/* Ticks */}
+                                            {[100, 150, 200, 250, 300].map(p => (
+                                                <React.Fragment key={p}>
+                                                    <path d={`M 45 ${p} L 55 ${p}`} stroke="white" strokeWidth="1" />
+                                                    <path d={`M ${p} 345 L ${p} 355`} stroke="white" strokeWidth="1" />
+                                                </React.Fragment>
+                                            ))}
+                                            {/* Vector Arrow */}
+                                            <path d="M 50 350 L 300 100" fill="none" stroke="#00EAFF" strokeWidth="6" strokeLinecap="round" />
+                                            <path d="M 280 110 L 300 100 L 290 120" fill="#00EAFF" />
+                                            <text x="320" y="90" fill="white" className="font-handwriting text-4xl">OA&apos; = λ</text>
+                                            <text x="340" y="140" fill="white" className="font-handwriting text-6xl opacity-40">A</text>
+                                        </svg>
+                                    </div>
+
+                                    {/* Sticky Notes Island - Bottom Left */}
+                                    <div className="absolute top-[350px] left-[-450px] pointer-events-none select-none flex gap-6">
+                                        <div className="w-40 h-40 bg-indigo-500/10 border border-indigo-500/20 p-4 flex flex-col justify-between transform -rotate-6 shadow-2xl backdrop-blur-sm">
+                                            <span className="text-xs text-indigo-400/60 font-medium">01/04/26</span>
+                                            <span className="font-handwriting text-xl text-indigo-100/60">Creating Project Flow</span>
+                                        </div>
+                                        <div className="w-40 h-40 bg-purple-500/10 border border-purple-500/20 p-4 flex flex-col justify-between transform rotate-3 shadow-2xl backdrop-blur-sm">
+                                            <span className="text-xs text-purple-400/60 font-medium">01/03/26</span>
+                                            <span className="font-handwriting text-xl text-purple-100/60">Module Review</span>
+                                        </div>
+                                        <h4 className="font-handwriting text-3xl text-white/20 self-end ml-4 mb-4">Plan for week 5</h4>
+                                    </div>
+
+                                    {/* Geometry Circle Island - Left Edge */}
+                                    <div className="absolute left-[-1100px] top-[-100px] pointer-events-none select-none opacity-20">
+                                        <svg width="600" height="600" viewBox="0 0 400 400">
+                                            <circle cx="200" cy="200" r="160" fill="none" stroke="#A1FF00" strokeWidth="2" />
+                                            <rect x="80" y="80" width="240" height="240" fill="none" stroke="#6366F1" strokeWidth="2" />
+                                            <path d="M 40 200 L 360 200 M 200 40 L 200 360" stroke="white" strokeWidth="1" strokeDasharray="8,8" />
+                                            <path d="M 200 200 L 320 80" stroke="#00EAFF" strokeWidth="2" />
+                                            <text x="210" y="180" fill="white" className="font-handwriting text-sm italic">r = 1</text>
+                                        </svg>
+                                    </div>
+
+                                    {/* Complex Derivation - Bottom Right */}
+                                    <div className="absolute top-[400px] left-[600px] pointer-events-none select-none opacity-25 font-handwriting text-left text-slate-400 max-w-sm">
+                                        <p className="text-xs leading-relaxed">
+                                            The silver section (based on the designation golden section) is the division ratio of a distance...
+                                        </p>
+                                        <svg width="300" height="200" viewBox="0 0 300 200" className="mt-4">
+                                            <path d="M 50 150 L 250 150 L 150 50 Z" fill="none" stroke="white" strokeWidth="1.5" />
+                                            <circle cx="150" cy="116" r="66" fill="none" stroke="white" strokeWidth="1" strokeDasharray="4,4" />
+                                            <path d="M 150 50 L 150 150" stroke="white" strokeWidth="1" />
+                                            <text x="160" y="40" fill="white" className="text-xs">b₀ = 1</text>
+                                        </svg>
+                                    </div>
+
+                                    {/* Scribbles around main tagline */}
+                                    <svg className="absolute -inset-20 w-[120%] h-[140%] -z-10 overflow-visible opacity-20 pointer-events-none" viewBox="0 0 600 400">
+                                        {/* Rough circle around first part of tagline */}
                                         <path
-                                            d="M 50 140 Q 150 160 250 140 T 350 150"
+                                            d="M 100 100 Q 80 50 150 40 T 300 60 T 350 120 T 250 180 T 100 150 Z"
                                             fill="none"
-                                            stroke="url(#grad1)"
-                                            strokeWidth="3"
+                                            stroke="white"
+                                            strokeWidth="2"
                                             strokeLinecap="round"
-                                            strokeDasharray="400"
-                                            strokeDashoffset={400 - (scrollProgress * 400)}
-                                            className="opacity-60"
+                                            className="animate-pulse"
                                         />
-                                        {/* Sparkle */}
-                                        <path
-                                            d="M 360 40 L 370 20 L 380 40 L 400 50 L 380 60 L 370 80 L 360 60 L 340 50 Z"
-                                            fill="url(#grad2)"
-                                            className="transition-all duration-300"
-                                            style={{
-                                                transformOrigin: '370px 50px',
-                                                transform: `scale(${scrollProgress})`,
-                                                opacity: scrollProgress
-                                            }}
-                                        />
-                                        <defs>
-                                            <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="0%">
-                                                <stop offset="0%" style={{ stopColor: '#6366f1', stopOpacity: 1 }} />
-                                                <stop offset="100%" style={{ stopColor: '#a855f7', stopOpacity: 1 }} />
-                                            </linearGradient>
-                                            <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="0%">
-                                                <stop offset="0%" style={{ stopColor: '#fde047', stopOpacity: 1 }} />
-                                                <stop offset="100%" style={{ stopColor: '#fbbf24', stopOpacity: 1 }} />
-                                            </linearGradient>
-                                        </defs>
+                                        {/* Drawn arrows */}
+                                        <path d="M 450 80 L 500 40 M 500 40 L 485 45 M 500 40 L 495 55" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" />
+                                        <path d="M 50 300 L 80 340 M 80 340 L 65 335 M 80 340 L 75 325" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" />
+                                        {/* Little stars/sparkles */}
+                                        {[{ x: 420, y: 50 }, { x: 500, y: 320 }, { x: 80, y: 60 }].map((star, i) => (
+                                            <path
+                                                key={i}
+                                                d={`M ${star.x} ${star.y} L ${star.x + 5} ${star.y - 10} L ${star.x + 10} ${star.y} L ${star.x + 20} ${star.y + 5} L ${star.x + 10} ${star.y + 10} L ${star.x + 5} ${star.y + 20} L ${star.x} ${star.y + 10} L ${star.x - 10} ${star.y + 5} Z`}
+                                                fill="#fde047"
+                                                className="animate-pulse"
+                                                style={{ animationDelay: `${i * 0.5}s` }}
+                                            />
+                                        ))}
                                     </svg>
                                 </div>
                             </div>
