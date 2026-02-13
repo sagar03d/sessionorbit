@@ -203,13 +203,13 @@ export default function FeatureTabs() {
 
                             {/* Tagline Content */}
                             <div
-                                className="absolute inset-0 flex items-center justify-center pointer-events-none transition-transform duration-75"
+                                className="absolute inset-0 flex items-center sm:items-center justify-center pt-24 sm:pt-0 pointer-events-none transition-transform duration-75"
                                 style={{
                                     transform: `translate(${offset.x}px, ${offset.y}px)`
                                 }}
                             >
                                 <div className="text-center px-4 relative">
-                                    <h2 className="text-2xl sm:text-5xl md:text-6xl font-bold font-handwriting bg-clip-text text-transparent bg-gradient-to-r from-indigo-300 via-white to-purple-300 mb-4 select-none leading-tight">
+                                    <h2 className="text-xl sm:text-6xl md:text-7xl font-bold font-handwriting bg-clip-text text-transparent bg-gradient-to-r from-indigo-300 via-white to-purple-300 mb-2 sm:mb-4 select-none leading-tight">
                                         Teach Without <br /> Tech Headaches. 🚀
                                     </h2>
                                     <p className="text-slate-400 text-sm sm:text-xl max-w-xl mx-auto select-none opacity-80 px-2">
