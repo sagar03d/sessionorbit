@@ -21,6 +21,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         '/automate-tutoring-lesson-reports',
         '/lessonspace-vs-pencil-spaces-vs-sessionorbit',
         '/student-engagement-tracking-whiteboard',
+        '/virtual-classroom-software',
+        '/online-tutoring-platform',
+        '/tutor-management-system',
+        '/interactive-whiteboard-for-teaching',
         '/login',
         '/signup',
     ].map((route) => ({
