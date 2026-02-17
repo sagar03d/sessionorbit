@@ -1,9 +1,9 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Play } from "lucide-react";
 import { OrbitGraphic } from "../illustrations/OrbitGraphic";
+import { TeachingGraphic } from "../illustrations/TeachingGraphic";
 
 export default function Hero() {
     return (
@@ -61,26 +61,18 @@ export default function Hero() {
                             Start a Free Class
                             <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
                         </Link>
-                        <Link href="/#features" className="h-12 px-8 rounded-full bg-white/5 text-white border border-white/10 hover:bg-white/10 transition-colors flex items-center gap-2 backdrop-blur-sm">
+                        {/* <Link href="/#features" className="h-12 px-8 rounded-full bg-white/5 text-white border border-white/10 hover:bg-white/10 transition-colors flex items-center gap-2 backdrop-blur-sm">
                             <Play size={18} className="fill-current" />
                             Watch Demo
-                        </Link>
+                        </Link> */}
                     </div>
                 </div>
 
                 {/* Hero Visual */}
                 <div className="flex-1 w-full max-w-xl lg:max-w-none relative perspective-1000">
-                    <div className="relative w-full aspect-[16/9] rounded-2xl overflow-hidden shadow-2xl border border-white/10 group transform transition-transform duration-700 hover:scale-[1.02] hover:rotate-1">
-                        <Image
-                            src="/dashboard-preview.png"
-                            alt="SessionOrbit Dashboard"
-                            fill
-                            className="object-cover"
-                            priority
-                        />
+                    <div className="relative w-full aspect-[4/3] rounded-2xl overflow-hidden shadow-2xl border border-white/10 group transform transition-transform duration-700 hover:scale-[1.02] hover:rotate-1 bg-slate-900/50 backdrop-blur-sm">
 
-                        {/* Overlay Gradient */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent pointer-events-none" />
+                        <TeachingGraphic className="w-full h-full p-4 sm:p-8" />
 
                         {/* Floating UI Badges - Decorative */}
                         <div className="absolute top-6 left-6 px-4 py-2 bg-slate-950/80 backdrop-blur-md rounded-lg border border-white/10 text-xs font-mono text-emerald-400 flex items-center gap-2 shadow-lg animate-float">

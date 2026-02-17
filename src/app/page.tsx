@@ -1,3 +1,4 @@
+import Hero from "@/components/landing/Hero";
 import FeatureTabs from "@/components/landing/FeatureTabs";
 import FeaturesGrid from "@/components/landing/FeaturesGrid";
 import DetailedFeatures from "@/components/landing/DetailedFeatures";
@@ -22,7 +23,8 @@ export default function Home() {
       </div>
 
       <div className="relative z-10">
-        <div className="pt-20">
+        <Hero />
+        <div className="pt-12 sm:pt-20"> {/* Adjusted padding since Hero is big */}
           <FeatureTabs />
         </div>
 

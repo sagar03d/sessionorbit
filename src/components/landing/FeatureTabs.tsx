@@ -208,42 +208,17 @@ export default function FeatureTabs() {
                                     transform: `translate(${offset.x}px, ${offset.y}px)`
                                 }}
                             >
-                                <div className="text-center px-4 relative">
-                                    <h2 className="text-xl sm:text-6xl md:text-7xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-300 via-white to-purple-300 mb-2 sm:mb-4 select-none leading-tight">
-                                        Teach Without <br /> Tech Headaches. 🚀
-                                    </h2>
-                                    <p className="text-slate-400 text-sm sm:text-xl max-w-xl mx-auto select-none opacity-80 px-2">
-                                        Reclaim your time with AI-powered tutoring tools.
-                                    </p>
+                                <div className="relative w-full h-full"> {/* Container for relative positioning from center */}
 
-                                    <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center items-center pointer-events-auto">
-                                        <button
-                                            onMouseDown={(e) => e.stopPropagation()}
-                                            onClick={() => router.push('/signup')}
-                                            className="px-8 py-3.5 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold rounded-full shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:scale-105 transition-all flex items-center gap-2 group"
-                                        >
-                                            Get Started Free
-                                            <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
-                                        </button>
-                                        <button
-                                            onMouseDown={(e) => e.stopPropagation()}
-                                            onClick={() => document.getElementById('whiteboard')?.scrollIntoView({ behavior: 'smooth' })}
-                                            className="px-8 py-3.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-semibold rounded-full backdrop-blur-md transition-all flex items-center gap-2 group"
-                                        >
-                                            Experience Whiteboard
-                                            <MousePointer2 size={18} />
-                                        </button>
-                                    </div>
-
-                                    {/* Content Islands - Discoverable when dragging */}
+                                    {/* Content Islands - Now Centered */}
 
                                     {/* Week 5 Header - Top Left */}
-                                    <div className="absolute top-[-400px] left-[-500px] pointer-events-none select-none">
+                                    <div className="absolute top-[30%] left-[20%] pointer-events-none select-none">
                                         <h3 className="font-handwriting text-5xl text-white/40 border-b-2 border-white/10 pb-2 px-6 italic rotate-[-2deg]">Week 5</h3>
                                     </div>
 
-                                    {/* Math/Andreas Island - Top Middle */}
-                                    <div className="absolute top-[-600px] left-[300px] pointer-events-none select-none text-slate-500 font-handwriting text-left min-w-[300px]">
+                                    {/* Math/Andreas Island - Top Center */}
+                                    <div className="absolute top-[20%] left-[45%] pointer-events-none select-none text-slate-500 font-handwriting text-left min-w-[300px]">
                                         <div className="flex flex-col gap-1">
                                             <p className="text-orange-500/60 text-2xl mb-2">Prof. Sandra Smith</p>
                                             <p className="text-lg opacity-40 flex items-center gap-2 text-white/50">
@@ -258,8 +233,8 @@ export default function FeatureTabs() {
                                     </div>
 
                                     {/* Dynamic Vector/Graph Island - Right */}
-                                    <div className="absolute top-[-100px] left-[700px] pointer-events-none select-none">
-                                        <svg width="400" height="400" viewBox="0 0 400 400" className="opacity-30">
+                                    <div className="absolute top-[35%] right-[15%] pointer-events-none select-none">
+                                        <svg width="300" height="300" viewBox="0 0 400 400" className="opacity-30">
                                             {/* Axes */}
                                             <path d="M 50 350 L 50 50 M 50 350 L 350 350" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" />
                                             {/* Ticks */}
@@ -278,7 +253,7 @@ export default function FeatureTabs() {
                                     </div>
 
                                     {/* Sticky Notes Island - Bottom Left */}
-                                    <div className="absolute top-[350px] left-[-450px] pointer-events-none select-none flex gap-6">
+                                    <div className="absolute bottom-[20%] left-[15%] pointer-events-none select-none flex gap-6">
                                         <div className="w-40 h-40 bg-indigo-500/10 border border-indigo-500/20 p-4 flex flex-col justify-between transform -rotate-6 shadow-2xl backdrop-blur-sm">
                                             <span className="text-xs text-indigo-400/60 font-medium">01/04/26</span>
                                             <span className="font-handwriting text-xl text-indigo-100/60">Creating Project Flow</span>
@@ -291,8 +266,8 @@ export default function FeatureTabs() {
                                     </div>
 
                                     {/* Geometry Circle Island - Left Edge */}
-                                    <div className="absolute left-[-1100px] top-[-100px] pointer-events-none select-none opacity-20">
-                                        <svg width="600" height="600" viewBox="0 0 400 400">
+                                    <div className="absolute top-[10%] left-[5%] pointer-events-none select-none opacity-20">
+                                        <svg width="400" height="400" viewBox="0 0 400 400">
                                             <circle cx="200" cy="200" r="160" fill="none" stroke="#A1FF00" strokeWidth="2" />
                                             <rect x="80" y="80" width="240" height="240" fill="none" stroke="#6366F1" strokeWidth="2" />
                                             <path d="M 40 200 L 360 200 M 200 40 L 200 360" stroke="white" strokeWidth="1" strokeDasharray="8,8" />
@@ -302,11 +277,11 @@ export default function FeatureTabs() {
                                     </div>
 
                                     {/* Complex Derivation - Bottom Right */}
-                                    <div className="absolute top-[400px] left-[600px] pointer-events-none select-none opacity-25 font-handwriting text-left text-slate-400 max-w-sm">
+                                    <div className="absolute bottom-[25%] right-[20%] pointer-events-none select-none opacity-25 font-handwriting text-left text-slate-400 max-w-sm">
                                         <p className="text-xs leading-relaxed">
                                             The silver section (based on the designation golden section) is the division ratio of a distance...
                                         </p>
-                                        <svg width="300" height="200" viewBox="0 0 300 200" className="mt-4">
+                                        <svg width="200" height="150" viewBox="0 0 300 200" className="mt-4">
                                             <path d="M 50 150 L 250 150 L 150 50 Z" fill="none" stroke="white" strokeWidth="1.5" />
                                             <circle cx="150" cy="116" r="66" fill="none" stroke="white" strokeWidth="1" strokeDasharray="4,4" />
                                             <path d="M 150 50 L 150 150" stroke="white" strokeWidth="1" />
@@ -314,31 +289,21 @@ export default function FeatureTabs() {
                                         </svg>
                                     </div>
 
-                                    {/* Scribbles around main tagline */}
-                                    <svg className="absolute -inset-20 w-[120%] h-[140%] -z-10 overflow-visible opacity-20 pointer-events-none" viewBox="0 0 600 400">
-                                        {/* Rough circle around first part of tagline */}
-                                        <path
-                                            d="M 100 100 Q 80 50 150 40 T 300 60 T 350 120 T 250 180 T 100 150 Z"
-                                            fill="none"
-                                            stroke="white"
-                                            strokeWidth="2"
-                                            strokeLinecap="round"
-                                            className="animate-pulse"
-                                        />
-                                        {/* Drawn arrows */}
-                                        <path d="M 450 80 L 500 40 M 500 40 L 485 45 M 500 40 L 495 55" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" />
-                                        <path d="M 50 300 L 80 340 M 80 340 L 65 335 M 80 340 L 75 325" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" />
-                                        {/* Little stars/sparkles */}
-                                        {[{ x: 420, y: 50 }, { x: 500, y: 320 }, { x: 80, y: 60 }].map((star, i) => (
-                                            <path
-                                                key={i}
-                                                d={`M ${star.x} ${star.y} L ${star.x + 5} ${star.y - 10} L ${star.x + 10} ${star.y} L ${star.x + 20} ${star.y + 5} L ${star.x + 10} ${star.y + 10} L ${star.x + 5} ${star.y + 20} L ${star.x} ${star.y + 10} L ${star.x - 10} ${star.y + 5} Z`}
-                                                fill="#fde047"
-                                                className="animate-pulse"
-                                                style={{ animationDelay: `${i * 0.5}s` }}
-                                            />
-                                        ))}
-                                    </svg>
+                                    {/* Scribbles */}
+                                    <div className="absolute inset-0 pointer-events-none">
+                                        <svg className="w-full h-full opacity-20" viewBox="0 0 1000 600" preserveAspectRatio="none">
+                                            {/* Little stars/sparkles scattered */}
+                                            {[{ x: 800, y: 150 }, { x: 200, y: 450 }, { x: 500, y: 300 }].map((star, i) => (
+                                                <path
+                                                    key={i}
+                                                    d={`M ${star.x} ${star.y} L ${star.x + 5} ${star.y - 10} L ${star.x + 10} ${star.y} L ${star.x + 20} ${star.y + 5} L ${star.x + 10} ${star.y + 10} L ${star.x + 5} ${star.y + 20} L ${star.x} ${star.y + 10} L ${star.x - 10} ${star.y + 5} Z`}
+                                                    fill="#fde047"
+                                                    className="animate-pulse"
+                                                    style={{ animationDelay: `${i * 0.5}s` }}
+                                                />
+                                            ))}
+                                        </svg>
+                                    </div>
                                 </div>
                             </div>
                         </div>
