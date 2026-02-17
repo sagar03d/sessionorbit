@@ -96,7 +96,15 @@ export default function CoursesPage() {
         if (!user) return
 
         try {
-            const res = await fetch(`/api/v1/courses?id=${id}`, { method: 'DELETE' })
+            const { data: { session } } = await supabase.auth.getSession()
+            const token = session?.access_token
+
+            const res = await fetch(`/api/v1/courses?id=${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
             const result = await res.json()
             if (res.ok) {
                 fetchCourses()
