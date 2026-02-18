@@ -2,7 +2,7 @@
     "crons": [
         {
             "path": "/api/cron/check-meeting-expiry",
-            "schedule": "* * * * *"
+            "schedule": "0 0 * * *"
         }
     ]
 }
