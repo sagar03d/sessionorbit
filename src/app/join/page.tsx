@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Loader2, CheckCircle, AlertTriangle } from "lucide-react"
+import { supabase } from "@/lib/supabase"
 
 function JoinPageContent() {
     const searchParams = useSearchParams()
@@ -16,9 +17,15 @@ function JoinPageContent() {
     const handleJoin = async () => {
         setStatus('joining')
         try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const headers: any = { 'Content-Type': 'application/json' };
+            if (session?.access_token) {
+                headers['Authorization'] = `Bearer ${session.access_token}`;
+            }
+
             const res = await fetch('/api/organizations/join', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers,
                 body: JSON.stringify({ token })
             })
 

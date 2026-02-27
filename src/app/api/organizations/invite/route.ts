@@ -4,18 +4,38 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { nanoid } from "nanoid";
+import { Resend } from "resend";
+import { getInviteEmailHtml } from "@/lib/emails/templates";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(request: Request) {
     const cookieStore = await cookies();
+    // 1. Try Manual Auth Cookie
     const token = cookieStore.get("session_token")?.value;
+    let userId = null;
 
-    if (!token) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (token) {
+        const session = await verifySession(token);
+        if (session && session.user) {
+            userId = session.user.id;
+        }
     }
 
-    const session = await verifySession(token);
-    if (!session || !session.user) {
-        return NextResponse.json({ error: "Invalid session" }, { status: 401 });
+    // 2. Try Supabase Auth Header (Bearer)
+    if (!userId) {
+        const authHeader = request.headers.get('Authorization');
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            const sbToken = authHeader.split(' ')[1];
+            const { data: { user }, error } = await supabaseAdmin.auth.getUser(sbToken);
+            if (!error && user) {
+                userId = user.id;
+            }
+        }
+    }
+
+    if (!userId) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { email, role } = await request.json();
@@ -25,11 +45,11 @@ export async function POST(request: Request) {
     }
 
     try {
-        // 1. Get Requester's Profile & Org
+        // 1. Get Requester's Profile
         const { data: requesterProfile, error: profileError } = await supabaseAdmin
             .from('profiles')
-            .select('*, organizations(*)')
-            .eq('user_id', session.user.id)
+            .select('*')
+            .eq('id', userId)
             .single();
 
         if (profileError || !requesterProfile || !requesterProfile.organization_id) {
@@ -40,8 +60,18 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "Only admins can invite members" }, { status: 403 });
         }
 
-        const org = requesterProfile.organizations;
         const orgId = requesterProfile.organization_id;
+
+        // Fetch Organization explicitly to avoid nested join mapping issues
+        const { data: org, error: orgFetchError } = await supabaseAdmin
+            .from('organizations')
+            .select('*')
+            .eq('id', orgId)
+            .single();
+
+        if (orgFetchError || !org) {
+            return NextResponse.json({ error: "Organization details not found" }, { status: 404 });
+        }
 
         // 2. Check Plan Limits
         const { count: memberCount } = await supabaseAdmin
@@ -83,9 +113,25 @@ export async function POST(request: Request) {
 
         if (inviteError) throw inviteError;
 
-        // 4. Send Email (Mocked)
-        // In production, call Resend/SendGrid here.
-        console.log(`[MOCK EMAIL] Invite sent to ${email} with token: ${inviteToken}`);
+        // 4. Send Email
+        if (process.env.RESEND_API_KEY) {
+            const origin = request.headers.get("origin") || new URL(request.url).origin;
+            const inviteUrl = `${origin}/join?token=${inviteToken}`;
+            await resend.emails.send({
+                from: 'SessionOrbit <no-reply@sessionorbit.com>',
+                to: email,
+                subject: `You've been invited to join ${org.name} on SessionOrbit`,
+                html: getInviteEmailHtml({
+                    orgName: org.name,
+                    inviterName: requesterProfile.full_name || 'an administrator',
+                    role: role || 'teacher',
+                    inviteUrl: inviteUrl
+                })
+            });
+            console.log(`[EMAIL COMPLETED] Invite sent to ${email} with token: ${inviteToken}`);
+        } else {
+            console.log(`[MOCK EMAIL] Invite sent to ${email} with token: ${inviteToken}`);
+        }
 
         return NextResponse.json({ success: true, invite });
 

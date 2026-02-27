@@ -8,28 +8,36 @@ export type Product = {
 
 export const products: Product[] = [
   {
-    product_id: "pdt_0NVXU1RKiRN9ytPzJKeik",
-    name: "Basic Plan",
-    description: "Get access to basic features and support",
-    price: 2900, // in cents
+    product_id: "pdt_0NZPf3tdQYzb7GqMGn2Ry",
+    name: "Starter",
+    description: "For individual tutors.",
+    price: 600, // in cents
     features: [
-      "Access to basic features",
-      "Email support",
-      "1 Team member",
-      "Basic analytics",
+      "25 Hours / month",
+      "25 AI Reports / month",
+      "Standard AI Tech Support",
     ],
   },
   {
-    product_id: "pdt_0NVXUD7cgUhkXY2k3HukI",
-    name: "Premium Plan",
-    description: "Get access to premium features and support",
+    product_id: "pdt_0NXtJ1NuGIbVJlSRPcaBM",
+    name: "Professional",
+    description: "Serious tutors scaling up.",
+    price: 1900, // in cents
+    features: [
+      "100 Hours / month",
+      "100 AI Reports / month",
+      "Full AI Tech Support",
+    ],
+  },
+  {
+    product_id: "pdt_0NXtJC1y7tkYPvdNAN4tX",
+    name: "Agency",
+    description: "Agencies & Power Users.",
     price: 7900, // in cents
     features: [
-      "Access to all features",
-      "Priority 24/7 support",
-      "Unlimited team members",
-      "Advanced analytics",
-      "Custom integrations",
+      "400 Hours / month",
+      "400 AI Reports / month",
+      "Priority AI Support",
     ],
   },
 ];

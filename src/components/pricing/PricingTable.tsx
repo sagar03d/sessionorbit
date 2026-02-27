@@ -16,31 +16,31 @@ const features = [
     {
         category: "Teaching Limits",
         items: [
-            { name: "Classroom Hours", free: "2 Hours / mo", starter: "20 Hours / mo", pro: "80 Hours / mo", tip: "Total duration of hosted sessions per month." },
-            { name: "AI Scribe Reports", free: "2 Reports / mo", starter: "20 Reports / mo", pro: "80 Reports / mo", tip: "Automated lesson summaries and analytics." },
-            { name: "Overage Fee", free: "N/A (Upgrade)", starter: "$1.25 / hour", pro: "$1.10 / hour", tip: "Cost per additional hour after limit is reached." },
-            { name: "Monthly Reset", free: "Every 30 days", starter: "Every 30 days", pro: "Every 30 days", tip: "Usage counters reset at the start of your billing cycle." },
+            { name: "Classroom Hours", free: "2 Hours / mo", starter: "25 Hours / mo", pro: "100 Hours / mo", agency: "400 Hours / mo", tip: "Total duration of hosted sessions per month." },
+            { name: "AI Scribe Reports", free: "2 Reports / mo", starter: "25 Reports / mo", pro: "100 Reports / mo", agency: "400 Reports / mo", tip: "Automated lesson summaries and analytics." },
+            { name: "Overage Fee", free: "N/A (Upgrade)", starter: "$0.80 / hour", pro: "$1.25 / hour", agency: "$1.10 / hour", tip: "Cost per additional hour after limit is reached." },
+            { name: "Monthly Reset", free: "Every 30 days", starter: "Every 30 days", pro: "Every 30 days", agency: "Every 30 days", tip: "Usage counters reset at the start of your billing cycle." },
         ]
     },
     {
         category: "Features",
         items: [
-            { name: "Interactive Whiteboard", free: true, starter: true, pro: true, tip: "Real-time collaborative canvas." },
-            { name: "Cloud Recording", free: false, starter: "Included", pro: "Included", tip: "Save sessions to the cloud." },
-            { name: "AI Tech Support", free: "Basic", starter: "Full AI Support", pro: "Priority AI Support", tip: "Access to our AI helper for technical issues." },
+            { name: "Interactive Whiteboard", free: true, starter: true, pro: true, agency: true, tip: "Real-time collaborative canvas." },
+            { name: "Cloud Recording", free: false, starter: "Included", pro: "Included", agency: "Included", tip: "Save sessions to the cloud." },
+            { name: "AI Tech Support", free: "Basic", starter: "Standard", pro: "Full AI Support", agency: "Priority AI Support", tip: "Access to our AI helper for technical issues." },
         ]
     },
     {
         category: "Growth",
         items: [
-            { name: "Custom Branding", free: false, starter: false, pro: true, tip: "Add your logo to the classroom." },
-            { name: "Agency Dashboard", free: false, starter: false, pro: true, tip: "Manage multiple tutors and students." },
+            { name: "Custom Branding", free: false, starter: false, pro: true, agency: true, tip: "Add your logo to the classroom." },
+            { name: "Agency Dashboard", free: false, starter: false, pro: false, agency: true, tip: "Manage multiple tutors and students." },
         ]
     }
 ];
 
 // Helper to get dynamic value
-const getFeatureValue = (feature: any, tier: 'free' | 'starter' | 'pro', prices: any, currency: any) => {
+const getFeatureValue = (feature: any, tier: 'free' | 'starter' | 'pro' | 'agency', prices: any, currency: any) => {
     if (feature.name === "Overage Fee" && tier !== 'free') {
         return prices.overage[tier];
     }
@@ -61,10 +61,11 @@ export default function PricingTable() {
                 <table className="w-full text-left border-collapse">
                     <thead>
                         <tr className="bg-white/5 border-b border-white/10">
-                            <th className="p-4 sm:p-6 text-sm font-semibold text-white w-1/3">Feature</th>
-                            <th className="p-4 sm:p-6 text-sm font-bold text-indigo-300 text-center w-1/5">Free (Basic)</th>
-                            <th className="p-4 sm:p-6 text-sm font-bold text-amber-300 text-center w-1/5">Starter ({format(prices.starter.price)})</th>
-                            <th className="p-4 sm:p-6 text-sm font-bold text-purple-300 text-center w-1/5">Pro ({format(prices.pro.price)})</th>
+                            <th className="p-4 sm:p-6 text-sm font-semibold text-white w-1/4">Feature</th>
+                            <th className="p-4 sm:p-6 text-sm font-bold text-indigo-300 text-center w-3/16">Discovery (Free)</th>
+                            <th className="p-4 sm:p-6 text-sm font-bold text-emerald-300 text-center w-3/16">Starter ({format(prices.starter.price)})</th>
+                            <th className="p-4 sm:p-6 text-sm font-bold text-amber-300 text-center w-3/16">Professional ({format(prices.pro.price)})</th>
+                            <th className="p-4 sm:p-6 text-sm font-bold text-purple-300 text-center w-3/16">Agency ({format(prices.agency.price)})</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-white/10 bg-[#0B0C15]">
@@ -98,13 +99,18 @@ export default function PricingTable() {
                                             </td>
 
                                             {/* Starter */}
-                                            <td className="p-4 text-primary text-center bg-indigo-500/5">
-                                                <CellContent value={getFeatureValue(feature, 'starter', prices, currency)} checkColor="text-amber-400" />
+                                            <td className="p-4 text-center bg-emerald-500/5">
+                                                <CellContent value={getFeatureValue(feature, 'starter', prices, currency)} checkColor="text-emerald-400" />
                                             </td>
 
-                                            {/* Pro */}
+                                            {/* Professional */}
+                                            <td className="p-4 text-primary text-center bg-indigo-500/5">
+                                                <CellContent value={getFeatureValue(feature, 'pro', prices, currency)} checkColor="text-amber-400" />
+                                            </td>
+
+                                            {/* Agency */}
                                             <td className="p-4 text-center bg-purple-500/5">
-                                                <CellContent value={getFeatureValue(feature, 'pro', prices, currency)} checkColor="text-purple-400" />
+                                                <CellContent value={getFeatureValue(feature, 'agency', prices, currency)} checkColor="text-purple-400" />
                                             </td>
                                         </tr>
                                     ))}

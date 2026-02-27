@@ -4,6 +4,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Users, Loader2, X, Send } from "lucide-react"
+import { supabase } from "@/lib/supabase"
 
 export default function InviteTeacherModal({ isOpen, onClose, onInviteSent, plan, seatsUsed, seatsLimit }: any) {
     const [email, setEmail] = useState("")
@@ -18,9 +19,15 @@ export default function InviteTeacherModal({ isOpen, onClose, onInviteSent, plan
         setIsLoading(true)
 
         try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const headers: any = { 'Content-Type': 'application/json' };
+            if (session?.access_token) {
+                headers['Authorization'] = `Bearer ${session.access_token}`;
+            }
+
             const res = await fetch('/api/organizations/invite', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers,
                 body: JSON.stringify({ email, role: 'teacher' })
             })
 

@@ -11,15 +11,31 @@ const SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'default-secre
 
 export async function POST(request: Request) {
     const cookieStore = await cookies();
+    // 1. Try Manual Auth Cookie
     const token = cookieStore.get("session_token")?.value;
+    let userId = null;
 
-    if (!token) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (token) {
+        const session = await verifySession(token);
+        if (session && session.user) {
+            userId = session.user.id;
+        }
     }
 
-    const session = await verifySession(token);
-    if (!session || !session.user) {
-        return NextResponse.json({ error: "Invalid session" }, { status: 401 });
+    // 2. Try Supabase Auth Header (Bearer)
+    if (!userId) {
+        const authHeader = request.headers.get('Authorization');
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            const sbToken = authHeader.split(' ')[1];
+            const { data: { user }, error } = await supabaseAdmin.auth.getUser(sbToken);
+            if (!error && user) {
+                userId = user.id;
+            }
+        }
+    }
+
+    if (!userId) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     try {
@@ -49,7 +65,7 @@ export async function POST(request: Request) {
         const verificationToken = await new SignJWT({
             otpHash,
             newEmail,
-            userId: session.user.id
+            userId: userId
         })
             .setProtectedHeader({ alg: 'HS256' })
             .setIssuedAt()

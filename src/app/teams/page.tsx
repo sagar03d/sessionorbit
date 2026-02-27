@@ -15,6 +15,7 @@ export default function TeamPage() {
     const [invites, setInvites] = useState<any[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
+    const [removingInviteId, setRemovingInviteId] = useState<string | null>(null)
     const router = useRouter()
 
     useEffect(() => {
@@ -62,6 +63,35 @@ export default function TeamPage() {
         }
     }, [profile, isUserLoading])
 
+
+    const handleRemoveInvite = async (inviteId: string) => {
+        if (!confirm("Are you sure you want to remove this pending invite?")) return;
+        setRemovingInviteId(inviteId);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const headers: any = {};
+            if (session?.access_token) {
+                headers['Authorization'] = `Bearer ${session.access_token}`;
+            }
+
+            const res = await fetch(`/api/organizations/invite/${inviteId}`, {
+                method: 'DELETE',
+                headers
+            });
+
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || 'Failed to remove invite');
+            }
+
+            await fetchData(); // Refresh list to reflect freed seat
+        } catch (error: any) {
+            console.error("Remove invite error:", error);
+            alert(error.message);
+        } finally {
+            setRemovingInviteId(null);
+        }
+    }
 
     if (isUserLoading || isLoading) {
         return (
@@ -216,7 +246,19 @@ export default function TeamPage() {
                                         <span className="px-3 py-1 rounded-full text-xs font-medium bg-neutral-800 text-neutral-400 border border-neutral-700">
                                             PENDING
                                         </span>
-                                        {/* Ability to revoke could go here */}
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            disabled={removingInviteId === invite.id}
+                                            className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
+                                            onClick={() => handleRemoveInvite(invite.id)}
+                                        >
+                                            {removingInviteId === invite.id ? (
+                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                            ) : (
+                                                <Trash2 className="w-4 h-4" />
+                                            )}
+                                        </Button>
                                     </div>
                                 </div>
                             ))}

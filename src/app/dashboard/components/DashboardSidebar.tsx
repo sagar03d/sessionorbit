@@ -77,7 +77,7 @@ export default function DashboardSidebar({ onSidebarClose }: { onSidebarClose?: 
                     )
                 })}
                 {/* Team Link for Admins / Pro Users */}
-                {(profile?.role === 'admin' || profile?.role === 'owner' || profile?.plan === 'Pro' || profile?.plan === 'pro') && (
+                {(profile?.plan?.toLowerCase() === 'pro' || profile?.plan?.toLowerCase() === 'enterprise') && (
                     <Link
                         href="/teams"
                         onClick={onSidebarClose}

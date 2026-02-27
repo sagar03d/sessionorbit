@@ -24,6 +24,11 @@ export const PAYMENT_CONFIG = {
                 ? process.env.NEXT_PUBLIC_DODO_PRODUCT_ID_STARTER_LIVE
                 : process.env.NEXT_PUBLIC_DODO_PRODUCT_ID_STARTER_TEST;
         },
+        get agency() {
+            return PAYMENT_CONFIG.env === 'live_mode'
+                ? process.env.NEXT_PUBLIC_DODO_PRODUCT_ID_AGENCY_LIVE
+                : process.env.NEXT_PUBLIC_DODO_PRODUCT_ID_AGENCY_TEST;
+        }
 
     }
 };

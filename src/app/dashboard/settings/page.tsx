@@ -2,17 +2,31 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Save, Loader2, User, Mail, Monitor, ShieldCheck } from "lucide-react"
+import { ArrowLeft, Save, Loader2, User, Mail, Monitor, ShieldCheck, Users } from "lucide-react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useUser } from "@/hooks/useUser"
-// removed sonner import
+import { supabase } from "@/lib/supabase"
 
+import { Suspense } from "react"
 
-export default function SettingsPage() {
+function SettingsContent() {
     const router = useRouter()
     const { profile, refreshProfile } = useUser()
-    const [activeTab, setActiveTab] = useState<'profile' | 'account' | 'appearance'>('profile')
+    const [activeTab, setActiveTab] = useState<'profile' | 'account' | 'appearance' | 'organization'>('profile')
+
+    const searchParams = useSearchParams()
+
+    useEffect(() => {
+        const tab = searchParams.get('tab');
+        if (tab && ['profile', 'account', 'appearance', 'organization'].includes(tab)) {
+            setActiveTab(tab as any);
+        }
+    }, [searchParams])
+
+    // Organization State
+    const [orgName, setOrgName] = useState("")
+    const [isCreatingOrg, setIsCreatingOrg] = useState(false)
 
     // Profile State
     const [fullName, setFullName] = useState(profile?.full_name || "")
@@ -52,9 +66,15 @@ export default function SettingsPage() {
     const handleSaveProfile = async () => {
         setIsSavingProfile(true)
         try {
+            const { data: { session } } = await supabase.auth.getSession()
+            const headers: any = { 'Content-Type': 'application/json' }
+            if (session?.access_token) {
+                headers['Authorization'] = `Bearer ${session.access_token}`
+            }
+
             const res = await fetch('/api/settings/profile', {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers,
                 body: JSON.stringify({ full_name: fullName })
             })
 
@@ -74,9 +94,15 @@ export default function SettingsPage() {
         if (!email) return alert("Please enter an email address")
         setIsSendingOtp(true)
         try {
+            const { data: { session } } = await supabase.auth.getSession()
+            const headers: any = { 'Content-Type': 'application/json' }
+            if (session?.access_token) {
+                headers['Authorization'] = `Bearer ${session.access_token}`
+            }
+
             const res = await fetch('/api/settings/email/otp', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers,
                 body: JSON.stringify({ email })
             })
 
@@ -101,9 +127,15 @@ export default function SettingsPage() {
         if (!otp) return alert("Please enter the OTP")
         setIsVerifyingOtp(true)
         try {
+            const { data: { session } } = await supabase.auth.getSession()
+            const headers: any = { 'Content-Type': 'application/json' }
+            if (session?.access_token) {
+                headers['Authorization'] = `Bearer ${session.access_token}`
+            }
+
             const res = await fetch('/api/settings/email/verify', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers,
                 body: JSON.stringify({
                     token: emailToken,
                     otp,
@@ -150,6 +182,36 @@ export default function SettingsPage() {
         }
     }
 
+    const handleCreateOrg = async () => {
+        if (!orgName.trim()) return alert("Please enter an organization name");
+        setIsCreatingOrg(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession()
+            const headers: any = { 'Content-Type': 'application/json' }
+            if (session?.access_token) {
+                headers['Authorization'] = `Bearer ${session.access_token}`
+            }
+
+            const res = await fetch('/api/organizations/create', {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({ name: orgName })
+            });
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || 'Failed to create organization');
+            }
+            await refreshProfile();
+            alert("Organization created successfully!");
+            router.push('/teams');
+        } catch (error: any) {
+            console.error(error);
+            alert(error.message || "Failed to create organization");
+        } finally {
+            setIsCreatingOrg(false);
+        }
+    };
+
     return (
         <div className="p-4 md:p-8 max-w-5xl mx-auto text-white">
             <div className="mb-8">
@@ -185,6 +247,15 @@ export default function SettingsPage() {
                         <Monitor className="w-4 h-4" />
                         Appearance
                     </button>
+                    {(profile?.plan?.toLowerCase() === 'pro' || profile?.plan?.toLowerCase() === 'enterprise') && (
+                        <button
+                            onClick={() => setActiveTab('organization')}
+                            className={`text-left px-4 py-3 rounded-lg flex items-center gap-3 transition-colors ${activeTab === 'organization' ? 'bg-neutral-800 text-white' : 'text-neutral-400 hover:bg-neutral-800/50 hover:text-white'}`}
+                        >
+                            <Users className="w-4 h-4" />
+                            Organization
+                        </button>
+                    )}
                 </div>
 
                 {/* Main Content Area */}
@@ -338,8 +409,55 @@ export default function SettingsPage() {
                             </div>
                         </div>
                     )}
+
+                    {/* ORGANIZATION TAB */}
+                    {activeTab === 'organization' && (
+                        <div className="space-y-6 max-w-xl">
+                            <div>
+                                <h2 className="text-xl font-semibold mb-1">Organization Settings</h2>
+                                <p className="text-sm text-neutral-400">Manage your team organization.</p>
+                            </div>
+
+                            {profile?.organization_id ? (
+                                <div className="space-y-4 border border-neutral-800 rounded-lg p-6 bg-black/20">
+                                    <h3 className="text-lg font-medium text-white">Your Organization</h3>
+                                    <p className="text-sm text-neutral-400">You are already part of an organization.</p>
+                                    <Button onClick={() => router.push('/teams')} className="bg-indigo-600 hover:bg-indigo-700">
+                                        Manage Team
+                                    </Button>
+                                </div>
+                            ) : (
+                                <div className="space-y-6">
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium text-neutral-300">Organization Name</label>
+                                        <input
+                                            type="text"
+                                            value={orgName}
+                                            onChange={(e) => setOrgName(e.target.value)}
+                                            className="w-full bg-black/50 border border-neutral-700 rounded-md px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                            placeholder="e.g. Acme Corp"
+                                        />
+                                    </div>
+                                    <div className="pt-4">
+                                        <Button onClick={handleCreateOrg} disabled={isCreatingOrg || !orgName.trim()} className="bg-white text-black hover:bg-neutral-200">
+                                            {isCreatingOrg ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                                            Create Organization
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
+    )
+}
+
+export default function SettingsPage() {
+    return (
+        <Suspense fallback={<div className="p-8 text-white">Loading settings...</div>}>
+            <SettingsContent />
+        </Suspense>
     )
 }
