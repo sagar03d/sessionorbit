@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS public.organizations (
 
 -- RLS for Organizations
 ALTER TABLE public.organizations ENABLE ROW LEVEL SECURITY;
-
+-- asd
 DROP POLICY IF EXISTS "Users can view their own organization" ON public.organizations;
 CREATE POLICY "Users can view their own organization"
     ON public.organizations FOR SELECT
