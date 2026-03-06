@@ -44,7 +44,11 @@ export async function POST(req: Request) {
         }
 
         // Verify incoming request authorization (Header or Query Param)
-        if (authHeader !== `Bearer ${secret}` && querySecret !== secret) {
+        const isBearerAuth = authHeader === `Bearer ${secret}`;
+        const isRawAuth = authHeader === secret;
+        const isQueryAuth = querySecret === secret;
+
+        if (!isBearerAuth && !isRawAuth && !isQueryAuth) {
             console.error("Unauthorized request.");
             console.error("Auth Header received:", authHeader);
             console.error("Query Secret received:", querySecret);
