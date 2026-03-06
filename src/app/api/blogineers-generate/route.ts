@@ -33,6 +33,8 @@ export async function OPTIONS() {
 export async function POST(req: Request) {
     try {
         const authHeader = req.headers.get("Authorization");
+        const url = new URL(req.url);
+        const querySecret = url.searchParams.get("secret");
         const secret = process.env.BLOGINEERS_SECRET;
 
         // Verify server configuration
@@ -41,8 +43,11 @@ export async function POST(req: Request) {
             return NextResponse.json({ success: false, error: "Server configuration error" }, { status: 500, headers: corsHeaders });
         }
 
-        // Verify incoming request authorization
-        if (authHeader !== `Bearer ${secret}`) {
+        // Verify incoming request authorization (Header or Query Param)
+        if (authHeader !== `Bearer ${secret}` && querySecret !== secret) {
+            console.error("Unauthorized request.");
+            console.error("Auth Header received:", authHeader);
+            console.error("Query Secret received:", querySecret);
             return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401, headers: corsHeaders });
         }
 
