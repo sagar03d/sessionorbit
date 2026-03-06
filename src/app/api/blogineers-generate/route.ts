@@ -19,6 +19,17 @@ function generateExcerpt(htmlContent: string) {
     return text;
 }
 
+// CORS Headers
+const corsHeaders = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
+export async function OPTIONS() {
+    return NextResponse.json({}, { headers: corsHeaders });
+}
+
 export async function POST(req: Request) {
     try {
         const authHeader = req.headers.get("Authorization");
@@ -27,24 +38,24 @@ export async function POST(req: Request) {
         // Verify server configuration
         if (!secret) {
             console.error("BLOGINEERS_SECRET is not set in environment variables");
-            return NextResponse.json({ success: false, error: "Server configuration error" }, { status: 500 });
+            return NextResponse.json({ success: false, error: "Server configuration error" }, { status: 500, headers: corsHeaders });
         }
 
         // Verify incoming request authorization
         if (authHeader !== `Bearer ${secret}`) {
-            return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+            return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401, headers: corsHeaders });
         }
 
         let payload;
         try {
             payload = await req.json();
         } catch (e) {
-            return NextResponse.json({ success: false, error: "Invalid JSON payload" }, { status: 400 });
+            return NextResponse.json({ success: false, error: "Invalid JSON payload" }, { status: 400, headers: corsHeaders });
         }
 
         // Validate required fields
         if (!payload.title || !payload.content) {
-            return NextResponse.json({ success: false, error: "Missing required fields (title, content)" }, { status: 400 });
+            return NextResponse.json({ success: false, error: "Missing required fields (title, content)" }, { status: 400, headers: corsHeaders });
         }
 
         let slug = generateSlug(payload.title);
@@ -93,16 +104,16 @@ export async function POST(req: Request) {
 
         if (error) {
             console.error("Error inserting post:", error);
-            return NextResponse.json({ success: false, error: "Database error" }, { status: 500 });
+            return NextResponse.json({ success: false, error: "Database error" }, { status: 500, headers: corsHeaders });
         }
 
         return NextResponse.json({
             success: true,
             slug: data.slug
-        }, { status: 200 });
+        }, { status: 200, headers: corsHeaders });
 
     } catch (error: any) {
         console.error("Error processing Blogineers webhook:", error);
-        return NextResponse.json({ success: false, error: "Internal Server Error" }, { status: 500 });
+        return NextResponse.json({ success: false, error: "Internal Server Error" }, { status: 500, headers: corsHeaders });
     }
 }
