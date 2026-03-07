@@ -110,14 +110,10 @@ export default function BlogDetailsPage() {
 
             {/* Content & Comments */}
             <div className="max-w-3xl mx-auto px-6 lg:px-8">
-                <article className="prose prose-invert prose-lg max-w-none mb-16">
-                    {/* 
-                      Note: In a real app we'd use a markdown parser like 'react-markdown'.
-                      For now, we'll just display the raw text content with whitespace preserved.
-                    */}
-                    <div className="whitespace-pre-wrap font-sans text-slate-300 leading-relaxed">
-                        {post.content}
-                    </div>
+                <article className="prose prose-invert prose-lg max-w-none mb-16 prose-headings:font-bold prose-headings:text-white prose-h3:text-2xl prose-h3:mt-8 prose-h3:mb-4 prose-p:text-slate-300 prose-p:leading-relaxed prose-p:mb-6 prose-a:text-indigo-400 hover:prose-a:text-indigo-300 prose-strong:text-white prose-ul:mb-6 prose-li:text-slate-300 prose-table:w-full prose-th:text-left prose-th:text-white prose-td:text-slate-300">
+                    <div
+                        dangerouslySetInnerHTML={{ __html: post.content }}
+                    />
                 </article>
 
                 <Comments postId={post.id} />
