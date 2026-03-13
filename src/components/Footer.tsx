@@ -9,7 +9,12 @@ export default function Footer() {
             { name: 'About', href: '/about' },
             // { name: 'Careers', href: '/careers' },
             { name: 'Blog', href: '/blog' },
-            // { name: 'Contact', href: '/contact' },
+        ],
+        Academy: [
+            { name: 'Orbit Academy', href: '/orbit-academy' },
+            { name: 'Lunar Scouts', href: '/orbit-academy/courses/lunar-scouts' },
+            { name: 'Rocket Architects', href: '/orbit-academy/courses/rocket-architects' },
+            { name: 'Mars Colonist', href: '/orbit-academy/courses/mars-colonist' },
         ],
         Resources: [
             { name: 'Documentation', href: '/docs' },

@@ -1,0 +1,222 @@
+/* Orbit Academy — Deep Cosmic Design System */
+
+.orbit-root {
+  background: #000;
+  color: #f0f4ff;
+}
+
+/* ── Glassmorphism card ── */
+.glass-card {
+  background: rgba(45, 27, 105, 0.25);
+  border: 1px solid rgba(0, 242, 255, 0.15);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 1.25rem;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+.glass-card:hover {
+  border-color: rgba(0, 242, 255, 0.4);
+  box-shadow: 0 0 32px rgba(0, 242, 255, 0.12), 0 8px 32px rgba(0, 0, 0, 0.4);
+  transform: translateY(-4px);
+}
+
+/* ── CTA Button ── */
+.orbit-btn-primary {
+  background: linear-gradient(135deg, #00f2ff 0%, #7b2ff7 100%);
+  color: #0a0612;
+  font-weight: 700;
+  border-radius: 9999px;
+  padding: 0.85rem 2.2rem;
+  letter-spacing: 0.02em;
+  transition: opacity 0.2s, box-shadow 0.2s, transform 0.2s;
+  box-shadow: 0 0 24px rgba(0, 242, 255, 0.35);
+  border: none;
+  cursor: pointer;
+}
+
+.orbit-btn-primary:hover {
+  opacity: 0.92;
+  box-shadow: 0 0 40px rgba(0, 242, 255, 0.55);
+  transform: scale(1.04);
+}
+
+.orbit-btn-secondary {
+  background: transparent;
+  color: #00f2ff;
+  font-weight: 600;
+  border: 1.5px solid rgba(0, 242, 255, 0.5);
+  border-radius: 9999px;
+  padding: 0.85rem 2.2rem;
+  letter-spacing: 0.02em;
+  transition: background 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+}
+
+.orbit-btn-secondary:hover {
+  background: rgba(0, 242, 255, 0.08);
+  box-shadow: 0 0 20px rgba(0, 242, 255, 0.2);
+}
+
+/* ── Gradient text ── */
+.orbit-gradient-text {
+  background: linear-gradient(135deg, #00f2ff 0%, #7b2ff7 60%, #ff6ef7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.cyan-text {
+  color: #00f2ff;
+}
+
+/* ── Section glow ── */
+.section-glow {
+  position: relative;
+}
+
+.section-glow::before {
+  content: "";
+  position: absolute;
+  inset: -60px;
+  background: radial-gradient(circle at 50% 50%, rgba(45, 27, 105, 0.3) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Accordion ── */
+.orbit-accordion-item {
+  border-bottom: 1px solid rgba(0, 242, 255, 0.1);
+}
+
+.orbit-accordion-trigger {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 1.5rem;
+  background: transparent;
+  border: none;
+  color: #f0f4ff;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  transition: color 0.2s;
+}
+
+.orbit-accordion-trigger:hover {
+  color: #00f2ff;
+}
+
+.orbit-accordion-content {
+  padding: 0 1.5rem 1.25rem;
+  color: rgba(240, 244, 255, 0.7);
+  line-height: 1.7;
+  font-size: 0.95rem;
+}
+
+/* ── Badge ── */
+.orbit-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: rgba(0, 242, 255, 0.1);
+  border: 1px solid rgba(0, 242, 255, 0.3);
+  color: #00f2ff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.3rem 0.85rem;
+  border-radius: 9999px;
+}
+
+/* ── Pricing ── */
+.pricing-popular {
+  position: relative;
+  border-color: rgba(0, 242, 255, 0.5) !important;
+  box-shadow: 0 0 48px rgba(0, 242, 255, 0.18);
+}
+
+.pricing-popular::before {
+  content: "MOST POPULAR";
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #00f2ff, #7b2ff7);
+  color: #0a0612;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  padding: 0.25rem 0.9rem;
+  border-radius: 9999px;
+  white-space: nowrap;
+}
+
+/* ── Star field ── */
+.star-field {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* ── Nav ── */
+.orbit-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: rgba(10, 6, 18, 0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(0, 242, 255, 0.08);
+}
+
+/* ── Responsive hero ── */
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+.orbit-planet-glow {
+  animation: pulse-glow 4s ease-in-out infinite;
+}
+
+@keyframes orbit-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.orbit-ring-spin {
+  animation: orbit-spin 20s linear infinite;
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* ── Video placeholder ── */
+.video-placeholder {
+  background: linear-gradient(135deg, rgba(45, 27, 105, 0.4), rgba(0, 15, 30, 0.8));
+  border: 1px solid rgba(0, 242, 255, 0.2);
+  border-radius: 1rem;
+  aspect-ratio: 16/9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.video-placeholder::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 50%, rgba(0, 242, 255, 0.05) 0%, transparent 70%);
+}

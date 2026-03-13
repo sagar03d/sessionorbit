@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import { ChevronDown, Sparkles, Mic, Wifi, Eye, Menu, X } from "lucide-react";
+import { ChevronDown, Sparkles, Mic, Wifi, Eye, Menu, X, Rocket, Moon, Globe } from "lucide-react";
 import * as Popover from "@radix-ui/react-popover";
 
 export default function Header() {
@@ -93,6 +93,50 @@ export default function Header() {
               </Popover.Portal>
             </Popover.Root>
 
+            <Popover.Root>
+              <Popover.Trigger className="flex items-center gap-1 text-sm font-medium text-neutral-400 hover:text-white transition-colors outline-none group data-[state=open]:text-white">
+                Courses <ChevronDown className="w-3 h-3 group-data-[state=open]:rotate-180 transition-transform" />
+              </Popover.Trigger>
+              <Popover.Portal>
+                <Popover.Content className="z-50 w-72 p-2 bg-[#0B0C15] border border-white/10 rounded-xl shadow-xl data-[side=bottom]:animate-slideUpAndFade data-[side=top]:animate-slideDownAndFade" sideOffset={5}>
+                  <div className="grid gap-1">
+                    <div className="px-3 py-2 text-[10px] font-bold text-neutral-500 uppercase tracking-widest">SessionOrbit Academy Missions</div>
+                    <Link href="/orbit-academy/courses/lunar-scouts" className="flex items-start gap-3 p-3 rounded-lg hover:bg-white/5 transition-colors group">
+                      <div className="w-8 h-8 rounded-lg bg-cyan-500/10 flex items-center justify-center shrink-0 border border-cyan-500/20">
+                        <Moon className="w-4 h-4 text-cyan-400" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-white group-hover:text-cyan-400 transition-colors">Lunar Scouts</div>
+                        <div className="text-xs text-neutral-500">Ages 10–12 · Orbital Basics</div>
+                      </div>
+                    </Link>
+                    <Link href="/orbit-academy/courses/rocket-architects" className="flex items-start gap-3 p-3 rounded-lg hover:bg-white/5 transition-colors group">
+                      <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center shrink-0 border border-purple-500/20">
+                        <Rocket className="w-4 h-4 text-purple-400" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-white group-hover:text-purple-400 transition-colors">Rocket Architects</div>
+                        <div className="text-xs text-neutral-500">Ages 12–15 · STEM Engineering</div>
+                      </div>
+                    </Link>
+                    <Link href="/orbit-academy/courses/mars-colonist" className="flex items-start gap-3 p-3 rounded-lg hover:bg-white/5 transition-colors group">
+                      <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0 border border-amber-500/20">
+                        <Globe className="w-4 h-4 text-amber-400" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-white group-hover:text-amber-400 transition-colors">Mars Colonist</div>
+                        <div className="text-xs text-neutral-500">Elite · AI-Led Simulations</div>
+                      </div>
+                    </Link>
+                    <div className="h-px bg-white/5 my-1" />
+                    <Link href="/orbit-academy" className="px-3 py-2 text-xs text-center font-medium text-indigo-400 hover:text-indigo-300 transition-colors">
+                      View All Academy Tracks
+                    </Link>
+                  </div>
+                </Popover.Content>
+              </Popover.Portal>
+            </Popover.Root>
+
             <Link href="/pricing" className="text-sm font-medium text-neutral-400 hover:text-white transition-colors">
               Pricing
             </Link>
@@ -157,6 +201,21 @@ export default function Header() {
               <Link href="/features/ai-help-desk" onClick={() => setMobileMenuOpen(false)} className="block text-neutral-300 hover:text-white text-sm">AI Help Desk</Link>
               <Link href="/features/smooth-stream" onClick={() => setMobileMenuOpen(false)} className="block text-neutral-300 hover:text-white text-sm">Smooth-Stream</Link>
               <Link href="/features/focus-orbit" onClick={() => setMobileMenuOpen(false)} className="block text-neutral-300 hover:text-white text-sm">Focus Orbit</Link>
+            </div>
+
+            <div className="h-px bg-neutral-800" />
+
+            <div className="space-y-4">
+              <div className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Orbit Academy</div>
+              <Link href="/orbit-academy/courses/lunar-scouts" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 text-neutral-300 hover:text-white text-sm">
+                <Moon className="w-4 h-4 text-cyan-400" /> Lunar Scouts (Ages 10-12)
+              </Link>
+              <Link href="/orbit-academy/courses/rocket-architects" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 text-neutral-300 hover:text-white text-sm">
+                <Rocket className="w-4 h-4 text-purple-400" /> Rocket Architects (Ages 12-15)
+              </Link>
+              <Link href="/orbit-academy/courses/mars-colonist" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 text-neutral-300 hover:text-white text-sm">
+                <Globe className="w-4 h-4 text-amber-400" /> Mars Colonist (Elite)
+              </Link>
             </div>
 
             <div className="h-px bg-neutral-800" />
