@@ -18,9 +18,10 @@ interface DateTimePickerProps {
     date: Date | undefined
     setDate: (date: Date | undefined) => void
     label?: string
+    disabled?: (date: Date) => boolean
 }
 
-export function DateTimePicker({ date, setDate, label }: DateTimePickerProps) {
+export function DateTimePicker({ date, setDate, label, disabled }: DateTimePickerProps) {
     const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(date)
     const [timeValue, setTimeValue] = React.useState<string>(
         date ? format(date, "HH:mm") : "09:00"
@@ -93,12 +94,13 @@ export function DateTimePicker({ date, setDate, label }: DateTimePickerProps) {
                     mode="single"
                     selected={selectedDate}
                     onSelect={handleDateSelect}
+                    disabled={disabled}
                     initialFocus
                     className="p-3 pointer-events-auto"
                     classNames={{
-                        day_selected: "bg-white text-black hover:bg-neutral-200 focus:bg-neutral-200",
-                        day_today: "bg-neutral-800 text-white",
-                        day: "h-9 w-9 p-0 font-normal aria-selected:opacity-100 hover:bg-neutral-800 rounded-md",
+                        day_selected: "bg-[#00f2ff] text-black hover:bg-[#00f2ff]/80 focus:bg-[#00f2ff]",
+                        day_today: "bg-white/10 text-white",
+                        day: "h-9 w-9 p-0 font-normal aria-selected:opacity-100 hover:bg-white/5 rounded-md",
                     }}
                 />
             </PopoverContent>
