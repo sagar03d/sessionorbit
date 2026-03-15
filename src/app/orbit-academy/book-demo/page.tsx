@@ -97,14 +97,15 @@ export default function EarlyAccessPage() {
 
             <div className="glass-card overflow-hidden bg-black/40 border-[#00f2ff]/20">
               <div className="aspect-video w-full">
-                <iframe 
-                  src="https://player.vimeo.com/video/1173595198?badge=0&amp;autopause=0&amp;player_id=0&amp;app_id=58479" 
+                <iframe
+                  src="https://player.vimeo.com/video/1173595198"
                   className="w-full h-full"
-                  frameBorder="0" 
-                  allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media; web-share" 
-                  referrerPolicy="strict-origin-when-cross-origin" 
+                  frameBorder="0"
+                  allow="autoplay; fullscreen; picture-in-picture"
+                  allowFullScreen
+                  loading="lazy"
                   title="commandar-nova-sample"
-                ></iframe>
+                />
               </div>
             </div>
 
