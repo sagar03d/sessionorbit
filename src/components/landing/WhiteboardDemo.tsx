@@ -25,13 +25,16 @@ import {
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
+import { translations, Language } from '@/lib/translations/whiteboard'
 import { hitTest, ElementType, WhiteboardElement, ERASER_CURSOR_URL } from '@/utils/whiteboard-utils'
 
 interface WhiteboardDemoProps {
     variant?: 'demo' | 'full'
+    lang?: Language
 }
 
-export default function WhiteboardDemo({ variant = 'demo' }: WhiteboardDemoProps) {
+export default function WhiteboardDemo({ variant = 'demo', lang = 'en' }: WhiteboardDemoProps) {
+    const t = translations[lang]?.tool || translations.en.tool
     const router = useRouter()
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
@@ -363,7 +366,7 @@ export default function WhiteboardDemo({ variant = 'demo' }: WhiteboardDemoProps
     }
 
     const clearBoard = () => {
-        if (confirm("Clear board?")) {
+        if (confirm(t.clear_confirm)) {
             setHistory([...history, elements])
             setElements([])
             setRedoStack([])
@@ -570,10 +573,10 @@ export default function WhiteboardDemo({ variant = 'demo' }: WhiteboardDemoProps
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
                             <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
                         </span>
-                        Interactive Demo
+                        {t.interactive_demo}
                     </span>
-                    <h3 className="mt-4 text-3xl font-bold text-white">Experience the Infinite Canvas</h3>
-                    <p className="text-slate-400 mt-2">Try drawing, typing, or adding shapes below. No login required.</p>
+                    <h3 className="mt-4 text-3xl font-bold text-white">{t.experience_infinite}</h3>
+                    <p className="text-slate-400 mt-2">{t.try_drawing}</p>
                 </div>
             )}
 
@@ -600,9 +603,9 @@ export default function WhiteboardDemo({ variant = 'demo' }: WhiteboardDemoProps
                 <button
                     onClick={() => router.push('/')}
                     className="absolute top-6 right-6 z-30 flex items-center gap-2 bg-[#0f172a]/95 px-4 py-2 rounded-xl shadow-xl border border-white/10 text-slate-400 hover:text-white hover:bg-red-500/20 hover:border-red-500/50 transition-all group backdrop-blur-md"
-                    title="Exit Whiteboard"
+                    title={t.exit}
                 >
-                    <span className="text-sm font-medium">Exit</span>
+                    <span className="text-sm font-medium">{t.exit}</span>
                     <X className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" />
                 </button>
 
@@ -610,52 +613,52 @@ export default function WhiteboardDemo({ variant = 'demo' }: WhiteboardDemoProps
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 sm:top-4 sm:left-1/2 sm:-translate-x-1/2 sm:translate-y-0 flex flex-col sm:flex-row items-center gap-1 bg-[#0f172a]/95 p-1.5 rounded-2xl shadow-2xl border border-white/10 z-30 transition-all duration-300 backdrop-blur-md">
 
                     <div className="flex flex-col sm:flex-row items-center gap-1 px-1 border-b sm:border-b-0 sm:border-r border-white/10 pb-1 sm:pb-0">
-                        <button onClick={() => setSelectedTool('select')} className={`p-2 rounded-lg ${selectedTool === 'select' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`} title="Select / Edit">
+                        <button onClick={() => setSelectedTool('select')} className={`p-2 rounded-lg ${selectedTool === 'select' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`} title={t.select}>
                             <MousePointer2 className="w-4 h-4" />
                         </button>
-                        <button onClick={() => setSelectedTool('hand')} className={`p-2 rounded-lg ${selectedTool === 'hand' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`} title="Pan Tool">
+                        <button onClick={() => setSelectedTool('hand')} className={`p-2 rounded-lg ${selectedTool === 'hand' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`} title={t.pan}>
                             <Hand className="w-4 h-4" />
                         </button>
                     </div>
 
                     <div className="flex flex-col sm:flex-row items-center gap-1 px-1 border-b sm:border-b-0 sm:border-r border-white/10 py-1 sm:py-0">
-                        <button onClick={() => setSelectedTool('pencil')} className={`p-2 rounded-lg ${selectedTool === 'pencil' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`} title="Pencil">
+                        <button onClick={() => setSelectedTool('pencil')} className={`p-2 rounded-lg ${selectedTool === 'pencil' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`} title={t.pencil}>
                             <Pencil className="w-4 h-4" />
                         </button>
-                        <button onClick={() => setSelectedTool('highlighter')} className={`p-2 rounded-lg ${selectedTool === 'highlighter' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`} title="Highlighter">
+                        <button onClick={() => setSelectedTool('highlighter')} className={`p-2 rounded-lg ${selectedTool === 'highlighter' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`} title={t.highlighter}>
                             <Highlighter className="w-4 h-4" />
                         </button>
-                        <button onClick={() => setSelectedTool('eraser')} className={`p-2 rounded-lg ${selectedTool === 'eraser' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`} title="Eraser">
+                        <button onClick={() => setSelectedTool('eraser')} className={`p-2 rounded-lg ${selectedTool === 'eraser' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`} title={t.eraser}>
                             <Eraser className="w-4 h-4" />
                         </button>
                     </div>
 
                     <div className="flex flex-col sm:flex-row items-center gap-1 px-1 border-b sm:border-b-0 sm:border-r border-white/10 py-1 sm:py-0 hidden sm:flex">
-                        <button onClick={() => setSelectedTool('rect')} className={`p-2 rounded-lg ${selectedTool === 'rect' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`} title="Rectangle">
+                        <button onClick={() => setSelectedTool('rect')} className={`p-2 rounded-lg ${selectedTool === 'rect' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`} title={t.rect}>
                             <Square className="w-4 h-4" />
                         </button>
-                        <button onClick={() => setSelectedTool('circle')} className={`p-2 rounded-lg ${selectedTool === 'circle' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`} title="Circle">
+                        <button onClick={() => setSelectedTool('circle')} className={`p-2 rounded-lg ${selectedTool === 'circle' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`} title={t.circle}>
                             <Circle className="w-4 h-4" />
                         </button>
-                        <button onClick={() => setSelectedTool('triangle')} className={`p-2 rounded-lg ${selectedTool === 'triangle' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`} title="Triangle">
+                        <button onClick={() => setSelectedTool('triangle')} className={`p-2 rounded-lg ${selectedTool === 'triangle' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`} title={t.triangle}>
                             <Triangle className="w-4 h-4" />
                         </button>
                     </div>
 
                     <div className="flex flex-col sm:flex-row items-center gap-1 px-1 border-b sm:border-b-0 sm:border-r border-white/10 py-1 sm:py-0">
-                        <button onClick={() => setSelectedTool('text')} className={`p-2 rounded-lg ${selectedTool === 'text' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`} title="Text">
+                        <button onClick={() => setSelectedTool('text')} className={`p-2 rounded-lg ${selectedTool === 'text' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`} title={t.text}>
                             <TypeIcon className="w-4 h-4" />
                         </button>
-                        <button onClick={() => setSelectedTool('sticky')} className={`p-2 rounded-lg ${selectedTool === 'sticky' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`} title="Sticky Note">
+                        <button onClick={() => setSelectedTool('sticky')} className={`p-2 rounded-lg ${selectedTool === 'sticky' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`} title={t.sticky}>
                             <StickyNote className="w-4 h-4" />
                         </button>
                     </div>
 
                     <div className="flex flex-col sm:flex-row items-center gap-1 px-1 border-b sm:border-b-0 sm:border-r border-white/10 py-1 sm:py-0">
-                        <button onClick={undo} disabled={history.length === 0} className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg disabled:opacity-30">
+                        <button onClick={undo} disabled={history.length === 0} className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg disabled:opacity-30" title={t.undo}>
                             <Undo2 className="w-4 h-4" />
                         </button>
-                        <button onClick={redo} disabled={redoStack.length === 0} className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg disabled:opacity-30">
+                        <button onClick={redo} disabled={redoStack.length === 0} className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg disabled:opacity-30" title={t.redo}>
                             <Redo2 className="w-4 h-4" />
                         </button>
                     </div>
@@ -670,13 +673,13 @@ export default function WhiteboardDemo({ variant = 'demo' }: WhiteboardDemoProps
                         <div className="w-6 h-px bg-white/10 my-1 block sm:hidden" />
 
                         <div className="flex flex-col sm:flex-row gap-1">
-                            <button onClick={clearBoard} className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg" title="Clear">
+                            <button onClick={clearBoard} className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg" title={t.clear}>
                                 <Trash2 className="w-4 h-4" />
                             </button>
-                            <button onClick={() => fileInputRef.current?.click()} className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg" title="Upload Image">
+                            <button onClick={() => fileInputRef.current?.click()} className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg" title={t.upload}>
                                 <Upload className="w-4 h-4" />
                             </button>
-                            <button onClick={downloadPDF} className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg" title="Export PDF">
+                            <button onClick={downloadPDF} className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg" title={t.export}>
                                 <Download className="w-4 h-4" />
                             </button>
                         </div>
@@ -712,7 +715,7 @@ export default function WhiteboardDemo({ variant = 'demo' }: WhiteboardDemoProps
                         onChange={handleTextUpdate}
                         onBlur={handleTextBlur}
                         onKeyDown={handleTextKeyDown}
-                        placeholder="Type something..."
+                        placeholder={t.type_placeholder}
                         className="absolute z-[100] border-0 outline-none resize-none overflow-hidden text-center pointer-events-auto shadow-2xl"
                         style={getEditingStyle() as React.CSSProperties}
                         autoFocus
@@ -720,11 +723,11 @@ export default function WhiteboardDemo({ variant = 'demo' }: WhiteboardDemoProps
                 )}
 
                 <div className="absolute bottom-4 right-4 flex items-center gap-1 bg-[#0f172a]/90 backdrop-blur border border-white/10 p-1 rounded-lg">
-                    <button onClick={() => setCamera(c => ({ ...c, z: Math.max(0.1, c.z - 0.1) }))} className="p-1.5 text-slate-400 hover:text-white rounded hover:bg-white/10">
+                    <button onClick={() => setCamera(c => ({ ...c, z: Math.max(0.1, c.z - 0.1) }))} className="p-1.5 text-slate-400 hover:text-white rounded hover:bg-white/10" title={t.zoom}>
                         <Minus className="w-3.5 h-3.5" />
                     </button>
                     <span className="text-[10px] font-mono text-slate-400 w-8 text-center">{Math.round(camera.z * 100)}%</span>
-                    <button onClick={() => setCamera(c => ({ ...c, z: Math.min(5, c.z + 0.1) }))} className="p-1.5 text-slate-400 hover:text-white rounded hover:bg-white/10">
+                    <button onClick={() => setCamera(c => ({ ...c, z: Math.min(5, c.z + 0.1) }))} className="p-1.5 text-slate-400 hover:text-white rounded hover:bg-white/10" title={t.zoom}>
                         <Plus className="w-3.5 h-3.5" />
                     </button>
                     <button onClick={() => setCamera({ x: 0, y: 0, z: 1 })} className="p-1.5 text-slate-400 hover:text-white rounded hover:bg-white/10 ml-1">

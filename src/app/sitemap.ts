@@ -1,5 +1,6 @@
 import { MetadataRoute } from 'next'
 import { supabase } from '@/lib/supabase'
+import { languages } from '@/lib/translations/whiteboard'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.sessionorbit.com'
@@ -55,5 +56,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         console.error("Error fetching posts for sitemap:", error)
     }
 
-    return [...routes, ...blogRoutes]
+    // Localized Whiteboard Routes
+    const localizedWhiteboardRoutes = languages.flatMap(lang => [
+        `/${lang}/free-whiteboard`,
+        `/${lang}/free-ai-whiteboard`
+    ]).map(route => ({
+        url: `${baseUrl}${route}`,
+        lastModified: new Date(),
+        changeFrequency: 'monthly' as const,
+        priority: 0.7,
+    }))
+
+    return [...routes, ...blogRoutes, ...localizedWhiteboardRoutes]
 }

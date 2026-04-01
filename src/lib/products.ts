@@ -30,14 +30,14 @@ export const products: Product[] = [
     ],
   },
   {
-    product_id: "pdt_0NXtJC1y7tkYPvdNAN4tX",
-    name: "Agency",
-    description: "Agencies & Power Users.",
-    price: 7900, // in cents
+    product_id: "pdt_demo_class", // User will replace this with their actual ID
+    name: "Demo Lesson",
+    description: "Sample orbital class.",
+    price: 100, // $1.00
     features: [
-      "400 Hours / month",
-      "400 AI Reports / month",
-      "Priority AI Support",
+      "1-on-1 with AI Nova",
+      "Interactive Simulation",
+      "Personalized Report",
     ],
   },
 ];

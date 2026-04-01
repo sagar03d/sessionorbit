@@ -28,6 +28,11 @@ export const PAYMENT_CONFIG = {
             return PAYMENT_CONFIG.env === 'live_mode'
                 ? process.env.NEXT_PUBLIC_DODO_PRODUCT_ID_AGENCY_LIVE
                 : process.env.NEXT_PUBLIC_DODO_PRODUCT_ID_AGENCY_TEST;
+        },
+        get demo() {
+            return PAYMENT_CONFIG.env === 'live_mode'
+                ? process.env.NEXT_PUBLIC_DODO_PRODUCT_ID_DEMO_LIVE
+                : process.env.NEXT_PUBLIC_DODO_PRODUCT_ID_DEMO_TEST;
         }
 
     }

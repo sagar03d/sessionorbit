@@ -11,8 +11,8 @@ export default function EarlyAccessPage() {
     <main className="orbit-root min-h-screen relative overflow-hidden flex flex-col items-center">
       {/* Background Star field decoration (simplified representation) */}
       <div className="star-field">
-         {[...Array(20)].map((_, i) => (
-           <div 
+        {[...Array(20)].map((_, i) => (
+          <div
             key={i}
             className="absolute rounded-full bg-white opacity-20"
             style={{
@@ -22,8 +22,8 @@ export default function EarlyAccessPage() {
               height: `${Math.random() * 3}px`,
               animation: `twinkle ${2 + Math.random() * 3}s infinite ease-in-out`
             }}
-           />
-         ))}
+          />
+        ))}
       </div>
 
       {/* Decorative Glows */}
@@ -41,9 +41,9 @@ export default function EarlyAccessPage() {
                 The Future of <span className="orbit-gradient-text">Space Education</span> is Launching.
               </h1>
             </div>
-            
+
             <p className="text-white/60 text-lg lg:text-xl max-w-xl mx-auto lg:mx-0 leading-relaxed">
-              Taught by our advanced <span className="text-[#00f2ff] font-semibold">AI Instructor: Nexus</span>. 
+              Taught by our advanced <span className="text-[#00f2ff] font-semibold">AI Instructor: Nova</span>.
               Prepare your young explorer for a journey beyond the stars with personalized, 1-on-1 immersive curriculum.
             </p>
 
@@ -65,26 +65,26 @@ export default function EarlyAccessPage() {
 
           {/* Right Side: Form Container */}
           <div className="w-full max-w-md animate-in fade-in zoom-in duration-700 delay-200">
-             <DemoRegistrationForm />
+            <DemoRegistrationForm />
           </div>
         </div>
 
         {/* AI Instructor & Video Section */}
         <div className="grid lg:grid-cols-2 gap-12 items-center py-20 border-t border-white/5">
           <div className="glass-card p-2 overflow-hidden relative group">
-             <div className="absolute inset-0 bg-gradient-to-t from-[#0a0612] via-transparent to-transparent opacity-60 z-10" />
-             <img 
-               src="/academy/nexus.jpg" 
-               alt="Nexus AI Instructor" 
-               className="w-full aspect-[4/5] object-cover rounded-[1rem] group-hover:scale-105 transition-transform duration-700"
-             />
-             <div className="absolute bottom-6 left-6 right-6 z-20">
-                <div className="orbit-badge bg-[#00f2ff]/20 text-[#00f2ff] border-[#00f2ff]/30 mb-2">Lead AI Instructor</div>
-                <h3 className="text-3xl font-bold text-white">Meet Nexus</h3>
-                <p className="text-white/60 text-sm mt-2">
-                  A state-of-the-art AI mission specialist designed to guide students through the complexities of Mars colonization and rocket architecture.
-                </p>
-             </div>
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0a0612] via-transparent to-transparent opacity-60 z-10" />
+            <img
+              src="/academy/nova.jpg"
+              alt="Nova AI Instructor"
+              className="w-full aspect-[4/5] object-cover rounded-[1rem] group-hover:scale-105 transition-transform duration-700"
+            />
+            <div className="absolute bottom-6 left-6 right-6 z-20">
+              <div className="orbit-badge bg-[#00f2ff]/20 text-[#00f2ff] border-[#00f2ff]/30 mb-2">Lead AI Instructor</div>
+              <h3 className="text-3xl font-bold text-white">Meet Nova</h3>
+              <p className="text-white/60 text-sm mt-2">
+                A state-of-the-art AI mission specialist designed to guide students through the complexities of Mars colonization and rocket architecture.
+              </p>
+            </div>
           </div>
 
           <div className="space-y-8">

@@ -6,55 +6,67 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(request: Request) {
     try {
-        const { name, email, date, time } = await request.json();
+        const { parentName, email, childName, childAge, date, time } = await request.json();
 
-        if (!name || !email || !date || !time) {
+        if (!parentName || !email || !childName || !childAge || !date || !time) {
             return NextResponse.json({ error: 'All fields are required' }, { status: 400 });
         }
 
-        // 1. Save to Database
-        const { error: dbError } = await supabaseAdmin
+        // 1. Save to Database (Status: Pending)
+        const { data: dbData, error: dbError } = await supabaseAdmin
             .from('academy_demo_registrations')
             .insert([
-                { 
-                    name, 
-                    email, 
-                    preferred_date: date, 
-                    preferred_time: time 
+                {
+                    name: parentName,
+                    email,
+                    child_name: childName,
+                    child_age: parseInt(childAge),
+                    preferred_date: date,
+                    preferred_time: time,
+                    payment_status: 'pending',
+                    amount_paid: 100
                 }
-            ]);
+            ])
+            .select()
+            .single();
 
         if (dbError) {
             console.error("Database Error:", dbError);
             return NextResponse.json({ error: "Failed to save registration" }, { status: 500 });
         }
 
-        // 2. Send Email Notification
-        const emailData = await resend.emails.send({
-            from: 'Orbit Academy <onboarding@resend.dev>',
-            to: ['sagar03d@gmail.com'],
-            subject: `New Demo Class Registration: ${name}`,
-            html: `
-                <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-                    <h2 style="color: #2d1b69;">New Orbit Academy Registration 🚀</h2>
-                    <p>A new student has registered for a free demo class.</p>
-                    <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;"/>
-                    <p><strong>Name:</strong> ${name}</p>
-                    <p><strong>Email:</strong> ${email}</p>
-                    <p><strong>Preferred Date:</strong> ${date}</p>
-                    <p><strong>Preferred Time:</strong> ${time}</p>
-                    <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;"/>
-                    <p><small style="color: #888;">This registration was captured from the early-access landing page.</small></p>
-                </div>
-            `
-        });
+        // 2. Send Feedback Confirmation Email
+        try {
+            await resend.emails.send({
+                from: 'Orbit Academy <onboarding@resend.dev>',
+                to: [email, 'sagar03d@gmail.com'], // Send to both parent and admin
+                subject: `🚀 Mission Initiated: Demo Registration for ${childName}`,
+                html: `
+                    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px; color: #333;">
+                        <h2 style="color: #2d1b69;">Mission Initiated! 🚀</h2>
+                        <p>Hi ${parentName},</p>
+                        <p>Your registration for an Orbit Academy demo class has been received. We're excited to have <strong>${childName}</strong> join us!</p>
+                        
+                        <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                            <h3 style="margin-top: 0; color: #7b2ff7;">Registration Details:</h3>
+                            <p style="margin: 5px 0;"><strong>Student Name:</strong> ${childName}</p>
+                            <p style="margin: 5px 0;"><strong>Student Age:</strong> ${childAge}</p>
+                            <p style="margin: 5px 0;"><strong>Requested Date:</strong> ${date}</p>
+                            <p style="margin: 5px 0;"><strong>Requested Time:</strong> ${time}</p>
+                        </div>
 
-        if (emailData.error) {
-            console.error("Resend Error:", emailData.error);
-            // We don't return error here because the DB save succeeded
+                        <p>If you haven't completed your $1 payment yet, please follow the instructions on the screen to secure your seat. You will receive a final <strong>Mission Confirmed</strong> email once the payment is processed.</p>
+                        
+                        <p>Stay tuned for liftoff!</p>
+                        <p>— Sagar D.<br/>Founder, Orbit Academy</p>
+                    </div>
+                `
+            });
+        } catch (emailErr) {
+            console.error("Email notification error:", emailErr);
         }
 
-        return NextResponse.json({ success: true });
+        return NextResponse.json({ success: true, registrationId: dbData.id });
     } catch (error: any) {
         console.error("Registration API Error:", error);
         return NextResponse.json({ error: error.message }, { status: 500 });

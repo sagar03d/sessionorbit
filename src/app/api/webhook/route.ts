@@ -108,4 +108,86 @@ export const POST = Webhooks({
       console.warn(`Payment failed for user ${email}.`);
     }
   },
+
+  onPaymentSucceeded: async (payload) => {
+    console.log("Received onPaymentSucceeded webhook:", payload);
+    const data = payload.data as any;
+    const { metadata, product_id, customer, amount } = data;
+    const registrationId = metadata?.registration_id;
+
+    if (registrationId && product_id === (PAYMENT_CONFIG.productIds.demo || "pdt_demo_class")) {
+      const { supabaseAdmin } = await import("@/lib/supabase");
+
+      // 1. Fetch registration details
+      const { data: regData, error: fetchError } = await supabaseAdmin
+        .from('academy_demo_registrations')
+        .select('*')
+        .eq('id', registrationId)
+        .single();
+
+      if (fetchError || !regData) {
+        console.error("Error fetching registration for email:", fetchError);
+        return;
+      }
+
+      // 2. Update status
+      const { error: dbError } = await supabaseAdmin
+        .from('academy_demo_registrations')
+        .update({
+          payment_status: 'completed',
+          amount_paid: amount || 100
+        })
+        .eq('id', registrationId);
+
+      if (dbError) {
+        console.error("Error updating registration status after payment:", dbError);
+      } else {
+        console.log(`Successfully completed registration ${registrationId} after payment.`);
+
+        // 3. Send Confirmation Email
+        try {
+          const { Resend } = await import('resend');
+          const resend = new Resend(process.env.RESEND_API_KEY);
+
+          await resend.emails.send({
+            from: 'Sagar from Orbit Academy <onboarding@resend.dev>',
+            to: [regData.email],
+            subject: '🚀 Mission Confirmed: Your seat is reserved, Cadet!',
+            html: `
+              <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; line-height: 1.6;">
+                <h2 style="color: #2d1b69;">🚀 Mission Confirmed: Your seat is reserved, Cadet!</h2>
+                <p>Hi ${regData.name},</p>
+                <p>Welcome to the crew! We’ve successfully received your $1 Mission Registration for Orbit Academy.</p>
+                <p>By joining this demo, you’ve taken the first step in giving <strong>${regData.child_name || 'your child'}</strong> a front-row seat to the future of space exploration.</p>
+                
+                <h3 style="color: #7b2ff7; margin-top: 30px;">What Happens Next?</h3>
+                <p>We keep our demo sessions small (maximum 5 students) to ensure every cadet gets personal interaction with Commander Nova and our interactive flight deck.</p>
+                
+                <p><strong>The Schedule:</strong> Our mission directors are currently finalizing the flight manifest.</p>
+                <p><strong>The Notification:</strong> You will receive a follow-up email within the next 30 days with your specific date and time slot.</p>
+                <p><strong>The Gear:</strong> You don't need to install any software! SessionOrbit runs directly in your browser. We’ll send a "Pre-Flight Check" link 24 hours before your session.</p>
+                
+                <div style="background: #f8f6ff; padding: 20px; border-radius: 10px; border: 1px solid #e0d7ff; margin-top: 30px;">
+                  <h3 style="color: #2d1b69; margin-top: 0;">Your Founder’s Bonus 🎁</h3>
+                  <p style="margin-bottom: 0;">As promised, because you are one of our First Orbiters, we have already flagged your account for a <strong>$10 credit</strong>. This will be automatically applied to your first month’s subscription if you decide to join the Academy full-time after the demo.</p>
+                </div>
+                
+                <p style="margin-top: 30px;">In the meantime, check out Commander Nova’s latest briefing:<br/>
+                <a href="https://www.instagram.com/sessionorbit" style="color: #00f2ff; text-decoration: none; font-weight: bold;">Follow our Mission on Instagram →</a></p>
+                
+                <p style="margin-top: 40px; border-top: 1px solid #eee; padding-top: 20px;">
+                  Stay tuned, and prepare for liftoff!<br/><br/>
+                  <strong>Sagar D.</strong><br/>
+                  Founder, SessionOrbit & Orbit Academy
+                </p>
+              </div>
+            `
+          });
+          console.log(`Confirmation email sent to ${regData.email}`);
+        } catch (emailErr) {
+          console.error("Failed to send confirmation email:", emailErr);
+        }
+      }
+    }
+  },
 });
