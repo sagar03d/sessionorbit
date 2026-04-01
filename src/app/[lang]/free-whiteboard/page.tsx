@@ -9,8 +9,8 @@ export async function generateStaticParams() {
     }))
 }
 
-export async function generateMetadata({ params }: { params: { lang: string } }): Promise<Metadata> {
-    const { lang } = params
+export async function generateMetadata({ params }: { params: Promise<{ lang: string }> }): Promise<Metadata> {
+    const { lang } = await params
     const t = translations[lang as Language]?.metadata || translations.en.metadata
 
     return {
@@ -26,8 +26,8 @@ export async function generateMetadata({ params }: { params: { lang: string } })
     }
 }
 
-export default function LocalizedFreeWhiteboardPage({ params }: { params: { lang: string } }) {
-    const { lang } = params
+export default async function LocalizedFreeWhiteboardPage({ params }: { params: Promise<{ lang: string }> }) {
+    const { lang } = await params
 
     if (!languages.includes(lang as Language)) {
         notFound()
